@@ -9,6 +9,7 @@ function onOpen() {
     .addSeparator()
     .addItem('➕ Add New Vehicle to Fleet', 'showAddVehicleModal')
     .addItem('⚠️ Report Incident / OOS', 'showIncidentModal')
+    .addItem('✅ Check Vehicle Back Into Service', 'showCheckInModal')
     .addItem('🛑 Decommission Vehicle', 'menuPromptDecommissionVehicle')
     .addSeparator()
     .addItem('📋 Daily Dispatch Checkout (Coming in T5)', 'showDispatchModal')
@@ -81,7 +82,8 @@ function getSidebarHtml() {
     <div class="action-card">
       <h4>Service & Dispatch</h4>
       <button class="btn btn-amber" onclick="google.script.run.showIncidentModal()">⚠️ Report Issue / OOS</button>
-      <button class="btn btn-green" onclick="google.script.run.showDispatchModal()">📋 Daily Dispatch Form</button>
+      <button class="btn btn-green" onclick="google.script.run.showCheckInModal()">✅ Return Vehicle to Service</button>
+      <button class="btn btn-blue" onclick="google.script.run.showDispatchModal()">📋 Daily Dispatch Form</button>
     </div>
 
     <div class="action-card">
