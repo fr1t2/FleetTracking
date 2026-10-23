@@ -1,6 +1,6 @@
 /**
  * @fileoverview VEO Fleet Tracking & Dispatch Core Engine
- * Version 1.2 - Expanded Fleet Attributes & Dashboard Control Center
+ * Version 1.3 - Dynamic Rental Agency Configuration & Add Vehicle Modal
  */
 
 const CONFIG_SHEET = '_Config';
@@ -10,7 +10,7 @@ const DEPLOYMENTS_SHEET = 'Deployments';
 const INCIDENTS_SHEET = 'Incidents_Service';
 
 /**
- * Creates custom top menu on open and provides sidebar access.
+ * Initializes custom menu on spreadsheet open.
  */
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
@@ -19,26 +19,23 @@ function onOpen() {
     .addItem('➕ Add New Vehicle to Fleet', 'showAddVehicleModal')
     .addItem('🛑 Decommission Vehicle', 'menuPromptDecommissionVehicle')
     .addSeparator()
-    .addItem('📋 Open Daily Dispatch Form', 'showDispatchModal')
-    .addItem('⚠️ Report Incident / OOS', 'showIncidentModal')
+    .addItem('📋 Open Daily Dispatch Form (Coming in T5)', 'showDispatchModal')
+    .addItem('⚠️ Report Incident / OOS (Coming in T4)', 'showIncidentModal')
     .addSeparator()
-    .addItem('⚙️ Upgrade Vehicles Sheet Columns', 'updateVehiclesTableSchema')
     .addItem('🧪 Test Audit Log', 'testAuditLogger')
     .addToUi();
 }
 
 /**
- * Opens the Fleet Dispatch Control Panel directly on the right side of the sheet.
+ * Backward compatibility alias for any existing buttons.
  */
-function openFleetSidebar() {
-  const html = HtmlService.createHtmlOutput(getSidebarHtml())
-    .setTitle('🚚 Fleet Dispatch Panel')
-    .setWidth(320);
-  SpreadsheetApp.getUi().showSidebar(html);
+function menuPromptAddVehicle() {
+  showAddVehicleModal();
 }
 
 /**
  * Reads settings and dropdown options dynamically from _Config.
+ * @return {Object} System configuration object.
  */
 function getSystemConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -53,9 +50,11 @@ function getSystemConfig() {
     oosReasons: [],
     statuses: [],
     focusOptions: [],
+    rentalAgencies: [],
     debugLogging: true
   };
 
+  // Read Key-Value pairs (Cols A:B)
   const kvData = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
   kvData.forEach(([k, v]) => {
     if (k) config.settings[String(k).trim()] = v;
@@ -72,11 +71,17 @@ function getSystemConfig() {
       .filter(v => v !== '' && v !== null && v !== undefined);
   }
 
-  config.shifts = getNonEmptyColumn(4);
-  config.zones = getNonEmptyColumn(5);
-  config.oosReasons = getNonEmptyColumn(6);
-  config.statuses = getNonEmptyColumn(7);
-  config.focusOptions = getNonEmptyColumn(8);
+  config.shifts = getNonEmptyColumn(4);         // Column D
+  config.zones = getNonEmptyColumn(5);          // Column E
+  config.oosReasons = getNonEmptyColumn(6);     // Column F
+  config.statuses = getNonEmptyColumn(7);       // Column G
+  config.focusOptions = getNonEmptyColumn(8);   // Column H
+  config.rentalAgencies = getNonEmptyColumn(9); // Column I (Rental Agencies)
+
+  // Fallback defaults if Column I hasn't been populated yet
+  if (!config.rentalAgencies || config.rentalAgencies.length === 0) {
+    config.rentalAgencies = ['Enterprise', 'Hertz', 'Merchants Fleet', 'Budget', 'Penske', 'Company Owned'];
+  }
 
   return config;
 }
@@ -117,42 +122,11 @@ function logAudit(actionType, entity, recordId, details) {
 }
 
 /**
- * Upgrades the Vehicles sheet to include all new granular columns.
- * Can be run safely without erasing existing vehicle rows.
- */
-function updateVehiclesTableSchema() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(VEHICLES_SHEET);
-  if (!sheet) throw new Error('Vehicles sheet not found');
-
-  const newHeaders = [
-    'Vehicle Internal Name',
-    'Rental Agreement / Unit #',
-    'Rental Agency',
-    'Make & Model',
-    'VIN',
-    'License Plate',
-    'Current Status',
-    'Pick-up Date',
-    'Service Number',
-    'Current Assigned Zone',
-    'Current Assigned Tech',
-    'Last Service Date',
-    'Notes',
-    'Last Updated By',
-    'Last Updated At'
-  ];
-
-  sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
-  sheet.getRange(1, 1, 1, newHeaders.length).setFontWeight('bold');
-  SpreadsheetApp.getActiveSpreadsheet().toast('Vehicles columns updated with full attributes!', 'Schema Updated', 4);
-}
-
-/**
- * Displays the modal dialog form for adding a new vehicle.
+ * Displays the modal dialog form for adding a new vehicle with dynamic agency options.
  */
 function showAddVehicleModal() {
-  const html = HtmlService.createHtmlOutput(getAddVehicleModalHtml())
+  const config = getSystemConfig();
+  const html = HtmlService.createHtmlOutput(getAddVehicleModalHtml(config.rentalAgencies))
     .setWidth(520)
     .setHeight(620);
   SpreadsheetApp.getUi().showModalDialog(html, '➕ Add New Vehicle to Fleet');
@@ -169,7 +143,6 @@ function processAddVehicle(formData) {
   const now = new Date();
   const user = Session.getActiveUser().getEmail() || 'local-user';
 
-  // Order matching newHeaders
   const rowData = [
     formData.vanName || '',
     formData.rentalId || '',
@@ -180,8 +153,8 @@ function processAddVehicle(formData) {
     'Active',
     formData.pickupDate ? new Date(formData.pickupDate) : now,
     formData.serviceNum || '',
-    '', // Assigned Zone
-    '', // Assigned Tech
+    '', // Current Assigned Zone
+    '', // Current Assigned Tech
     now, // Last service date
     formData.notes || '',
     user,
@@ -231,7 +204,6 @@ function decommissionVehicle(rentalId, reason) {
   const user = Session.getActiveUser().getEmail() || 'system';
   const now = new Date();
 
-  // Col 7 is Current Status, Col 13 is Notes, Col 14 is Last Updated By, Col 15 is Last Updated At
   sheet.getRange(rowIndex, 7).setValue('Decommissioned');
   const existingNotes = sheet.getRange(rowIndex, 13).getValue();
   const updatedNotes = (existingNotes ? existingNotes + ' | ' : '') + 'Decommissioned: ' + (reason || 'No reason provided');
@@ -244,15 +216,15 @@ function decommissionVehicle(rentalId, reason) {
     decommissionedBy: user
   });
 
-  return { success: true, message: `Vehicle ${rentalId} has been marked Decommissioned.` };
+  return { success: true, message: `Vehicle ${rentalId} marked as Decommissioned.` };
 }
 
 function menuPromptDecommissionVehicle() {
   const ui = SpreadsheetApp.getUi();
-  const idResp = ui.prompt('Decommission Vehicle', 'Enter Van clean name (e.g. Van #01) or Rental ID to decommission:', ui.ButtonSet.OK_CANCEL);
+  const idResp = ui.prompt('Decommission Vehicle', 'Enter Van clean name or Rental ID to decommission:', ui.ButtonSet.OK_CANCEL);
   if (idResp.getSelectedButton() !== ui.Button.OK) return;
 
-  const reasonResp = ui.prompt('Decommission Vehicle', 'Enter reason (e.g. Returned to Enterprise / End of lease):', ui.ButtonSet.OK_CANCEL);
+  const reasonResp = ui.prompt('Decommission Vehicle', 'Enter reason:', ui.ButtonSet.OK_CANCEL);
   if (reasonResp.getSelectedButton() !== ui.Button.OK) return;
 
   const res = decommissionVehicle(idResp.getResponseText(), reasonResp.getResponseText());
@@ -260,8 +232,15 @@ function menuPromptDecommissionVehicle() {
 }
 
 function testAuditLogger() {
-  logAudit('TEST_RUN', 'System', 'SELF_CHECK', 'Audit log verification completed.');
+  logAudit('TEST_RUN', 'System', 'SELF_CHECK', 'Audit log verification triggered.');
   SpreadsheetApp.getActiveSpreadsheet().toast('Audit entry created successfully in Audit_Log!', 'Verified', 4);
+}
+
+function openFleetSidebar() {
+  const html = HtmlService.createHtmlOutput(getSidebarHtml())
+    .setTitle('🚚 Fleet Dispatch Panel')
+    .setWidth(320);
+  SpreadsheetApp.getUi().showSidebar(html);
 }
 
 function showDispatchModal() {
@@ -273,9 +252,11 @@ function showIncidentModal() {
 }
 
 /**
- * HTML definition for Add Vehicle Dialog
+ * HTML definition for Add Vehicle Dialog with dynamically injected agency options.
  */
-function getAddVehicleModalHtml() {
+function getAddVehicleModalHtml(agencyOptions) {
+  const optionsHtml = agencyOptions.map(agency => `<option value="${agency}">${agency}</option>`).join('');
+
   return `
   <!DOCTYPE html>
   <html>
@@ -311,13 +292,9 @@ function getAddVehicleModalHtml() {
       </div>
       <div class="row">
         <div class="col form-group">
-          <label>Rental Agency</label>
+          <label>Rental Agency (from _Config)</label>
           <select id="rentalAgency">
-            <option value="Enterprise">Enterprise</option>
-            <option value="Hertz">Hertz</option>
-            <option value="Merchants Fleet">Merchants Fleet</option>
-            <option value="Budget">Budget</option>
-            <option value="Company Owned">Company Owned</option>
+            ${optionsHtml}
           </select>
         </div>
         <div class="col form-group">
@@ -438,7 +415,6 @@ function getSidebarHtml() {
 
     <div class="action-card">
       <h4>System Utilities</h4>
-      <button class="btn btn-outline" onclick="google.script.run.updateVehiclesTableSchema()">⚙️ Update Sheet Columns</button>
       <button class="btn btn-outline" onclick="google.script.run.testAuditLogger()">🧪 Test Audit Logger</button>
     </div>
 
