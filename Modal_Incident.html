@@ -16,7 +16,7 @@
     .btn { padding: 9px 18px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; }
     .btn-danger { background: #d93025; color: #fff; }
     .btn-secondary { background: #f1f3f4; color: #3c4043; }
-    .status-msg { margin-top: 8px; font-size: 12px; font-weight: 500; }
+    .status-msg { margin-top: 10px; font-size: 13px; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -34,7 +34,6 @@
       </select>
     </div>
 
-    <!-- Distinct 1: What happened -->
     <div class="form-group">
       <label>1. Issue Category (What happened?) *</label>
       <select id="issueCategory" required>
@@ -44,7 +43,6 @@
       </select>
     </div>
 
-    <!-- Distinct 2: Operational Impact -->
     <div class="form-group">
       <label>2. Status Impact (Operational disposition) *</label>
       <select id="statusImpact" required>
@@ -76,9 +74,16 @@
   <script>
     document.getElementById('incidentForm').addEventListener('submit', function(e) {
       e.preventDefault();
+      
       const select = document.getElementById('vehicleSelect');
+      if (!select.value) {
+        alert('Please choose a vehicle first.');
+        return;
+      }
+
       const selectedOption = select.options[select.selectedIndex];
-      const rentalId = selectedOption.getAttribute('data-rental') || '';
+      const cleanName = select.value;
+      const rentalId = selectedOption ? (selectedOption.getAttribute('data-rental') || '') : '';
 
       const submitBtn = document.getElementById('submitBtn');
       const status = document.getElementById('status');
@@ -87,7 +92,7 @@
       status.innerText = 'Submitting incident and updating vehicle status...';
 
       const payload = {
-        cleanName: select.value,
+        cleanName: cleanName,
         rentalId: rentalId,
         issueCategory: document.getElementById('issueCategory').value,
         statusImpact: document.getElementById('statusImpact').value,
@@ -99,12 +104,13 @@
         .withSuccessHandler(function(res) {
           status.style.color = '#137333';
           status.innerText = res.message;
-          setTimeout(() => { google.script.host.close(); }, 1200);
+          setTimeout(function() { google.script.host.close(); }, 1200);
         })
         .withFailureHandler(function(err) {
           submitBtn.disabled = false;
           status.style.color = '#d93025';
-          status.innerText = 'Error: ' + err.message;
+          status.innerText = 'Submission failed: ' + (err.message || err);
+          alert('Submission failed: ' + (err.message || err));
         })
         .processReportIncident(payload);
     });

@@ -101,12 +101,13 @@
         .withSuccessHandler(function(res) {
           status.style.color = '#137333';
           status.innerText = res.message;
-          setTimeout(() => { google.script.host.close(); }, 1200);
+          setTimeout(function() { google.script.host.close(); }, 1200);
         })
         .withFailureHandler(function(err) {
           submitBtn.disabled = false;
           status.style.color = '#d93025';
           status.innerText = 'Error: ' + err.message;
+          alert('Error: ' + err.message);
         })
         .processAddVehicle(payload);
     });

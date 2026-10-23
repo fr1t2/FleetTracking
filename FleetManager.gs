@@ -2,9 +2,6 @@
  * @fileoverview Vehicle Registry Operations (Add, Decommission, Query).
  */
 
-/**
- * Displays modal dialog for adding a new vehicle.
- */
 function showAddVehicleModal() {
   const config = getSystemConfig();
   const template = HtmlService.createTemplateFromFile('Modal_AddVehicle');
@@ -16,9 +13,6 @@ function showAddVehicleModal() {
   SpreadsheetApp.getUi().showModalDialog(html, '➕ Add New Vehicle to Fleet');
 }
 
-/**
- * Processes new vehicle submission from modal.
- */
 function processAddVehicle(formData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(VEHICLES_SHEET);
@@ -61,9 +55,6 @@ function processAddVehicle(formData) {
   return { success: true, message: `Vehicle ${formData.vanName} successfully added!` };
 }
 
-/**
- * Decommissions a vehicle and marks status in registry.
- */
 function decommissionVehicle(targetId, reason) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(VEHICLES_SHEET);
@@ -106,7 +97,7 @@ function decommissionVehicle(targetId, reason) {
 }
 
 /**
- * Helper to fetch active vehicles for dropdowns.
+ * Returns all vehicles that are NOT decommissioned for form dropdowns.
  */
 function getActiveVehiclesList() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -114,12 +105,21 @@ function getActiveVehiclesList() {
   if (!sheet || sheet.getLastRow() < 2) return [];
 
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).getValues();
-  return data
-    .filter(r => r[6] !== 'Decommissioned')
-    .map(r => ({
-      cleanName: r[0],
-      rentalId: r[1],
-      status: r[6],
-      displayName: `${r[0]} (${r[1]}) - [${r[6]}]`
-    }));
+  const list = [];
+  
+  for (let i = 0; i < data.length; i++) {
+    const cleanName = data[i][0];
+    const rentalId = data[i][1];
+    const status = data[i][6] || 'Active';
+
+    if (status !== 'Decommissioned' && (cleanName || rentalId)) {
+      list.push({
+        cleanName: String(cleanName).trim(),
+        rentalId: String(rentalId).trim(),
+        status: status,
+        displayName: `${cleanName} (${rentalId}) - [${status}]`
+      });
+    }
+  }
+  return list;
 }

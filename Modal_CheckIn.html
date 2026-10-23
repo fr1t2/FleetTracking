@@ -49,7 +49,7 @@
 
       <div class="form-group">
         <label>Resolution / Repairs Completed *</label>
-        <textarea id="resolutionNotes" rows="3" placeholder="e.g. Tire patched at Discount Tire, new tread depth verified, ready for market." required></textarea>
+        <textarea id="resolutionNotes" rows="3" placeholder="e.g. Tire patched at Discount Tire, tread verified, ready for route." required></textarea>
       </div>
 
       <div class="btn-bar">
@@ -110,12 +110,13 @@
           .withSuccessHandler(function(res) {
             status.style.color = '#137333';
             status.innerText = res.message;
-            setTimeout(() => { google.script.host.close(); }, 1200);
+            setTimeout(function() { google.script.host.close(); }, 1200);
           })
           .withFailureHandler(function(err) {
             submitBtn.disabled = false;
             status.style.color = '#d93025';
             status.innerText = 'Error: ' + err.message;
+            alert('Error: ' + err.message);
           })
           .processCheckInVehicle(payload);
       });
