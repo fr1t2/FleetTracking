@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VEO Fleet & Dispatch Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --radius: 10px;
+      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+    /* Top Navigation */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; color: var(--text); }
+    .nav-tabs { display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
+    .nav-btn { border: none; background: transparent; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+    .nav-btn.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow); }
+
+    .header-actions { display: flex; gap: 10px; }
+    .btn { border: none; padding: 9px 15px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f8fafc; }
+
+    /* Layout */
+    main { max-width: 1320px; margin: 24px auto; padding: 0 20px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* KPI Summary Row */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+    .kpi-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); }
+    .badge-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+    /* Cards & Containers */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .panel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+
+    /* Filter Toolbar */
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .filter-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+    .filter-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
+    .shift-toggle-group { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 6px; }
+    .shift-btn { border: none; padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; background: transparent; color: var(--text-muted); }
+    .shift-btn.active { background: #fff; color: var(--primary); box-shadow: var(--shadow); }
+
+    /* Grid of Cards */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .vehicle-card, .dispatch-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+    .vehicle-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .card-name { font-size: 16px; font-weight: 700; color: var(--text); }
+    .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .status-pill { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-active { background: #dcfce7; color: #15803d; }
+    .status-oos { background: #fee2e2; color: #b91c1c; }
+    .status-decom { background: #f1f5f9; color: #64748b; }
+
+    .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--text-muted); border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 12px; }
+    .meta-item strong { display: block; color: var(--text); font-size: 13px; font-weight: 600; margin-top: 2px; }
+
+    /* Tables */
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: var(--text); }
+    tr:hover td { background: #f8fafc; }
+
+    .zone-badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-block; }
+    .empty-state { text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      🚚 <span>VEO Fleet Hub</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('fleet')">Fleet Overview</button>
+      <button class="nav-btn" onclick="switchTab('dispatch')">Daily Dispatch Board</button>
+      <button class="nav-btn" onclick="switchTab('profile')">Van 360° Profile</button>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" onclick="loadPortalData()">🔄 Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: FLEET OVERVIEW -->
+    <div id="tab-fleet" class="tab-content active">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">Total Fleet</div>
+          <div class="kpi-value" id="kpi-total">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title"><span class="badge-dot" style="background:#16a34a"></span>Active / In Service</div>
+          <div class="kpi-value" id="kpi-active" style="color:var(--success)">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title"><span class="badge-dot" style="background:#dc2626"></span>Out of Service (OOS)</div>
+          <div class="kpi-value" id="kpi-oos" style="color:var(--danger)">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title"><span class="badge-dot" style="background:#64748b"></span>Decommissioned</div>
+          <div class="kpi-value" id="kpi-decom" style="color:var(--text-muted)">0</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Fleet Vehicles Roster</h2>
+          <input type="text" id="fleet-search" class="filter-input" placeholder="Search by Van #, plate, or tech..." onkeyup="filterFleetCards()" style="width: 260px;" />
+        </div>
+        <div id="fleet-cards" class="card-grid"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DAILY DISPATCH BOARD -->
+    <div id="tab-dispatch" class="tab-content">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Date:</label>
+          <input type="date" id="dispatch-date" class="filter-input" onchange="loadPortalData()" />
+        </div>
+        <div class="filter-group">
+          <label>Shift:</label>
+          <div class="shift-toggle-group">
+            <button class="shift-btn active" onclick="setShift('Shift 1')">Shift 1</button>
+            <button class="shift-btn" onclick="setShift('Shift 2')">Shift 2</button>
+            <button class="shift-btn" onclick="setShift('Shift 3')">Shift 3</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title" id="dispatch-title">Shift Deployments</h2>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Van Clean Name</th>
+                <th>Rental ID</th>
+                <th>Driver / Technician</th>
+                <th>Work Zone</th>
+                <th>Focus & Goals</th>
+                <th>Battery Target</th>
+                <th>Status</th>
+                <th>Time Out</th>
+              </tr>
+            </thead>
+            <tbody id="dispatch-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: VAN 360 PROFILE -->
+    <div id="tab-profile" class="tab-content">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Select Van:</label>
+          <select id="profile-van-select" class="filter-input" onchange="renderVanProfile()">
+            <option value="">-- Choose Van --</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="profile-details-area">
+        <div class="empty-state">Select a vehicle above or click any van in Fleet Overview to view its 360° record.</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let globalState = null;
+    let currentShift = 'Shift 1';
+
+    window.onload = function() {
+      document.getElementById('dispatch-date').value = new Date().toISOString().split('T')[0];
+      loadPortalData();
+    };
+
+    function switchTab(tabKey) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + tabKey).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function setShift(shiftName) {
+      currentShift = shiftName;
+      document.querySelectorAll('.shift-btn').forEach(b => {
+        b.classList.toggle('active', b.innerText === shiftName);
+      });
+      loadPortalData();
+    }
+
+    function loadPortalData() {
+      const dateVal = document.getElementById('dispatch-date').value;
+      google.script.run
+        .withSuccessHandler(function(state) {
+          globalState = state;
+          renderFleetOverview(state);
+          renderDispatchBoard(state);
+          populateProfileDropdown(state);
+        })
+        .getDashboardState(dateVal, currentShift);
+    }
+
+    function renderFleetOverview(state) {
+      document.getElementById('kpi-total').innerText = state.counts.total;
+      document.getElementById('kpi-active').innerText = state.counts.active;
+      document.getElementById('kpi-oos').innerText = state.counts.oos;
+      document.getElementById('kpi-decom').innerText = state.counts.decommissioned;
+
+      const container = document.getElementById('fleet-cards');
+      if (!state.vehicles.length) {
+        container.innerHTML = '<div class="empty-state">No vehicles in registry.</div>';
+        return;
+      }
+
+      container.innerHTML = state.vehicles.map(v => {
+        const statusClass = (v.status === 'Active' || v.status === 'In Service') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-decom');
+        return `
+          <div class="vehicle-card" onclick="openProfileForVan('${v.cleanName}')">
+            <div class="card-top">
+              <div>
+                <div class="card-name">${v.cleanName}</div>
+                <div class="card-sub">${v.rentalId} &bull; ${v.agency || 'Rental'}</div>
+              </div>
+              <span class="status-pill ${statusClass}">${v.status}</span>
+            </div>
+            <div style="font-size:12px; color:#475569; margin: 4px 0;">
+              ${v.makeModel || 'Cargo Van'} &bull; Plate: <strong>${v.plate || '—'}</strong>
+            </div>
+            <div class="card-meta">
+              <div class="meta-item">Zone: <strong>${v.zone}</strong></div>
+              <div class="meta-item">Driver: <strong>${v.driver}</strong></div>
+              <div class="meta-item">VIN: <strong>${v.vin ? v.vin.substring(0, 11) + '...' : '—'}</strong></div>
+              <div class="meta-item">Last Serviced: <strong>${v.lastService}</strong></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderDispatchBoard(state) {
+      document.getElementById('dispatch-title').innerText = `${state.selectedShift} Deployments (${state.selectedDate})`;
+      const tbody = document.getElementById('dispatch-table-body');
+      
+      if (!state.deployments.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No dispatches found for ${state.selectedShift} on ${state.selectedDate}.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.deployments.map(d => `
+        <tr>
+          <td><strong>${d.vehicle}</strong></td>
+          <td>${d.rentalId}</td>
+          <td><strong>${d.tech}</strong></td>
+          <td><span class="zone-badge">${d.zone}</span></td>
+          <td>${d.goals || '—'}</td>
+          <td>${d.target || '—'}</td>
+          <td><span class="status-pill status-active">${d.status}</span></td>
+          <td>${d.departureTime}</td>
+        </tr>
+      `).join('');
+    }
+
+    function populateProfileDropdown(state) {
+      const select = document.getElementById('profile-van-select');
+      const cur = select.value;
+      select.innerHTML = '<option value="">-- Choose Van --</option>' + 
+        state.vehicles.map(v => `<option value="${v.cleanName}">${v.cleanName} (${v.rentalId})</option>`).join('');
+      if (cur) select.value = cur;
+    }
+
+    function openProfileForVan(cleanName) {
+      switchTab('profile');
+      document.getElementById('profile-van-select').value = cleanName;
+      renderVanProfile();
+    }
+
+    function renderVanProfile() {
+      const cleanName = document.getElementById('profile-van-select').value;
+      const area = document.getElementById('profile-details-area');
+      if (!cleanName || !globalState) {
+        area.innerHTML = '<div class="empty-state">Select a vehicle to inspect its full history.</div>';
+        return;
+      }
+
+      const van = globalState.vehicles.find(v => v.cleanName === cleanName);
+      if (!van) return;
+
+      const vanIncidents = globalState.incidents.filter(i => i.vehicle === cleanName || i.rentalId === van.rentalId);
+
+      area.innerHTML = `
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size:20px;">${van.cleanName}</h2>
+              <p style="font-size:13px; color:var(--text-muted);">${van.rentalId} &bull; ${van.agency} &bull; ${van.makeModel}</p>
+            </div>
+            <span class="status-pill ${van.status === 'Out of Service' ? 'status-oos' : 'status-active'}">${van.status}</span>
+          </div>
+
+          <div class="kpi-grid" style="margin-bottom: 16px;">
+            <div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:18px; font-weight:700;">${van.zone}</div></div>
+            <div class="kpi-card"><div class="kpi-title">Assigned Driver</div><div style="font-size:18px; font-weight:700;">${van.driver}</div></div>
+            <div class="kpi-card"><div class="kpi-title">License Plate</div><div style="font-size:18px; font-weight:700;">${van.plate || '—'}</div></div>
+            <div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:14px; font-weight:600; word-break:break-all;">${van.vin || '—'}</div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title">🛠️ Service & Incident History</h3>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Incident ID</th>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Details</th>
+                  <th>Impact</th>
+                  <th>Resolution</th>
+                  <th>Resolved Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${vanIncidents.length ? vanIncidents.map(i => `
+                  <tr>
+                    <td><strong>${i.id}</strong></td>
+                    <td>${i.date}</td>
+                    <td>${i.category}</td>
+                    <td>${i.details}</td>
+                    <td>${i.impact}</td>
+                    <td>${i.resolution || '<span style="color:var(--danger)">Unresolved</span>'}</td>
+                    <td>${i.dateResolved || '—'}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="7" class="empty-state">No incidents recorded for this vehicle.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterFleetCards() {
+      const q = document.getElementById('fleet-search').value.toLowerCase();
+      document.querySelectorAll('.vehicle-card').forEach(c => {
+        c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
