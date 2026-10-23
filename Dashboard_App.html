@@ -534,9 +534,7 @@
         </div>
         <div class="filter-group">
           <div class="shift-toggle-group">
-            <button class="shift-btn active" onclick="setShift('Shift 1')">Shift 1</button>
-            <button class="shift-btn" onclick="setShift('Shift 2')">Shift 2</button>
-            <button class="shift-btn" onclick="setShift('Shift 3')">Shift 3</button>
+            <div id="dynamic-shift-buttons" class="shift-toggle-group"></div>
           </div>
         </div>
         <!-- Export Action Buttons -->
@@ -632,7 +630,53 @@
     </form>
   </div>
 </div>
-    
+
+<!-- EDIT DISPATCH MODAL -->
+<div id="editDispatchModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Dispatch Assignment</div>
+      <button class="modal-close" onclick="closeModal('editDispatchModal')">&times;</button>
+    </div>
+    <form id="editDispatchForm" onsubmit="submitEditDispatch(event)">
+      <div class="modal-body">
+        <div id="editDispatchAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
+        <input type="hidden" id="ed_id" />
+        <input type="hidden" id="ed_vehicle" />
+        <input type="hidden" id="ed_rental" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Driver / Technician</label>
+            <input type="text" id="ed_tech" required />
+          </div>
+          <div class="form-group">
+            <label>Shift</label>
+            <select id="ed_shift"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Work Zone</label>
+            <select id="ed_zone"></select>
+          </div>
+          <div class="form-group">
+            <label>Battery Target</label>
+            <input type="text" id="ed_target" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Goals & Notes</label>
+          <textarea id="ed_goals" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('editDispatchModal')">Cancel</button>
+        <button type="submit" id="ed_btn" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
   </main>
 
   <!-- Floating Mobile Action Drawer (FAB) -->
@@ -888,6 +932,58 @@
     loadPortalData();
   };
 
+function openEditDispatchModal(id) {
+  const d = globalState.deployments.find(x => x.id === id);
+  if (!d) return;
+
+  document.getElementById('ed_id').value = d.id;
+  document.getElementById('ed_vehicle').value = d.vehicle;
+  document.getElementById('ed_rental').value = d.rentalId;
+  document.getElementById('ed_tech').value = d.tech;
+  document.getElementById('ed_shift').value = d.shift;
+  document.getElementById('ed_zone').value = d.zone;
+  document.getElementById('ed_target').value = d.target || '';
+  document.getElementById('ed_goals').value = d.goals || '';
+
+  openModal('editDispatchModal');
+}
+
+function submitEditDispatch(e) {
+  e.preventDefault();
+  const btn = document.getElementById('ed_btn');
+  btn.disabled = true;
+  showLoader(true);
+  setAlert('editDispatchAlert', 'success', 'Saving changes...');
+
+  const payload = {
+    id: document.getElementById('ed_id').value,
+    vehicle: document.getElementById('ed_vehicle').value,
+    rentalId: document.getElementById('ed_rental').value,
+    tech: document.getElementById('ed_tech').value,
+    shift: document.getElementById('ed_shift').value,
+    zone: document.getElementById('ed_zone').value,
+    target: document.getElementById('ed_target').value,
+    goals: document.getElementById('ed_goals').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled = false;
+      showLoader(false);
+      setAlert('editDispatchAlert', 'success', res.message);
+      setTimeout(() => {
+        closeModal('editDispatchModal');
+        loadPortalData();
+      }, 700);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      showLoader(false);
+      setAlert('editDispatchAlert', 'error', 'Error: ' + err.message);
+    })
+    .updateDeploymentRecord(payload);
+}
+
   function showLoader(show) {
     const el = document.getElementById('global-loader');
     if (el) el.style.display = show ? 'block' : 'none';
@@ -911,6 +1007,22 @@
       renderDispatchBoard();
     }
   }
+
+
+function populateDynamicShiftButtons(state) {
+  const container = document.getElementById('dynamic-shift-buttons');
+  const shifts = (state.config && state.config.shifts && state.config.shifts.length) 
+    ? state.config.shifts 
+    : ['First Shift', 'Second Shift', 'Third Shift'];
+
+  if (!shifts.includes(currentShift)) {
+    currentShift = shifts[0];
+  }
+
+  container.innerHTML = shifts.map(s => `
+    <button class="shift-btn ${s === currentShift ? 'active' : ''}" onclick="setShift('${s}')">${s}</button>
+  `).join('');
+}
 
 /**
    * INSTANT SHIFT TOGGLE:
@@ -945,6 +1057,7 @@
         alert('Error loading fleet portal data: ' + err.message);
       })
       .getDashboardState();
+      .populateDynamicShiftButtons(state);
   }
 
   function renderFleetOverview(state) {
@@ -1432,6 +1545,57 @@ function renderDispatchBoard() {
       })
       .decommissionVehicle(targetId, reason);
   }
+
+ function openEditVehicleModal(rentalId) {
+  const van = globalState.vehicles.find(v => v.rentalId === rentalId);
+  if (!van) return;
+
+  document.getElementById('ev_rental').value = van.rentalId;
+  document.getElementById('ev_name').value = van.cleanName;
+  document.getElementById('ev_plate').value = van.plate || '';
+  document.getElementById('ev_plate_exp').value = (van.plateExpDate && van.plateExpDate !== '—') ? van.plateExpDate : '';
+  document.getElementById('ev_samsara').value = (van.samsaraSerial && van.samsaraSerial !== 'Unassigned') ? van.samsaraSerial : '';
+  document.getElementById('ev_notes').value = '';
+
+  openModal('editVehicleModal');
+}
+
+function submitEditVehicle(e) {
+  e.preventDefault();
+  const btn = document.getElementById('ev_btn');
+  btn.disabled = true;
+  showLoader(true);
+  setAlert('editVehicleAlert', 'success', 'Saving changes...');
+
+  const payload = {
+    rentalId: document.getElementById('ev_rental').value,
+    vanName: document.getElementById('ev_name').value,
+    licensePlate: document.getElementById('ev_plate').value,
+    plateExpDate: document.getElementById('ev_plate_exp').value,
+    samsaraSerial: document.getElementById('ev_samsara').value,
+    notes: document.getElementById('ev_notes').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled = false;
+      showLoader(false);
+      setAlert('editVehicleAlert', 'success', res.message);
+      setTimeout(() => {
+        closeModal('editVehicleModal');
+        loadPortalData(function() {
+          renderVanProfile();
+        });
+      }, 800);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      showLoader(false);
+      setAlert('editVehicleAlert', 'error', 'Error: ' + err.message);
+    })
+    .updateVehicleDetails(payload);
+}
+ 
 </script>
 </body>
 </html>

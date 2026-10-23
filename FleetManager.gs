@@ -2,6 +2,47 @@
  * @fileoverview Vehicle Registry Operations (Add, Decommission, Query).
  */
 
+/**
+ * Cleanly aligns Equinox #0 into the 17-column schema.
+ */
+function fixEquinoxColumns() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Vehicles');
+  if (!sheet) return;
+
+  const headers = [
+    'Vehicle Clean Name', 'Rental Agreement / Unit #', 'Rental Agency', 'Make & Model',
+    'VIN', 'License Plate', 'Plate Expiration Date', 'Samsara Gateway Serial #',
+    'Current Status', 'Pick-up Date', 'Service Number', 'Current Assigned Zone',
+    'Current Assigned Tech', 'Last Service Date', 'Notes', 'Last Updated By', 'Last Updated At'
+  ];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
+
+  // Fix Equinox row
+  const cleanEquinox = [
+    'Equinox #0',
+    'EP7391',
+    'VEO',
+    'Chevy Equinox',
+    '3GN7DMRP8TS147391',
+    'CO - 8620723',
+    '2027-04-30',        // Plate Exp Date
+    'GDM3-683-XW2',       // Samsara Serial #
+    'In Service',         // Current Status
+    new Date('2026-10-22'),
+    'ra-87666',
+    'Work Zone 2A',
+    'james',
+    new Date('2026-10-23'),
+    '',
+    'james@merkletree.us',
+    new Date('2026-10-23')
+  ];
+
+  sheet.getRange(2, 1, 1, headers.length).setValues([cleanEquinox]);
+  SpreadsheetApp.getActiveSpreadsheet().toast('Equinox columns realigned!', 'Fixed', 4);
+}
+
 function showAddVehicleModal() {
   const config = getSystemConfig();
   const template = HtmlService.createTemplateFromFile('Modal_AddVehicle');
@@ -21,8 +62,8 @@ function processAddVehicle(formData) {
   const now = new Date();
   const user = Session.getActiveUser().getEmail() || 'local-user';
 
-  // 15-column schema:
-  // [CleanName, RentalId, Agency, MakeModel, VIN, Plate, Status, PickupDate, Service#, Zone, Tech, LastService, Notes, UpdatedBy, UpdatedAt]
+  // 17-column format:
+  // [CleanName, RentalId, Agency, MakeModel, VIN, Plate, PlateExp, SamsaraSerial, Status, PickupDate, Service#, Zone, Tech, LastService, Notes, UpdatedBy, UpdatedAt]
   const rowData = [
     formData.vanName || '',
     formData.rentalId || '',
@@ -30,6 +71,8 @@ function processAddVehicle(formData) {
     formData.makeModel || 'Cargo Van',
     formData.vin || '',
     formData.licensePlate || '',
+    formData.plateExpDate || '',
+    formData.samsaraSerial || '',
     'Active',
     formData.pickupDate ? new Date(formData.pickupDate) : now,
     formData.serviceNum || '',
@@ -46,9 +89,8 @@ function processAddVehicle(formData) {
   logAudit('VEHICLE_ADDED', 'Vehicles', formData.rentalId || formData.vanName, {
     vanName: formData.vanName,
     rentalId: formData.rentalId,
-    agency: formData.rentalAgency,
-    vin: formData.vin,
-    plate: formData.licensePlate,
+    samsara: formData.samsaraSerial,
+    plateExp: formData.plateExpDate,
     addedBy: user
   });
 
