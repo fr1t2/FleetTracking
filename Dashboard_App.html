@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>VEO Fleet & Dispatch Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -15,126 +16,472 @@
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --success: #16a34a;
-      --success-hover: #15803d;
       --warning: #d97706;
       --danger: #dc2626;
-      --radius: 10px;
-      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
 
-    /* Top Nav */
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 40; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text); }
-    .nav-tabs { display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
-    .nav-btn { border: none; background: transparent; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 6px; cursor: pointer; transition: all 0.15s; }
-    .nav-btn.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow); }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+      padding-bottom: calc(75px + var(--safe-bottom)); /* Clearance for bottom tab bar */
+    }
 
-    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn { border: none; padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s; text-decoration: none; }
+    /* Top Bar */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+    }
+    .header-desktop-tabs {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .nav-btn {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .nav-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+
+    .header-actions { display: flex; gap: 6px; }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+      min-height: 42px;
+    }
     .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-hover); }
     .btn-success { background: var(--success); color: #fff; }
-    .btn-success:hover { background: var(--success-hover); }
     .btn-warning { background: var(--warning); color: #fff; }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { background: #f8fafc; }
+    .btn-icon { width: 42px; height: 42px; padding: 0; border-radius: 8px; }
 
-    /* Main Container */
-    main { max-width: 1320px; margin: 24px auto; padding: 0 20px; }
+    /* Mobile Bottom Navigation Bar */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 6px 12px calc(6px + var(--safe-bottom)) 12px;
+      z-index: 50;
+      justify-content: space-around;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+    }
+    .b-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: transparent;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .b-nav-item .icon { font-size: 18px; }
+    .b-nav-item.active { color: var(--primary); }
+
+    /* Layout Container */
+    main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* KPI Summary */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
-    .kpi-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
-    .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); }
-    .badge-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    /* KPI Metrics Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
 
-    /* Panels & Cards */
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); margin-bottom: 24px; }
-    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-    .panel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    /* Panels & Search */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .panel-header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media(min-width: 640px) {
+      .panel-header { flex-direction: row; justify-content: space-between; align-items: center; }
+    }
+    .panel-title { font-size: 15px; font-weight: 700; color: var(--text); }
 
-    /* Filter Toolbar */
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; box-shadow: var(--shadow); }
-    .filter-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
-    .filter-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
-    .shift-toggle-group { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 6px; }
-    .shift-btn { border: none; padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; background: transparent; color: var(--text-muted); }
-    .shift-btn.active { background: #fff; color: var(--primary); box-shadow: var(--shadow); }
+    .filter-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    @media(min-width: 640px) {
+      .filter-bar { flex-direction: row; align-items: center; }
+    }
+    .filter-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; width: 100%; }
+    .filter-input {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: #fff;
+      width: 100%;
+      outline: none;
+      min-height: 42px;
+    }
+    .shift-toggle-group {
+      display: flex;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 8px;
+      width: 100%;
+    }
+    .shift-btn {
+      flex: 1;
+      border: none;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-muted);
+      min-height: 38px;
+    }
+    .shift-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
 
-    /* Card Grid */
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-    .vehicle-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
-    .vehicle-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .card-name { font-size: 16px; font-weight: 700; color: var(--text); }
-    .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
-    .status-pill { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    /* Cards Roster */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .vehicle-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .card-sub { font-size: 12px; color: var(--text-muted); }
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
     .status-active { background: #dcfce7; color: #15803d; }
     .status-oos { background: #fee2e2; color: #b91c1c; }
     .status-decom { background: #f1f5f9; color: #64748b; }
 
-    .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--text-muted); border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 12px; }
-    .meta-item strong { display: block; color: var(--text); font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .card-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-top: 1px solid #f1f5f9;
+      padding-top: 10px;
+    }
+    .meta-item strong { display: block; color: var(--text); font-size: 13px; font-weight: 600; }
 
-    /* Tables */
+    /* Responsive Tables & Mobile Stack View */
     .table-responsive { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: var(--text); }
-    tr:hover td { background: #f8fafc; }
-    .zone-badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-block; }
-    .empty-state { text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
+    th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
 
-    /* Modals Overlay */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; }
+    /* Mobile Deployment Cards (Replaces wide table on small screens) */
+    .mobile-dispatch-cards { display: flex; flex-direction: column; gap: 10px; }
+    .m-dispatch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .m-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .zone-badge {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-block;
+    }
+    .empty-state { text-align: center; padding: 36px 16px; color: var(--text-muted); font-size: 13px; }
+
+    /* Modals - Mobile Bottom Sheet */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    @media(min-width: 640px) {
+      .modal-overlay { align-items: center; padding: 16px; }
+    }
     .modal-overlay.active { display: flex; }
-    .modal-box { background: var(--surface); border-radius: 12px; width: 100%; max-width: 540px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
-    .modal-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
-    .modal-close { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
-    .modal-body { padding: 20px 24px; overflow-y: auto; }
-    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; }
+    .modal-box {
+      background: var(--surface);
+      width: 100%;
+      max-width: 520px;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    }
+    @media(min-width: 640px) {
+      .modal-box { border-radius: var(--radius); max-height: 90vh; }
+    }
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .modal-close {
+      background: #f1f5f9;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-body { padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .modal-footer {
+      padding: 12px 16px calc(12px + var(--safe-bottom)) 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #f8fafc;
+    }
 
-    /* Form Fields */
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; background: #fff; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
-    .form-row { display: flex; gap: 12px; }
-    .form-row .form-group { flex: 1; }
-    .notice-box { background: #fef2f2; border: 1px solid #fee2e2; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
-    .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--danger); cursor: pointer; margin: 0; }
-    .checkbox-label input { width: auto; margin: 0; }
-    .alert-banner { display: none; padding: 10px 14px; margin-bottom: 14px; border-radius: 6px; font-size: 13px; font-weight: 500; }
+    /* Forms */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      min-height: 44px;
+    }
+    .form-row { display: flex; flex-direction: column; gap: 0; }
+    @media(min-width: 480px) {
+      .form-row { flex-direction: row; gap: 10px; }
+      .form-row .form-group { flex: 1; }
+    }
+
+    /* Floating Action Drawer */
+    .mobile-action-menu {
+      position: fixed;
+      bottom: calc(75px + var(--safe-bottom));
+      right: 16px;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .fab-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 24px;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fab-drawer {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 4px;
+      align-items: flex-end;
+    }
+    .fab-drawer.active { display: flex; }
+    .fab-action-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* Breakpoint Specific Tweaks */
+    @media (max-width: 768px) {
+      .header-desktop-tabs { display: none; }
+      .header-actions .desktop-only { display: none; }
+      .bottom-nav { display: flex; }
+      .desktop-table-view { display: none; }
+    }
+    @media (min-width: 769px) {
+      .mobile-dispatch-cards { display: none; }
+      .mobile-action-menu { display: none; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Top Nav Bar -->
+  <!-- Top Navigation Header -->
   <header>
-    <div class="brand">🚚 <span>VEO Fleet Hub</span></div>
-    <div class="nav-tabs">
+    <div class="brand">
+      🚚 <span>VEO Fleet Hub</span>
+    </div>
+
+    <!-- Desktop Navigation Tabs -->
+    <div class="header-desktop-tabs">
       <button class="nav-btn active" onclick="switchTab('fleet')">Fleet Overview</button>
       <button class="nav-btn" onclick="switchTab('dispatch')">Daily Dispatch Board</button>
       <button class="nav-btn" onclick="switchTab('profile')">Van 360° Profile</button>
     </div>
+
+    <!-- Header Actions (Responsive) -->
     <div class="header-actions">
-      <button class="btn btn-primary" onclick="openModal('addVehicleModal')">➕ Add Vehicle</button>
-      <button class="btn btn-success" onclick="openModal('dispatchModal')">📋 Dispatch</button>
-      <button class="btn btn-warning" onclick="openModal('incidentModal')">⚠️ Report Issue</button>
-      <button class="btn btn-outline" onclick="openModal('checkInModal')">✅ Check In</button>
-      <button class="btn btn-outline" onclick="openModal('decomModal')">🛑 Decommission</button>
-      <button class="btn btn-outline" onclick="loadPortalData()">🔄</button>
+      <button class="btn btn-primary desktop-only" onclick="openModal('addVehicleModal')">➕ Add Vehicle</button>
+      <button class="btn btn-success desktop-only" onclick="openModal('dispatchModal')">📋 Dispatch</button>
+      <button class="btn btn-warning desktop-only" onclick="openModal('incidentModal')">⚠️ Report Issue</button>
+      <button class="btn btn-outline desktop-only" onclick="openModal('checkInModal')">✅ Check In</button>
+      <button class="btn btn-outline desktop-only" onclick="openModal('decomModal')">🛑 Decom</button>
+      <button class="btn btn-outline btn-icon" onclick="loadPortalData()" title="Refresh">🔄</button>
     </div>
   </header>
 
+  <!-- Main Viewports -->
   <main>
     <!-- TAB 1: FLEET OVERVIEW -->
     <div id="tab-fleet" class="tab-content active">
@@ -144,15 +491,15 @@
           <div class="kpi-value" id="kpi-total">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-title"><span class="badge-dot" style="background:#16a34a"></span>Active / In Service</div>
+          <div class="kpi-title">Active / In Service</div>
           <div class="kpi-value" id="kpi-active" style="color:var(--success)">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-title"><span class="badge-dot" style="background:#dc2626"></span>Out of Service (OOS)</div>
+          <div class="kpi-title">Out of Service</div>
           <div class="kpi-value" id="kpi-oos" style="color:var(--danger)">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-title"><span class="badge-dot" style="background:#64748b"></span>Decommissioned</div>
+          <div class="kpi-title">Decommissioned</div>
           <div class="kpi-value" id="kpi-decom" style="color:var(--text-muted)">0</div>
         </div>
       </div>
@@ -160,7 +507,7 @@
       <div class="panel">
         <div class="panel-header">
           <h2 class="panel-title">Fleet Vehicles Roster</h2>
-          <input type="text" id="fleet-search" class="filter-input" placeholder="Search by Van #, plate, or driver..." onkeyup="filterFleetCards()" style="width: 260px;" />
+          <input type="text" id="fleet-search" class="filter-input" placeholder="🔍 Search van, plate, driver..." onkeyup="filterFleetCards()" />
         </div>
         <div id="fleet-cards" class="card-grid"></div>
       </div>
@@ -170,11 +517,9 @@
     <div id="tab-dispatch" class="tab-content">
       <div class="filter-bar">
         <div class="filter-group">
-          <label>Date:</label>
           <input type="date" id="dispatch-date" class="filter-input" onchange="loadPortalData()" />
         </div>
         <div class="filter-group">
-          <label>Shift:</label>
           <div class="shift-toggle-group">
             <button class="shift-btn active" onclick="setShift('Shift 1')">Shift 1</button>
             <button class="shift-btn" onclick="setShift('Shift 2')">Shift 2</button>
@@ -187,7 +532,9 @@
         <div class="panel-header">
           <h2 class="panel-title" id="dispatch-title">Shift Deployments</h2>
         </div>
-        <div class="table-responsive">
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive desktop-table-view">
           <table>
             <thead>
               <tr>
@@ -196,7 +543,7 @@
                 <th>Driver / Technician</th>
                 <th>Work Zone</th>
                 <th>Focus & Goals</th>
-                <th>Battery Target</th>
+                <th>Target</th>
                 <th>Status</th>
                 <th>Time Out</th>
               </tr>
@@ -204,6 +551,9 @@
             <tbody id="dispatch-table-body"></tbody>
           </table>
         </div>
+
+        <!-- Mobile Stacked Card View -->
+        <div id="mobile-dispatch-cards" class="mobile-dispatch-cards"></div>
       </div>
     </div>
 
@@ -211,19 +561,46 @@
     <div id="tab-profile" class="tab-content">
       <div class="filter-bar">
         <div class="filter-group">
-          <label>Select Van:</label>
           <select id="profile-van-select" class="filter-input" onchange="renderVanProfile()">
             <option value="">-- Choose Van --</option>
           </select>
         </div>
       </div>
       <div id="profile-details-area">
-        <div class="empty-state">Select a vehicle above or click any van in Fleet Overview to inspect its 360° record.</div>
+        <div class="empty-state">Select a vehicle to inspect full specifications and maintenance history.</div>
       </div>
     </div>
   </main>
 
-  <!-- ==================== IN-APP MODALS ==================== -->
+  <!-- Floating Mobile Action Drawer (FAB) -->
+  <div class="mobile-action-menu">
+    <div id="fab-drawer" class="fab-drawer">
+      <div class="fab-action-item" onclick="triggerAction('addVehicleModal')">➕ Add Vehicle</div>
+      <div class="fab-action-item" onclick="triggerAction('dispatchModal')">📋 Dispatch Van</div>
+      <div class="fab-action-item" onclick="triggerAction('incidentModal')">⚠️ Report Issue</div>
+      <div class="fab-action-item" onclick="triggerAction('checkInModal')">✅ Check In Van</div>
+      <div class="fab-action-item" onclick="triggerAction('decomModal')">🛑 Decommission</div>
+    </div>
+    <button class="fab-btn" onclick="toggleFabDrawer()">⚡</button>
+  </div>
+
+  <!-- Bottom App Bar for Mobile -->
+  <nav class="bottom-nav">
+    <button class="b-nav-item active" onclick="switchTab('fleet')">
+      <span class="icon">🚚</span>
+      <span>Fleet</span>
+    </button>
+    <button class="b-nav-item" onclick="switchTab('dispatch')">
+      <span class="icon">📋</span>
+      <span>Dispatch</span>
+    </button>
+    <button class="b-nav-item" onclick="switchTab('profile')">
+      <span class="icon">🔍</span>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MOBILE-FIRST MODALS ==================== -->
 
   <!-- 1. ADD VEHICLE MODAL -->
   <div id="addVehicleModal" class="modal-overlay">
@@ -234,7 +611,7 @@
       </div>
       <form id="addVehicleForm" onsubmit="submitAddVehicle(event)">
         <div class="modal-body">
-          <div id="addVehicleAlert" class="alert-banner"></div>
+          <div id="addVehicleAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
           <div class="form-row">
             <div class="form-group">
               <label>Clean Name *</label>
@@ -276,8 +653,8 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Notes / Condition</label>
-            <textarea id="av_notes" rows="2" placeholder="Vehicle condition, Samsara unit installed..."></textarea>
+            <label>Notes</label>
+            <textarea id="av_notes" rows="2" placeholder="Condition, Samsara unit, etc."></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -288,24 +665,24 @@
     </div>
   </div>
 
-  <!-- 2. DISPATCH CHECKOUT MODAL -->
+  <!-- 2. DISPATCH MODAL -->
   <div id="dispatchModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-title">📋 Driver & Shift Dispatch Checkout</div>
+        <div class="modal-title">📋 Driver Dispatch Checkout</div>
         <button class="modal-close" onclick="closeModal('dispatchModal')">&times;</button>
       </div>
       <form id="dispatchForm" onsubmit="submitDispatch(event)">
         <div class="modal-body">
-          <div id="dispatchAlert" class="alert-banner"></div>
+          <div id="dispatchAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
           <div class="form-group">
-            <label>Select Vehicle (Active Only) *</label>
+            <label>Select Road-Ready Van *</label>
             <select id="dp_van" required></select>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>Technician / Driver *</label>
-              <input type="text" id="dp_tech" placeholder="e.g. John Doe" required />
+              <input type="text" id="dp_tech" placeholder="Driver name" required />
             </div>
             <div class="form-group">
               <label>Shift *</label>
@@ -314,12 +691,12 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Assigned Work Zone *</label>
+              <label>Work Zone *</label>
               <select id="dp_zone" required></select>
             </div>
             <div class="form-group">
-              <label>Battery Target / Outbound</label>
-              <input type="text" id="dp_target" placeholder="e.g. 40 Swaps / 2 Pallets" />
+              <label>Battery Target</label>
+              <input type="text" id="dp_target" placeholder="e.g. 40 Swaps" />
             </div>
           </div>
           <div class="form-group">
@@ -327,8 +704,8 @@
             <select id="dp_focus"></select>
           </div>
           <div class="form-group">
-            <label>Shift Goals & Daily Notes</label>
-            <textarea id="dp_goals" rows="3" placeholder="Target 35+ battery swaps, retrieve offlines in Zone 1A..."></textarea>
+            <label>Shift Goals & Directives</label>
+            <textarea id="dp_goals" rows="3" placeholder="Targeted tasks, focus zones, or battery goals..."></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -339,37 +716,37 @@
     </div>
   </div>
 
-  <!-- 3. REPORT ISSUE / OOS MODAL -->
+  <!-- 3. REPORT ISSUE MODAL -->
   <div id="incidentModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-title" style="color:var(--danger)">⚠️ Report Incident / Vehicle Service</div>
+        <div class="modal-title" style="color:var(--danger)">⚠️ Report Vehicle Issue</div>
         <button class="modal-close" onclick="closeModal('incidentModal')">&times;</button>
       </div>
       <form id="incidentForm" onsubmit="submitIncident(event)">
         <div class="modal-body">
-          <div id="incidentAlert" class="alert-banner"></div>
+          <div id="incidentAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
           <div class="form-group">
             <label>Select Vehicle *</label>
             <select id="inc_van" required></select>
           </div>
           <div class="form-group">
-            <label>1. Issue Category (What happened?) *</label>
+            <label>Issue Category *</label>
             <select id="inc_cat" required></select>
           </div>
           <div class="form-group">
-            <label>2. Status Impact (Operational disposition) *</label>
+            <label>Status Impact *</label>
             <select id="inc_impact" required></select>
           </div>
-          <div class="notice-box">
-            <label class="checkbox-label">
-              <input type="checkbox" id="inc_oos" checked />
-              🚨 Immediately set vehicle to "Out of Service"
+          <div style="background:#fef2f2; border:1px solid #fee2e2; border-radius:8px; padding:10px; margin-bottom:12px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--danger); cursor:pointer;">
+              <input type="checkbox" id="inc_oos" checked style="min-height:auto; width:auto;" />
+              🚨 Set vehicle to "Out of Service"
             </label>
           </div>
           <div class="form-group">
-            <label>Description & Incident Details *</label>
-            <textarea id="inc_desc" rows="3" placeholder="Explain what occurred, driver remarks, warning codes, or parts needed..." required></textarea>
+            <label>Event Description *</label>
+            <textarea id="inc_desc" rows="3" placeholder="Explain the issue or warning codes..." required></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -380,59 +757,59 @@
     </div>
   </div>
 
-  <!-- 4. CHECK IN / RETURN TO SERVICE MODAL -->
+  <!-- 4. CHECK IN MODAL -->
   <div id="checkInModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-title" style="color:var(--success)">✅ Return Vehicle to Active Service</div>
+        <div class="modal-title" style="color:var(--success)">✅ Return Van to Service</div>
         <button class="modal-close" onclick="closeModal('checkInModal')">&times;</button>
       </div>
       <form id="checkInForm" onsubmit="submitCheckIn(event)">
         <div class="modal-body">
-          <div id="checkInAlert" class="alert-banner"></div>
+          <div id="checkInAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
           <div class="form-group">
-            <label>Select Out-of-Service Vehicle *</label>
+            <label>Out-of-Service Van *</label>
             <select id="ci_van" required onchange="handleCheckInVanChange()"></select>
           </div>
-          <div id="ci_summary_box" style="display:none; background:#ecfdf5; border:1px solid #d1fae5; border-radius:6px; padding:10px 14px; margin-bottom:14px; font-size:12px; line-height:1.5;">
+          <div id="ci_summary_box" style="display:none; background:#ecfdf5; border:1px solid #d1fae5; border-radius:8px; padding:10px; margin-bottom:12px; font-size:12px;">
             <strong style="color:var(--success)">Open Issue:</strong>
             <div id="ci_summary_text" style="color:#065f46; margin-top:2px;"></div>
           </div>
           <div class="form-group">
             <label>Resolution & Repairs Completed *</label>
-            <textarea id="ci_notes" rows="3" placeholder="e.g. Tire patched at Discount Tire, tread depth verified, ready for route." required></textarea>
+            <textarea id="ci_notes" rows="3" placeholder="Repairs completed, ready for market deployment..." required></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" onclick="closeModal('checkInModal')">Cancel</button>
-          <button type="submit" id="ci_btn" class="btn btn-success">Check In to Service</button>
+          <button type="submit" id="ci_btn" class="btn btn-success">Check In Van</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- 5. DECOMMISSION VEHICLE MODAL -->
+  <!-- 5. DECOMMISSION MODAL -->
   <div id="decomModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-title" style="color:var(--danger)">🛑 Decommission Fleet Vehicle</div>
+        <div class="modal-title" style="color:var(--danger)">🛑 Decommission Van</div>
         <button class="modal-close" onclick="closeModal('decomModal')">&times;</button>
       </div>
       <form id="decomForm" onsubmit="submitDecom(event)">
         <div class="modal-body">
-          <div id="decomAlert" class="alert-banner"></div>
+          <div id="decomAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
           <div class="form-group">
             <label>Select Vehicle *</label>
             <select id="dec_van" required></select>
           </div>
           <div class="form-group">
-            <label>Reason for Decommissioning *</label>
-            <textarea id="dec_reason" rows="3" placeholder="e.g. End of rental lease, returned to Penske / Enterprise, totaled..." required></textarea>
+            <label>Reason *</label>
+            <textarea id="dec_reason" rows="3" placeholder="End of rental lease, returned to agency, etc." required></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" onclick="closeModal('decomModal')">Cancel</button>
-          <button type="submit" id="dec_btn" class="btn btn-danger">Decommission Van</button>
+          <button type="submit" id="dec_btn" class="btn btn-danger">Decommission</button>
         </div>
       </form>
     </div>
@@ -450,9 +827,16 @@
 
     function switchTab(tabKey) {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.b-nav-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
       document.getElementById('tab-' + tabKey).classList.add('active');
-      event.target.classList.add('active');
+      
+      const deskBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.toLowerCase().includes(tabKey));
+      if (deskBtn) deskBtn.classList.add('active');
+
+      const botBtn = Array.from(document.querySelectorAll('.b-nav-item')).find(b => b.innerText.toLowerCase().includes(tabKey));
+      if (botBtn) botBtn.classList.add('active');
     }
 
     function setShift(shiftName) {
@@ -488,7 +872,7 @@
 
       const container = document.getElementById('fleet-cards');
       if (!state.vehicles.length) {
-        container.innerHTML = '<div class="empty-state">No vehicles in registry. Click "➕ Add Vehicle" to register one.</div>';
+        container.innerHTML = '<div class="empty-state">No vehicles in registry.</div>';
         return;
       }
 
@@ -503,14 +887,14 @@
               </div>
               <span class="status-pill ${statusClass}">${v.status}</span>
             </div>
-            <div style="font-size:12px; color:#475569; margin: 4px 0;">
+            <div style="font-size:12px; color:#475569;">
               ${v.makeModel || 'Cargo Van'} &bull; Plate: <strong>${v.plate || '—'}</strong>
             </div>
             <div class="card-meta">
               <div class="meta-item">Zone: <strong>${v.zone}</strong></div>
               <div class="meta-item">Driver: <strong>${v.driver}</strong></div>
-              <div class="meta-item">VIN: <strong>${v.vin ? v.vin.substring(0, 11) + '...' : '—'}</strong></div>
-              <div class="meta-item">Last Serviced: <strong>${v.lastService}</strong></div>
+              <div class="meta-item">VIN: <strong>${v.vin ? v.vin.substring(0, 10) + '...' : '—'}</strong></div>
+              <div class="meta-item">Serviced: <strong>${v.lastService}</strong></div>
             </div>
           </div>
         `;
@@ -518,14 +902,17 @@
     }
 
     function renderDispatchBoard(state) {
-      document.getElementById('dispatch-title').innerText = `${state.selectedShift} Deployments (${state.selectedDate})`;
+      document.getElementById('dispatch-title').innerText = `${state.selectedShift} (${state.selectedDate})`;
       const tbody = document.getElementById('dispatch-table-body');
-      
+      const mobileContainer = document.getElementById('mobile-dispatch-cards');
+
       if (!state.deployments.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No dispatches found for ${state.selectedShift} on ${state.selectedDate}. Click "📋 Dispatch" to deploy a van.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No dispatches found for ${state.selectedShift}.</td></tr>`;
+        mobileContainer.innerHTML = `<div class="empty-state">No dispatches found for ${state.selectedShift}.</div>`;
         return;
       }
 
+      // Desktop Table Rows
       tbody.innerHTML = state.deployments.map(d => `
         <tr>
           <td><strong>${d.vehicle}</strong></td>
@@ -537,6 +924,25 @@
           <td><span class="status-pill status-active">${d.status}</span></td>
           <td>${d.departureTime}</td>
         </tr>
+      `).join('');
+
+      // Mobile Stacked Cards
+      mobileContainer.innerHTML = state.deployments.map(d => `
+        <div class="m-dispatch-card">
+          <div class="m-card-header">
+            <div>
+              <strong style="font-size:15px;">${d.vehicle}</strong>
+              <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">(${d.rentalId})</span>
+            </div>
+            <span class="zone-badge">${d.zone}</span>
+          </div>
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px;">👤 Driver: ${d.tech}</div>
+          <div style="font-size:12px; color:#475569; margin-bottom:4px;">🎯 Goals: ${d.goals || 'Standard route'}</div>
+          <div style="font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:6px; margin-top:6px;">
+            <span>Target: <strong>${d.target || '—'}</strong></span>
+            <span>Out: <strong>${d.departureTime}</strong></span>
+          </div>
+        </div>
       `).join('');
     }
 
@@ -558,7 +964,7 @@
       const cleanName = document.getElementById('profile-van-select').value;
       const area = document.getElementById('profile-details-area');
       if (!cleanName || !globalState) {
-        area.innerHTML = '<div class="empty-state">Select a vehicle above or click any van in Fleet Overview to inspect its 360° record.</div>';
+        area.innerHTML = '<div class="empty-state">Select a vehicle to inspect full history.</div>';
         return;
       }
 
@@ -571,17 +977,17 @@
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h2 class="panel-title" style="font-size:20px;">${van.cleanName}</h2>
-              <p style="font-size:13px; color:var(--text-muted);">${van.rentalId} &bull; ${van.agency} &bull; ${van.makeModel}</p>
+              <h2 class="panel-title" style="font-size:18px;">${van.cleanName}</h2>
+              <p style="font-size:12px; color:var(--text-muted);">${van.rentalId} &bull; ${van.agency} &bull; ${van.makeModel}</p>
             </div>
             <span class="status-pill ${van.status === 'Out of Service' ? 'status-oos' : 'status-active'}">${van.status}</span>
           </div>
 
-          <div class="kpi-grid" style="margin-bottom: 16px;">
-            <div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:18px; font-weight:700;">${van.zone}</div></div>
-            <div class="kpi-card"><div class="kpi-title">Assigned Driver</div><div style="font-size:18px; font-weight:700;">${van.driver}</div></div>
-            <div class="kpi-card"><div class="kpi-title">License Plate</div><div style="font-size:18px; font-weight:700;">${van.plate || '—'}</div></div>
-            <div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:14px; font-weight:600; word-break:break-all;">${van.vin || '—'}</div></div>
+          <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:15px; font-weight:700;">${van.zone}</div></div>
+            <div class="kpi-card"><div class="kpi-title">Driver</div><div style="font-size:15px; font-weight:700;">${van.driver}</div></div>
+            <div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">${van.plate || '—'}</div></div>
+            <div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:12px; font-weight:600; word-break:break-all;">${van.vin || '—'}</div></div>
           </div>
         </div>
 
@@ -593,13 +999,11 @@
             <table>
               <thead>
                 <tr>
-                  <th>Incident ID</th>
+                  <th>ID</th>
                   <th>Date</th>
                   <th>Category</th>
                   <th>Details</th>
-                  <th>Impact</th>
                   <th>Resolution</th>
-                  <th>Resolved Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -609,11 +1013,9 @@
                     <td>${i.date}</td>
                     <td>${i.category}</td>
                     <td>${i.details}</td>
-                    <td>${i.impact}</td>
                     <td>${i.resolution || '<span style="color:var(--danger)">Unresolved</span>'}</td>
-                    <td>${i.dateResolved || '—'}</td>
                   </tr>
-                `).join('') : '<tr><td colspan="7" class="empty-state">No incidents recorded for this vehicle.</td></tr>'}
+                `).join('') : '<tr><td colspan="5" class="empty-state">No incidents recorded for this vehicle.</td></tr>'}
               </tbody>
             </table>
           </div>
@@ -628,7 +1030,16 @@
       });
     }
 
-    /* ================= Modal Operations & Populate ================= */
+    /* ================= Floating Drawer & Modal Helpers ================= */
+
+    function toggleFabDrawer() {
+      document.getElementById('fab-drawer').classList.toggle('active');
+    }
+
+    function triggerAction(modalId) {
+      document.getElementById('fab-drawer').classList.remove('active');
+      openModal(modalId);
+    }
 
     function openModal(id) {
       document.getElementById(id).classList.add('active');
@@ -658,48 +1069,34 @@
     function populateModalOptions(state) {
       const cfg = state.config;
 
-      // Agency Dropdown
-      const agencySel = document.getElementById('av_agency');
-      agencySel.innerHTML = (cfg.rentalAgencies || ['Enterprise', 'Penske', 'U-Haul']).map(a => `<option value="${a}">${a}</option>`).join('');
+      // Agency Options
+      document.getElementById('av_agency').innerHTML = (cfg.rentalAgencies || ['Enterprise', 'Penske', 'U-Haul']).map(a => `<option value="${a}">${a}</option>`).join('');
 
-      // Dispatch Form Dropdowns
-      const dpVan = document.getElementById('dp_van');
+      // Dispatch Options
       const activeVans = state.vehicles.filter(v => v.status === 'Active' || v.status === 'In Service');
-      dpVan.innerHTML = activeVans.length 
+      document.getElementById('dp_van').innerHTML = activeVans.length 
         ? '<option value="">-- Choose Available Van --</option>' + activeVans.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('')
         : '<option value="">⚠️ No active vans available</option>';
 
-      const dpShift = document.getElementById('dp_shift');
-      dpShift.innerHTML = (cfg.shifts || ['Shift 1', 'Shift 2', 'Shift 3']).map(s => `<option value="${s}">${s}</option>`).join('');
+      document.getElementById('dp_shift').innerHTML = (cfg.shifts || ['Shift 1', 'Shift 2', 'Shift 3']).map(s => `<option value="${s}">${s}</option>`).join('');
+      document.getElementById('dp_zone').innerHTML = '<option value="">-- Select Zone --</option>' + (cfg.zones || []).map(z => `<option value="${z}">${z}</option>`).join('');
+      document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus (Optional) --</option>' + (cfg.focusOptions || []).map(f => `<option value="${f}">${f}</option>`).join('');
 
-      const dpZone = document.getElementById('dp_zone');
-      dpZone.innerHTML = '<option value="">-- Select Zone --</option>' + (cfg.zones || []).map(z => `<option value="${z}">${z}</option>`).join('');
-
-      const dpFocus = document.getElementById('dp_focus');
-      dpFocus.innerHTML = '<option value="">-- Select Focus (Optional) --</option>' + (cfg.focusOptions || []).map(f => `<option value="${f}">${f}</option>`).join('');
-
-      // Incident Dropdowns
-      const incVan = document.getElementById('inc_van');
+      // Incident Options
       const nonDecom = state.vehicles.filter(v => v.status !== 'Decommissioned');
-      incVan.innerHTML = '<option value="">-- Choose Vehicle --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('');
+      document.getElementById('inc_van').innerHTML = '<option value="">-- Choose Vehicle --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('');
+      document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i => `<option value="${i}">${i}</option>`).join('');
 
-      const incCat = document.getElementById('inc_cat');
-      incCat.innerHTML = (cfg.issueCategories || []).map(c => `<option value="${c}">${c}</option>`).join('');
-
-      const incImpact = document.getElementById('inc_impact');
-      incImpact.innerHTML = (cfg.statusImpacts || []).map(i => `<option value="${i}">${i}</option>`).join('');
-
-      // Check In Dropdown
-      const ciVan = document.getElementById('ci_van');
+      // Check-In Options
       const oos = state.oosVehicles || [];
-      ciVan.innerHTML = oos.length 
+      document.getElementById('ci_van').innerHTML = oos.length 
         ? '<option value="">-- Choose Out-of-Service Van --</option>' + oos.map(o => `<option value="${o.cleanName}" data-rental="${o.rentalId}" data-incident='${JSON.stringify(o.incident || {})}'>${o.displayName}</option>`).join('')
         : '<option value="">🎉 No vans currently Out of Service</option>';
       handleCheckInVanChange();
 
-      // Decom Dropdown
-      const decVan = document.getElementById('dec_van');
-      decVan.innerHTML = '<option value="">-- Choose Van to Decommission --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId})</option>`).join('');
+      // Decommission Options
+      document.getElementById('dec_van').innerHTML = '<option value="">-- Choose Van --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId})</option>`).join('');
     }
 
     function handleCheckInVanChange() {
@@ -730,7 +1127,7 @@
       e.preventDefault();
       const btn = document.getElementById('av_btn');
       btn.disabled = true;
-      setAlert('addVehicleAlert', 'success', 'Saving vehicle to registry...');
+      setAlert('addVehicleAlert', 'success', 'Saving vehicle...');
 
       const payload = {
         vanName: document.getElementById('av_name').value,
@@ -752,7 +1149,7 @@
             closeModal('addVehicleModal');
             document.getElementById('addVehicleForm').reset();
             loadPortalData();
-          }, 1000);
+          }, 800);
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
@@ -794,7 +1191,7 @@
             closeModal('dispatchModal');
             document.getElementById('dispatchForm').reset();
             loadPortalData();
-          }, 1000);
+          }, 800);
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
@@ -814,7 +1211,7 @@
       const opt = select.options[select.selectedIndex];
       const btn = document.getElementById('inc_btn');
       btn.disabled = true;
-      setAlert('incidentAlert', 'success', 'Logging incident and updating status...');
+      setAlert('incidentAlert', 'success', 'Submitting incident...');
 
       const payload = {
         cleanName: select.value,
@@ -833,7 +1230,7 @@
             closeModal('incidentModal');
             document.getElementById('incidentForm').reset();
             loadPortalData();
-          }, 1000);
+          }, 800);
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
@@ -856,7 +1253,7 @@
 
       const btn = document.getElementById('ci_btn');
       btn.disabled = true;
-      setAlert('checkInAlert', 'success', 'Returning vehicle to active service...');
+      setAlert('checkInAlert', 'success', 'Returning van to service...');
 
       const payload = {
         cleanName: select.value,
@@ -873,7 +1270,7 @@
             closeModal('checkInModal');
             document.getElementById('checkInForm').reset();
             loadPortalData();
-          }, 1000);
+          }, 800);
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
@@ -892,7 +1289,7 @@
 
       const btn = document.getElementById('dec_btn');
       btn.disabled = true;
-      setAlert('decomAlert', 'success', 'Decommissioning vehicle...');
+      setAlert('decomAlert', 'success', 'Decommissioning van...');
 
       const targetId = select.value;
       const reason = document.getElementById('dec_reason').value;
@@ -905,7 +1302,7 @@
             closeModal('decomModal');
             document.getElementById('decomForm').reset();
             loadPortalData();
-          }, 1000);
+          }, 800);
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
