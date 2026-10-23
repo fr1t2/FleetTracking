@@ -13,7 +13,10 @@ function doGet(e) {
 /**
  * Returns full state for the web app in one synchronized payload.
  */
-function getDashboardState(dateStr, shift) {
+/**
+ * Returns full state for the web app with optimized single-fetch deployment caching.
+ */
+function getDashboardState(dateStr) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const vSheet = ss.getSheetByName(VEHICLES_SHEET);
   const dSheet = ss.getSheetByName(DEPLOYMENTS_SHEET);
@@ -55,32 +58,25 @@ function getDashboardState(dateStr, shift) {
     });
   }
 
-  // 2. Filtered Deployments for selected date and shift
-  const targetDateStr = dateStr || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  const targetShift = shift || 'Shift 1';
+  // 2. Fetch Deployments (All recent deployments sent once for instant browser filtering)
   const deployments = [];
-
   if (dSheet && dSheet.getLastRow() > 1) {
     const dRows = dSheet.getRange(2, 1, dSheet.getLastRow() - 1, 14).getValues();
     dRows.forEach(r => {
       const depDate = r[1] ? Utilities.formatDate(new Date(r[1]), Session.getScriptTimeZone(), 'yyyy-MM-dd') : '';
-      const depShift = String(r[2]).trim();
-
-      if (depDate === targetDateStr && depShift.toLowerCase() === targetShift.toLowerCase()) {
-        deployments.push({
-          id: r[0],
-          date: depDate,
-          shift: depShift,
-          vehicle: r[3],
-          rentalId: r[4],
-          tech: r[5],
-          zone: r[6],
-          goals: r[7],
-          target: r[8],
-          status: r[9],
-          departureTime: r[10] ? Utilities.formatDate(new Date(r[10]), Session.getScriptTimeZone(), 'hh:mm a') : '—'
-        });
-      }
+      deployments.push({
+        id: r[0],
+        date: depDate,
+        shift: String(r[2] || '').trim(),
+        vehicle: r[3],
+        rentalId: r[4],
+        tech: r[5],
+        zone: r[6],
+        goals: r[7],
+        target: r[8],
+        status: r[9],
+        departureTime: r[10] ? Utilities.formatDate(new Date(r[10]), Session.getScriptTimeZone(), 'hh:mm a') : '—'
+      });
     });
   }
 
@@ -105,7 +101,7 @@ function getDashboardState(dateStr, shift) {
     });
   }
 
-  // 4. Out-of-Service Vehicles with open incident link
+  // 4. Out-of-Service Vehicles
   const oosList = [];
   vehicles.forEach(v => {
     if (v.status === 'Out of Service') {
@@ -132,7 +128,6 @@ function getDashboardState(dateStr, shift) {
     deployments: deployments,
     incidents: incidents,
     oosVehicles: oosList,
-    selectedDate: targetDateStr,
-    selectedShift: targetShift
+    selectedDate: dateStr || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
   };
 }

@@ -459,6 +459,19 @@
 
   <!-- Top Navigation Header -->
   <header>
+
+<div id="global-loader" style="display:none; height:3px; width:100%; background:#e2e8f0; overflow:hidden; position:sticky; top:57px; z-index:45;">
+  <div style="height:100%; width:40%; background:#2563eb; animation: indeterminate 1.2s infinite ease-in-out;"></div>
+</div>
+
+<style>
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); width: 30%; }
+  50% { transform: translateX(100%); width: 70%; }
+  100% { transform: translateX(300%); width: 30%; }
+}
+</style>
+    
     <div class="brand">
       🚚 <span>VEO Fleet Hub</span>
     </div>
@@ -820,539 +833,538 @@
     </div>
   </div>
 
-  <script>
-    let globalState = null;
-    let currentShift = 'Shift 1';
+<script>
+  let globalState = null;
+  let currentShift = 'Shift 1';
 
-    window.onload = function() {
-      document.getElementById('dispatch-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('av_pickup').value = new Date().toISOString().split('T')[0];
-      loadPortalData();
-    };
+  window.onload = function() {
+    document.getElementById('dispatch-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('av_pickup').value = new Date().toISOString().split('T')[0];
+    loadPortalData();
+  };
 
-    function switchTab(tabKey) {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.b-nav-item').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  function showLoader(show) {
+    const el = document.getElementById('global-loader');
+    if (el) el.style.display = show ? 'block' : 'none';
+  }
 
-      document.getElementById('tab-' + tabKey).classList.add('active');
-      
-      const deskBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.toLowerCase().includes(tabKey));
-      if (deskBtn) deskBtn.classList.add('active');
+  function switchTab(tabKey) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.b-nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-      const botBtn = Array.from(document.querySelectorAll('.b-nav-item')).find(b => b.innerText.toLowerCase().includes(tabKey));
-      if (botBtn) botBtn.classList.add('active');
+    document.getElementById('tab-' + tabKey).classList.add('active');
+    
+    const deskBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.toLowerCase().includes(tabKey));
+    if (deskBtn) deskBtn.classList.add('active');
+
+    const botBtn = Array.from(document.querySelectorAll('.b-nav-item')).find(b => b.innerText.toLowerCase().includes(tabKey));
+    if (botBtn) botBtn.classList.add('active');
+
+    // Instant render if switching into dispatch tab
+    if (tabKey === 'dispatch' && globalState) {
+      renderDispatchBoard();
+    }
+  }
+
+  /**
+   * INSTANT SHIFT TOGGLE:
+   * Changes shift and renders in milliseconds using already-loaded data.
+   */
+  function setShift(shiftName) {
+    currentShift = shiftName;
+    document.querySelectorAll('.shift-btn').forEach(b => {
+      b.classList.toggle('active', b.innerText === shiftName);
+    });
+    renderDispatchBoard(); // No Apps Script server call needed!
+  }
+
+  /**
+   * Backend Sync (Only triggered on initial load, manual refresh, or form submissions)
+   */
+  function loadPortalData(callback) {
+    showLoader(true);
+    google.script.run
+      .withSuccessHandler(function(state) {
+        showLoader(false);
+        globalState = state;
+        renderFleetOverview(state);
+        renderDispatchBoard();
+        populateProfileDropdown(state);
+        populateModalOptions(state);
+        if (callback) callback();
+      })
+      .withFailureHandler(function(err) {
+        showLoader(false);
+        alert('Error loading fleet portal data: ' + err.message);
+      })
+      .getDashboardState();
+  }
+
+  function renderFleetOverview(state) {
+    document.getElementById('kpi-total').innerText = state.counts.total;
+    document.getElementById('kpi-active').innerText = state.counts.active;
+    document.getElementById('kpi-oos').innerText = state.counts.oos;
+    document.getElementById('kpi-decom').innerText = state.counts.decommissioned;
+
+    const container = document.getElementById('fleet-cards');
+    if (!state.vehicles.length) {
+      container.innerHTML = '<div class="empty-state">No vehicles in registry.</div>';
+      return;
     }
 
-    function setShift(shiftName) {
-      currentShift = shiftName;
-      document.querySelectorAll('.shift-btn').forEach(b => {
-        b.classList.toggle('active', b.innerText === shiftName);
-      });
-      loadPortalData();
-    }
-
-    function loadPortalData(callback) {
-      const dateVal = document.getElementById('dispatch-date').value;
-      google.script.run
-        .withSuccessHandler(function(state) {
-          globalState = state;
-          renderFleetOverview(state);
-          renderDispatchBoard(state);
-          populateProfileDropdown(state);
-          populateModalOptions(state);
-          if (callback) callback();
-        })
-        .withFailureHandler(function(err) {
-          alert('Error loading fleet portal data: ' + err.message);
-        })
-        .getDashboardState(dateVal, currentShift);
-    }
-
-    function renderFleetOverview(state) {
-      document.getElementById('kpi-total').innerText = state.counts.total;
-      document.getElementById('kpi-active').innerText = state.counts.active;
-      document.getElementById('kpi-oos').innerText = state.counts.oos;
-      document.getElementById('kpi-decom').innerText = state.counts.decommissioned;
-
-      const container = document.getElementById('fleet-cards');
-      if (!state.vehicles.length) {
-        container.innerHTML = '<div class="empty-state">No vehicles in registry.</div>';
-        return;
-      }
-
-      container.innerHTML = state.vehicles.map(v => {
-        const statusClass = (v.status === 'Active' || v.status === 'In Service') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-decom');
-        return `
-          <div class="vehicle-card" onclick="openProfileForVan('${v.cleanName}')">
-            <div class="card-top">
-              <div>
-                <div class="card-name">${v.cleanName}</div>
-                <div class="card-sub">${v.rentalId} &bull; ${v.agency || 'Rental'}</div>
-              </div>
-              <span class="status-pill ${statusClass}">${v.status}</span>
-            </div>
-            <div style="font-size:12px; color:#475569;">
-              ${v.makeModel || 'Cargo Van'} &bull; Plate: <strong>${v.plate || '—'}</strong>
-            </div>
-            <div class="card-meta">
-              <div class="meta-item">Zone: <strong>${v.zone}</strong></div>
-              <div class="meta-item">Driver: <strong>${v.driver}</strong></div>
-              <div class="meta-item">VIN: <strong>${v.vin ? v.vin.substring(0, 10) + '...' : '—'}</strong></div>
-              <div class="meta-item">Serviced: <strong>${v.lastService}</strong></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderDispatchBoard(state) {
-      document.getElementById('dispatch-title').innerText = `${state.selectedShift} (${state.selectedDate})`;
-      const tbody = document.getElementById('dispatch-table-body');
-      const mobileContainer = document.getElementById('mobile-dispatch-cards');
-
-      if (!state.deployments.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No dispatches found for ${state.selectedShift}.</td></tr>`;
-        mobileContainer.innerHTML = `<div class="empty-state">No dispatches found for ${state.selectedShift}.</div>`;
-        return;
-      }
-
-      // Desktop Table Rows
-      tbody.innerHTML = state.deployments.map(d => `
-        <tr>
-          <td><strong>${d.vehicle}</strong></td>
-          <td>${d.rentalId}</td>
-          <td><strong>${d.tech}</strong></td>
-          <td><span class="zone-badge">${d.zone}</span></td>
-          <td>${d.goals || '—'}</td>
-          <td>${d.target || '—'}</td>
-          <td><span class="status-pill status-active">${d.status}</span></td>
-          <td>${d.departureTime}</td>
-        </tr>
-      `).join('');
-
-      // Mobile Stacked Cards
-      mobileContainer.innerHTML = state.deployments.map(d => `
-        <div class="m-dispatch-card">
-          <div class="m-card-header">
+    container.innerHTML = state.vehicles.map(v => {
+      const statusClass = (v.status === 'Active' || v.status === 'In Service') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-decom');
+      return `
+        <div class="vehicle-card" onclick="openProfileForVan('${v.cleanName}')">
+          <div class="card-top">
             <div>
-              <strong style="font-size:15px;">${d.vehicle}</strong>
-              <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">(${d.rentalId})</span>
+              <div class="card-name">${v.cleanName}</div>
+              <div class="card-sub">${v.rentalId} &bull; ${v.agency || 'Rental'}</div>
             </div>
-            <span class="zone-badge">${d.zone}</span>
+            <span class="status-pill ${statusClass}">${v.status}</span>
           </div>
-          <div style="font-size:13px; font-weight:600; margin-bottom:4px;">👤 Driver: ${d.tech}</div>
-          <div style="font-size:12px; color:#475569; margin-bottom:4px;">🎯 Goals: ${d.goals || 'Standard route'}</div>
-          <div style="font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:6px; margin-top:6px;">
-            <span>Target: <strong>${d.target || '—'}</strong></span>
-            <span>Out: <strong>${d.departureTime}</strong></span>
+          <div style="font-size:12px; color:#475569;">
+            ${v.makeModel || 'Cargo Van'} &bull; Plate: <strong>${v.plate || '—'}</strong>
           </div>
-        </div>
-      `).join('');
-    }
-
-    function populateProfileDropdown(state) {
-      const select = document.getElementById('profile-van-select');
-      const cur = select.value;
-      select.innerHTML = '<option value="">-- Choose Van --</option>' + 
-        state.vehicles.map(v => `<option value="${v.cleanName}">${v.cleanName} (${v.rentalId})</option>`).join('');
-      if (cur) select.value = cur;
-    }
-
-    function openProfileForVan(cleanName) {
-      switchTab('profile');
-      document.getElementById('profile-van-select').value = cleanName;
-      renderVanProfile();
-    }
-
-    function renderVanProfile() {
-      const cleanName = document.getElementById('profile-van-select').value;
-      const area = document.getElementById('profile-details-area');
-      if (!cleanName || !globalState) {
-        area.innerHTML = '<div class="empty-state">Select a vehicle to inspect full history.</div>';
-        return;
-      }
-
-      const van = globalState.vehicles.find(v => v.cleanName === cleanName);
-      if (!van) return;
-
-      const vanIncidents = globalState.incidents.filter(i => i.vehicle === cleanName || i.rentalId === van.rentalId);
-
-      area.innerHTML = `
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <h2 class="panel-title" style="font-size:18px;">${van.cleanName}</h2>
-              <p style="font-size:12px; color:var(--text-muted);">${van.rentalId} &bull; ${van.agency} &bull; ${van.makeModel}</p>
-            </div>
-            <span class="status-pill ${van.status === 'Out of Service' ? 'status-oos' : 'status-active'}">${van.status}</span>
-          </div>
-
-          <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:15px; font-weight:700;">${van.zone}</div></div>
-            <div class="kpi-card"><div class="kpi-title">Driver</div><div style="font-size:15px; font-weight:700;">${van.driver}</div></div>
-            <div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">${van.plate || '—'}</div></div>
-            <div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:12px; font-weight:600; word-break:break-all;">${van.vin || '—'}</div></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <h3 class="panel-title">🛠️ Service & Incident History</h3>
-          </div>
-          <div class="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Details</th>
-                  <th>Resolution</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${vanIncidents.length ? vanIncidents.map(i => `
-                  <tr>
-                    <td><strong>${i.id}</strong></td>
-                    <td>${i.date}</td>
-                    <td>${i.category}</td>
-                    <td>${i.details}</td>
-                    <td>${i.resolution || '<span style="color:var(--danger)">Unresolved</span>'}</td>
-                  </tr>
-                `).join('') : '<tr><td colspan="5" class="empty-state">No incidents recorded for this vehicle.</td></tr>'}
-              </tbody>
-            </table>
+          <div class="card-meta">
+            <div class="meta-item">Zone: <strong>${v.zone}</strong></div>
+            <div class="meta-item">Driver: <strong>${v.driver}</strong></div>
+            <div class="meta-item">VIN: <strong>${v.vin ? v.vin.substring(0, 10) + '...' : '—'}</strong></div>
+            <div class="meta-item">Serviced: <strong>${v.lastService}</strong></div>
           </div>
         </div>
       `;
+    }).join('');
+  }
+
+  /**
+   * Fast In-Memory Dispatch Filtering
+   */
+  function renderDispatchBoard() {
+    if (!globalState) return;
+
+    const selectedDate = document.getElementById('dispatch-date').value;
+    document.getElementById('dispatch-title').innerText = `${currentShift} (${selectedDate})`;
+
+    const tbody = document.getElementById('dispatch-table-body');
+    const mobileContainer = document.getElementById('mobile-dispatch-cards');
+
+    // Filter in local memory instantly
+    const filtered = globalState.deployments.filter(d => {
+      return d.date === selectedDate && d.shift.toLowerCase() === currentShift.toLowerCase();
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No dispatches found for ${currentShift} on ${selectedDate}.</td></tr>`;
+      mobileContainer.innerHTML = `<div class="empty-state">No dispatches found for ${currentShift} on ${selectedDate}.</div>`;
+      return;
     }
 
-    function filterFleetCards() {
-      const q = document.getElementById('fleet-search').value.toLowerCase();
-      document.querySelectorAll('.vehicle-card').forEach(c => {
-        c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
-      });
+    // Render Desktop Table
+    tbody.innerHTML = filtered.map(d => `
+      <tr>
+        <td><strong>${d.vehicle}</strong></td>
+        <td>${d.rentalId}</td>
+        <td><strong>${d.tech}</strong></td>
+        <td><span class="zone-badge">${d.zone}</span></td>
+        <td>${d.goals || '—'}</td>
+        <td>${d.target || '—'}</td>
+        <td><span class="status-pill status-active">${d.status}</span></td>
+        <td>${d.departureTime}</td>
+      </tr>
+    `).join('');
+
+    // Render Mobile Cards
+    mobileContainer.innerHTML = filtered.map(d => `
+      <div class="m-dispatch-card">
+        <div class="m-card-header">
+          <div>
+            <strong style="font-size:15px;">${d.vehicle}</strong>
+            <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">(${d.rentalId})</span>
+          </div>
+          <span class="zone-badge">${d.zone}</span>
+        </div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:4px;">👤 Driver: ${d.tech}</div>
+        <div style="font-size:12px; color:#475569; margin-bottom:4px;">🎯 Goals: ${d.goals || 'Standard route'}</div>
+        <div style="font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:6px; margin-top:6px;">
+          <span>Target: <strong>${d.target || '—'}</strong></span>
+          <span>Out: <strong>${d.departureTime}</strong></span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function populateProfileDropdown(state) {
+    const select = document.getElementById('profile-van-select');
+    const cur = select.value;
+    select.innerHTML = '<option value="">-- Choose Van --</option>' + 
+      state.vehicles.map(v => `<option value="${v.cleanName}">${v.cleanName} (${v.rentalId})</option>`).join('');
+    if (cur) select.value = cur;
+  }
+
+  function openProfileForVan(cleanName) {
+    switchTab('profile');
+    document.getElementById('profile-van-select').value = cleanName;
+    renderVanProfile();
+  }
+
+  function renderVanProfile() {
+    const cleanName = document.getElementById('profile-van-select').value;
+    const area = document.getElementById('profile-details-area');
+    if (!cleanName || !globalState) {
+      area.innerHTML = '<div class="empty-state">Select a vehicle to inspect full history.</div>';
+      return;
     }
 
-    /* ================= Floating Drawer & Modal Helpers ================= */
+    const van = globalState.vehicles.find(v => v.cleanName === cleanName);
+    if (!van) return;
 
-    function toggleFabDrawer() {
-      document.getElementById('fab-drawer').classList.toggle('active');
+    const vanIncidents = globalState.incidents.filter(i => i.vehicle === cleanName || i.rentalId === van.rentalId);
+
+    area.innerHTML = `
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" style="font-size:18px;">${van.cleanName}</h2>
+            <p style="font-size:12px; color:var(--text-muted);">${van.rentalId} &bull; ${van.agency} &bull; ${van.makeModel}</p>
+          </div>
+          <span class="status-pill ${van.status === 'Out of Service' ? 'status-oos' : 'status-active'}">${van.status}</span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:15px; font-weight:700;">${van.zone}</div></div>
+          <div class="kpi-card"><div class="kpi-title">Driver</div><div style="font-size:15px; font-weight:700;">${van.driver}</div></div>
+          <div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">${van.plate || '—'}</div></div>
+          <div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:12px; font-weight:600; word-break:break-all;">${van.vin || '—'}</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3 class="panel-title">🛠️ Service & Incident History</h3>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Details</th>
+                <th>Resolution</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${vanIncidents.length ? vanIncidents.map(i => `
+                <tr>
+                  <td><strong>${i.id}</strong></td>
+                  <td>${i.date}</td>
+                  <td>${i.category}</td>
+                  <td>${i.details}</td>
+                  <td>${i.resolution || '<span style="color:var(--danger)">Unresolved</span>'}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="5" class="empty-state">No incidents recorded for this vehicle.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function filterFleetCards() {
+    const q = document.getElementById('fleet-search').value.toLowerCase();
+    document.querySelectorAll('.vehicle-card').forEach(c => {
+      c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+    });
+  }
+
+  function toggleFabDrawer() {
+    document.getElementById('fab-drawer').classList.toggle('active');
+  }
+
+  function triggerAction(modalId) {
+    document.getElementById('fab-drawer').classList.remove('active');
+    openModal(modalId);
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    const alertBox = document.querySelector(`#${id} .alert-banner`);
+    if (alertBox) alertBox.style.display = 'none';
+  }
+
+  function setAlert(alertId, type, message) {
+    const el = document.getElementById(alertId);
+    el.style.display = 'block';
+    if (type === 'success') {
+      el.style.background = '#ecfdf5';
+      el.style.color = '#065f46';
+      el.style.border = '1px solid #d1fae5';
+    } else {
+      el.style.background = '#fef2f2';
+      el.style.color = '#991b1b';
+      el.style.border = '1px solid #fee2e2';
+    }
+    el.innerText = message;
+  }
+
+  function populateModalOptions(state) {
+    const cfg = state.config;
+
+    document.getElementById('av_agency').innerHTML = (cfg.rentalAgencies || ['Enterprise', 'Penske', 'U-Haul']).map(a => `<option value="${a}">${a}</option>`).join('');
+
+    const activeVans = state.vehicles.filter(v => v.status === 'Active' || v.status === 'In Service');
+    document.getElementById('dp_van').innerHTML = activeVans.length 
+      ? '<option value="">-- Choose Available Van --</option>' + activeVans.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('')
+      : '<option value="">⚠️ No active vans available</option>';
+
+    document.getElementById('dp_shift').innerHTML = (cfg.shifts || ['Shift 1', 'Shift 2', 'Shift 3']).map(s => `<option value="${s}">${s}</option>`).join('');
+    document.getElementById('dp_zone').innerHTML = '<option value="">-- Select Zone --</option>' + (cfg.zones || []).map(z => `<option value="${z}">${z}</option>`).join('');
+    document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus (Optional) --</option>' + (cfg.focusOptions || []).map(f => `<option value="${f}">${f}</option>`).join('');
+
+    const nonDecom = state.vehicles.filter(v => v.status !== 'Decommissioned');
+    document.getElementById('inc_van').innerHTML = '<option value="">-- Choose Vehicle --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('');
+    document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c => `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i => `<option value="${i}">${i}</option>`).join('');
+
+    const oos = state.oosVehicles || [];
+    document.getElementById('ci_van').innerHTML = oos.length 
+      ? '<option value="">-- Choose Out-of-Service Van --</option>' + oos.map(o => `<option value="${o.cleanName}" data-rental="${o.rentalId}" data-incident='${JSON.stringify(o.incident || {})}'>${o.displayName}</option>`).join('')
+      : '<option value="">🎉 No vans currently Out of Service</option>';
+    handleCheckInVanChange();
+
+    document.getElementById('dec_van').innerHTML = '<option value="">-- Choose Van --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId})</option>`).join('');
+  }
+
+  function handleCheckInVanChange() {
+    const select = document.getElementById('ci_van');
+    const summaryBox = document.getElementById('ci_summary_box');
+    const summaryText = document.getElementById('ci_summary_text');
+
+    if (!select.value) {
+      summaryBox.style.display = 'none';
+      return;
     }
 
-    function triggerAction(modalId) {
-      document.getElementById('fab-drawer').classList.remove('active');
-      openModal(modalId);
+    const opt = select.options[select.selectedIndex];
+    const rawInc = opt.getAttribute('data-incident');
+    const inc = rawInc ? JSON.parse(rawInc) : null;
+
+    if (inc && inc.id) {
+      summaryText.innerHTML = `<strong>${inc.category} &bull; ${inc.impact}</strong><br>"${inc.details}" (Reported: ${inc.date})`;
+      summaryBox.style.display = 'block';
+    } else {
+      summaryBox.style.display = 'none';
+    }
+  }
+
+  function submitAddVehicle(e) {
+    e.preventDefault();
+    const btn = document.getElementById('av_btn');
+    btn.disabled = true;
+    showLoader(true);
+    setAlert('addVehicleAlert', 'success', 'Saving vehicle...');
+
+    const payload = {
+      vanName: document.getElementById('av_name').value,
+      rentalId: document.getElementById('av_rental').value,
+      rentalAgency: document.getElementById('av_agency').value,
+      makeModel: document.getElementById('av_model').value,
+      vin: document.getElementById('av_vin').value,
+      licensePlate: document.getElementById('av_plate').value,
+      pickupDate: document.getElementById('av_pickup').value,
+      serviceNum: document.getElementById('av_service').value,
+      notes: document.getElementById('av_notes').value
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('addVehicleAlert', 'success', res.message);
+        setTimeout(() => {
+          closeModal('addVehicleModal');
+          document.getElementById('addVehicleForm').reset();
+          loadPortalData();
+        }, 800);
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('addVehicleAlert', 'error', 'Error: ' + err.message);
+      })
+      .processAddVehicle(payload);
+  }
+
+  function submitDispatch(e) {
+    e.preventDefault();
+    const select = document.getElementById('dp_van');
+    if (!select.value) {
+      alert('Please select an active vehicle.');
+      return;
     }
 
-    function openModal(id) {
-      document.getElementById(id).classList.add('active');
+    const opt = select.options[select.selectedIndex];
+    const btn = document.getElementById('dp_btn');
+    btn.disabled = true;
+    showLoader(true);
+    setAlert('dispatchAlert', 'success', 'Dispatching vehicle...');
+
+    const payload = {
+      cleanName: select.value,
+      rentalId: opt.getAttribute('data-rental') || '',
+      assignedTech: document.getElementById('dp_tech').value,
+      shift: document.getElementById('dp_shift').value,
+      workZone: document.getElementById('dp_zone').value,
+      batteryTarget: document.getElementById('dp_target').value,
+      focusCategory: document.getElementById('dp_focus').value,
+      goals: document.getElementById('dp_goals').value,
+      dispatchDate: document.getElementById('dispatch-date').value
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('dispatchAlert', 'success', res.message);
+        setTimeout(() => {
+          closeModal('dispatchModal');
+          document.getElementById('dispatchForm').reset();
+          loadPortalData();
+        }, 800);
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('dispatchAlert', 'error', 'Error: ' + err.message);
+      })
+      .processDispatchCheckout(payload);
+  }
+
+  function submitIncident(e) {
+    e.preventDefault();
+    const select = document.getElementById('inc_van');
+    if (!select.value) {
+      alert('Please select a vehicle.');
+      return;
     }
 
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('active');
-      const alertBox = document.querySelector(`#${id} .alert-banner`);
-      if (alertBox) alertBox.style.display = 'none';
+    const opt = select.options[select.selectedIndex];
+    const btn = document.getElementById('inc_btn');
+    btn.disabled = true;
+    showLoader(true);
+    setAlert('incidentAlert', 'success', 'Submitting incident...');
+
+    const payload = {
+      cleanName: select.value,
+      rentalId: opt.getAttribute('data-rental') || '',
+      issueCategory: document.getElementById('inc_cat').value,
+      statusImpact: document.getElementById('inc_impact').value,
+      triggerOos: document.getElementById('inc_oos').checked,
+      description: document.getElementById('inc_desc').value
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('incidentAlert', 'success', res.message);
+        setTimeout(() => {
+          closeModal('incidentModal');
+          document.getElementById('incidentForm').reset();
+          loadPortalData();
+        }, 800);
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('incidentAlert', 'error', 'Error: ' + err.message);
+      })
+      .processReportIncident(payload);
+  }
+
+  function submitCheckIn(e) {
+    e.preventDefault();
+    const select = document.getElementById('ci_van');
+    if (!select.value) {
+      alert('Please choose an out-of-service van.');
+      return;
     }
 
-    function setAlert(alertId, type, message) {
-      const el = document.getElementById(alertId);
-      el.style.display = 'block';
-      if (type === 'success') {
-        el.style.background = '#ecfdf5';
-        el.style.color = '#065f46';
-        el.style.border = '1px solid #d1fae5';
-      } else {
-        el.style.background = '#fef2f2';
-        el.style.color = '#991b1b';
-        el.style.border = '1px solid #fee2e2';
-      }
-      el.innerText = message;
+    const opt = select.options[select.selectedIndex];
+    const rawInc = opt.getAttribute('data-incident');
+    const inc = rawInc ? JSON.parse(rawInc) : null;
+
+    const btn = document.getElementById('ci_btn');
+    btn.disabled = true;
+    showLoader(true);
+    setAlert('checkInAlert', 'success', 'Returning van to service...');
+
+    const payload = {
+      cleanName: select.value,
+      rentalId: opt.getAttribute('data-rental') || '',
+      incidentId: (inc && inc.id) ? inc.id : '',
+      resolutionNotes: document.getElementById('ci_notes').value
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('checkInAlert', 'success', res.message);
+        setTimeout(() => {
+          closeModal('checkInModal');
+          document.getElementById('checkInForm').reset();
+          loadPortalData();
+        }, 800);
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('checkInAlert', 'error', 'Error: ' + err.message);
+      })
+      .processCheckInVehicle(payload);
+  }
+
+  function submitDecom(e) {
+    e.preventDefault();
+    const select = document.getElementById('dec_van');
+    if (!select.value) {
+      alert('Please select a vehicle to decommission.');
+      return;
     }
 
-    function populateModalOptions(state) {
-      const cfg = state.config;
+    const btn = document.getElementById('dec_btn');
+    btn.disabled = true;
+    showLoader(true);
+    setAlert('decomAlert', 'success', 'Decommissioning van...');
 
-      // Agency Options
-      document.getElementById('av_agency').innerHTML = (cfg.rentalAgencies || ['Enterprise', 'Penske', 'U-Haul']).map(a => `<option value="${a}">${a}</option>`).join('');
+    const targetId = select.value;
+    const reason = document.getElementById('dec_reason').value;
 
-      // Dispatch Options
-      const activeVans = state.vehicles.filter(v => v.status === 'Active' || v.status === 'In Service');
-      document.getElementById('dp_van').innerHTML = activeVans.length 
-        ? '<option value="">-- Choose Available Van --</option>' + activeVans.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('')
-        : '<option value="">⚠️ No active vans available</option>';
-
-      document.getElementById('dp_shift').innerHTML = (cfg.shifts || ['Shift 1', 'Shift 2', 'Shift 3']).map(s => `<option value="${s}">${s}</option>`).join('');
-      document.getElementById('dp_zone').innerHTML = '<option value="">-- Select Zone --</option>' + (cfg.zones || []).map(z => `<option value="${z}">${z}</option>`).join('');
-      document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus (Optional) --</option>' + (cfg.focusOptions || []).map(f => `<option value="${f}">${f}</option>`).join('');
-
-      // Incident Options
-      const nonDecom = state.vehicles.filter(v => v.status !== 'Decommissioned');
-      document.getElementById('inc_van').innerHTML = '<option value="">-- Choose Vehicle --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId}) - [${v.status}]</option>`).join('');
-      document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c => `<option value="${c}">${c}</option>`).join('');
-      document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i => `<option value="${i}">${i}</option>`).join('');
-
-      // Check-In Options
-      const oos = state.oosVehicles || [];
-      document.getElementById('ci_van').innerHTML = oos.length 
-        ? '<option value="">-- Choose Out-of-Service Van --</option>' + oos.map(o => `<option value="${o.cleanName}" data-rental="${o.rentalId}" data-incident='${JSON.stringify(o.incident || {})}'>${o.displayName}</option>`).join('')
-        : '<option value="">🎉 No vans currently Out of Service</option>';
-      handleCheckInVanChange();
-
-      // Decommission Options
-      document.getElementById('dec_van').innerHTML = '<option value="">-- Choose Van --</option>' + nonDecom.map(v => `<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId})</option>`).join('');
-    }
-
-    function handleCheckInVanChange() {
-      const select = document.getElementById('ci_van');
-      const summaryBox = document.getElementById('ci_summary_box');
-      const summaryText = document.getElementById('ci_summary_text');
-
-      if (!select.value) {
-        summaryBox.style.display = 'none';
-        return;
-      }
-
-      const opt = select.options[select.selectedIndex];
-      const rawInc = opt.getAttribute('data-incident');
-      const inc = rawInc ? JSON.parse(rawInc) : null;
-
-      if (inc && inc.id) {
-        summaryText.innerHTML = `<strong>${inc.category} &bull; ${inc.impact}</strong><br>"${inc.details}" (Reported: ${inc.date})`;
-        summaryBox.style.display = 'block';
-      } else {
-        summaryBox.style.display = 'none';
-      }
-    }
-
-    /* ================= Form Submission Handlers ================= */
-
-    function submitAddVehicle(e) {
-      e.preventDefault();
-      const btn = document.getElementById('av_btn');
-      btn.disabled = true;
-      setAlert('addVehicleAlert', 'success', 'Saving vehicle...');
-
-      const payload = {
-        vanName: document.getElementById('av_name').value,
-        rentalId: document.getElementById('av_rental').value,
-        rentalAgency: document.getElementById('av_agency').value,
-        makeModel: document.getElementById('av_model').value,
-        vin: document.getElementById('av_vin').value,
-        licensePlate: document.getElementById('av_plate').value,
-        pickupDate: document.getElementById('av_pickup').value,
-        serviceNum: document.getElementById('av_service').value,
-        notes: document.getElementById('av_notes').value
-      };
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          setAlert('addVehicleAlert', 'success', res.message);
-          setTimeout(() => {
-            closeModal('addVehicleModal');
-            document.getElementById('addVehicleForm').reset();
-            loadPortalData();
-          }, 800);
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          setAlert('addVehicleAlert', 'error', 'Error: ' + err.message);
-        })
-        .processAddVehicle(payload);
-    }
-
-    function submitDispatch(e) {
-      e.preventDefault();
-      const select = document.getElementById('dp_van');
-      if (!select.value) {
-        alert('Please select an active vehicle.');
-        return;
-      }
-
-      const opt = select.options[select.selectedIndex];
-      const btn = document.getElementById('dp_btn');
-      btn.disabled = true;
-      setAlert('dispatchAlert', 'success', 'Dispatching vehicle...');
-
-      const payload = {
-        cleanName: select.value,
-        rentalId: opt.getAttribute('data-rental') || '',
-        assignedTech: document.getElementById('dp_tech').value,
-        shift: document.getElementById('dp_shift').value,
-        workZone: document.getElementById('dp_zone').value,
-        batteryTarget: document.getElementById('dp_target').value,
-        focusCategory: document.getElementById('dp_focus').value,
-        goals: document.getElementById('dp_goals').value,
-        dispatchDate: document.getElementById('dispatch-date').value
-      };
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          setAlert('dispatchAlert', 'success', res.message);
-          setTimeout(() => {
-            closeModal('dispatchModal');
-            document.getElementById('dispatchForm').reset();
-            loadPortalData();
-          }, 800);
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          setAlert('dispatchAlert', 'error', 'Error: ' + err.message);
-        })
-        .processDispatchCheckout(payload);
-    }
-
-    function submitIncident(e) {
-      e.preventDefault();
-      const select = document.getElementById('inc_van');
-      if (!select.value) {
-        alert('Please select a vehicle.');
-        return;
-      }
-
-      const opt = select.options[select.selectedIndex];
-      const btn = document.getElementById('inc_btn');
-      btn.disabled = true;
-      setAlert('incidentAlert', 'success', 'Submitting incident...');
-
-      const payload = {
-        cleanName: select.value,
-        rentalId: opt.getAttribute('data-rental') || '',
-        issueCategory: document.getElementById('inc_cat').value,
-        statusImpact: document.getElementById('inc_impact').value,
-        triggerOos: document.getElementById('inc_oos').checked,
-        description: document.getElementById('inc_desc').value
-      };
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          setAlert('incidentAlert', 'success', res.message);
-          setTimeout(() => {
-            closeModal('incidentModal');
-            document.getElementById('incidentForm').reset();
-            loadPortalData();
-          }, 800);
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          setAlert('incidentAlert', 'error', 'Error: ' + err.message);
-        })
-        .processReportIncident(payload);
-    }
-
-    function submitCheckIn(e) {
-      e.preventDefault();
-      const select = document.getElementById('ci_van');
-      if (!select.value) {
-        alert('Please choose an out-of-service van.');
-        return;
-      }
-
-      const opt = select.options[select.selectedIndex];
-      const rawInc = opt.getAttribute('data-incident');
-      const inc = rawInc ? JSON.parse(rawInc) : null;
-
-      const btn = document.getElementById('ci_btn');
-      btn.disabled = true;
-      setAlert('checkInAlert', 'success', 'Returning van to service...');
-
-      const payload = {
-        cleanName: select.value,
-        rentalId: opt.getAttribute('data-rental') || '',
-        incidentId: (inc && inc.id) ? inc.id : '',
-        resolutionNotes: document.getElementById('ci_notes').value
-      };
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          setAlert('checkInAlert', 'success', res.message);
-          setTimeout(() => {
-            closeModal('checkInModal');
-            document.getElementById('checkInForm').reset();
-            loadPortalData();
-          }, 800);
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          setAlert('checkInAlert', 'error', 'Error: ' + err.message);
-        })
-        .processCheckInVehicle(payload);
-    }
-
-    function submitDecom(e) {
-      e.preventDefault();
-      const select = document.getElementById('dec_van');
-      if (!select.value) {
-        alert('Please select a vehicle to decommission.');
-        return;
-      }
-
-      const btn = document.getElementById('dec_btn');
-      btn.disabled = true;
-      setAlert('decomAlert', 'success', 'Decommissioning van...');
-
-      const targetId = select.value;
-      const reason = document.getElementById('dec_reason').value;
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          setAlert('decomAlert', 'success', res.message);
-          setTimeout(() => {
-            closeModal('decomModal');
-            document.getElementById('decomForm').reset();
-            loadPortalData();
-          }, 800);
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          setAlert('decomAlert', 'error', 'Error: ' + err.message);
-        })
-        .decommissionVehicle(targetId, reason);
-    }
-
-    function triggerCsvExport() {
-      const dateVal = document.getElementById('dispatch-date').value;
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (!res.success) {
-            alert(res.message);
-            return;
-          }
-          const blob = new Blob([res.csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.setAttribute('download', res.filename);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        })
-        .withFailureHandler(function(err) {
-          alert('Export failed: ' + err.message);
-        })
-        .exportShiftManifestCsv(dateVal, currentShift);
-    }
-
-    function triggerPdfPrint() {
-      const dateVal = document.getElementById('dispatch-date').value;
-      google.script.run
-        .withSuccessHandler(function(htmlString) {
-          const printWindow = window.open('', '_blank');
-          printWindow.document.open();
-          printWindow.document.write(htmlString);
-          printWindow.document.close();
-        })
-        .withFailureHandler(function(err) {
-          alert('Failed to generate printable manifest: ' + err.message);
-        })
-        .getPrintableShiftManifestHtml(dateVal, currentShift);
-    }
-
-  </script>
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('decomAlert', 'success', res.message);
+        setTimeout(() => {
+          closeModal('decomModal');
+          document.getElementById('decomForm').reset();
+          loadPortalData();
+        }, 800);
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        showLoader(false);
+        setAlert('decomAlert', 'error', 'Error: ' + err.message);
+      })
+      .decommissionVehicle(targetId, reason);
+  }
+</script>
 </body>
 </html>
