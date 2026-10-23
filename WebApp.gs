@@ -1,5 +1,5 @@
 /**
- * @fileoverview Serves the standalone Web App dashboard.
+ * @fileoverview Serves the standalone Web App dashboard and web-side endpoints.
  */
 
 function doGet(e) {
@@ -11,7 +11,7 @@ function doGet(e) {
 }
 
 /**
- * Returns full state for the web app in one payload.
+ * Returns full state for the web app in one synchronized payload.
  */
 function getDashboardState(dateStr, shift) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -105,12 +105,33 @@ function getDashboardState(dateStr, shift) {
     });
   }
 
+  // 4. Out-of-Service Vehicles with open incident link
+  const oosList = [];
+  vehicles.forEach(v => {
+    if (v.status === 'Out of Service') {
+      let openInc = null;
+      for (let j = incidents.length - 1; j >= 0; j--) {
+        if ((incidents[j].vehicle === v.cleanName || incidents[j].rentalId === v.rentalId) && !incidents[j].dateResolved) {
+          openInc = incidents[j];
+          break;
+        }
+      }
+      oosList.push({
+        cleanName: v.cleanName,
+        rentalId: v.rentalId,
+        displayName: `${v.cleanName} (${v.rentalId})`,
+        incident: openInc
+      });
+    }
+  });
+
   return {
     config: config,
     counts: counts,
     vehicles: vehicles,
     deployments: deployments,
     incidents: incidents,
+    oosVehicles: oosList,
     selectedDate: targetDateStr,
     selectedShift: targetShift
   };
