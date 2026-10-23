@@ -40,9 +40,6 @@ function openFleetSidebar() {
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
-function showDispatchModal() {
-  SpreadsheetApp.getUi().alert('Daily Driver & Shift Dispatch Checkout will be enabled in Ticket 5.');
-}
 
 function testAuditLogger() {
   logAudit('TEST_RUN', 'System', 'SELF_CHECK', 'Audit log verification triggered.');
