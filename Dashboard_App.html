@@ -867,16 +867,17 @@
     }
   }
 
-  /**
+/**
    * INSTANT SHIFT TOGGLE:
-   * Changes shift and renders in milliseconds using already-loaded data.
+   * Changes shift and re-renders from browser memory in under 5 milliseconds.
    */
   function setShift(shiftName) {
     currentShift = shiftName;
     document.querySelectorAll('.shift-btn').forEach(b => {
       b.classList.toggle('active', b.innerText === shiftName);
     });
-    renderDispatchBoard(); // No Apps Script server call needed!
+    // Immediately filter the table locally without touching the network!
+    renderDispatchBoard();
   }
 
   /**
@@ -941,7 +942,7 @@
   /**
    * Fast In-Memory Dispatch Filtering
    */
-  function renderDispatchBoard() {
+function renderDispatchBoard() {
     if (!globalState) return;
 
     const selectedDate = document.getElementById('dispatch-date').value;
@@ -950,14 +951,17 @@
     const tbody = document.getElementById('dispatch-table-body');
     const mobileContainer = document.getElementById('mobile-dispatch-cards');
 
-    // Filter in local memory instantly
+    // Fast in-memory filter
     const filtered = globalState.deployments.filter(d => {
-      return d.date === selectedDate && d.shift.toLowerCase() === currentShift.toLowerCase();
+      const matchDate = !selectedDate || d.date === selectedDate;
+      const matchShift = d.shift.toLowerCase() === currentShift.toLowerCase();
+      return matchDate && matchShift;
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No dispatches found for ${currentShift} on ${selectedDate}.</td></tr>`;
-      mobileContainer.innerHTML = `<div class="empty-state">No dispatches found for ${currentShift} on ${selectedDate}.</div>`;
+      const emptyMsg = `No dispatches found for ${currentShift} on ${selectedDate}.`;
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${emptyMsg}</td></tr>`;
+      mobileContainer.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
       return;
     }
 
