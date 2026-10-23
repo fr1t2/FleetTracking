@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; color: #202124; background: #fafafa; }
+    h3 { margin-top: 0; color: #d93025; font-size: 18px; border-bottom: 2px solid #e8eaed; padding-bottom: 8px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #5f6368; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #d93025; box-shadow: 0 0 0 2px rgba(217,48,37,0.2); }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; background: #fce8e6; padding: 10px; border-radius: 6px; }
+    .checkbox-row input { width: auto; margin: 0; }
+    .checkbox-row label { font-size: 13px; font-weight: 600; color: #c5221f; margin: 0; cursor: pointer; }
+    .btn-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    .btn { padding: 9px 18px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; }
+    .btn-danger { background: #d93025; color: #fff; }
+    .btn-secondary { background: #f1f3f4; color: #3c4043; }
+    .status-msg { margin-top: 8px; font-size: 12px; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <h3>⚠️ Report Incident / Out of Service</h3>
+  <form id="incidentForm">
+    <div class="form-group">
+      <label>Select Vehicle *</label>
+      <select id="vehicleSelect" required>
+        <option value="">-- Choose Vehicle --</option>
+        <? for (var i = 0; i < vehicles.length; i++) { ?>
+          <option value="<?= vehicles[i].cleanName ?>" data-rental="<?= vehicles[i].rentalId ?>">
+            <?= vehicles[i].displayName ?>
+          </option>
+        <? } ?>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Issue Category / Event Type *</label>
+      <select id="issueCategory" required>
+        <? for (var j = 0; j < oosReasons.length; j++) { ?>
+          <option value="<?= oosReasons[j] ?>"><?= oosReasons[j] ?></option>
+        <? } ?>
+      </select>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="triggerOos" checked />
+      <label for="triggerOos">🚨 Trigger Van to Out of Service immediately</label>
+    </div>
+
+    <div class="form-group">
+      <label>Status Impact / Reason Details</label>
+      <select id="statusImpact">
+        <option value="Needs Repair">Needs Repair</option>
+        <option value="Flat Tire">Flat Tire</option>
+        <option value="Check Engine Light">Check Engine Light</option>
+        <option value="Scheduled Maintenance">Scheduled Maintenance</option>
+        <option value="Safety Hold / Inspection">Safety Hold / Inspection</option>
+        <option value="Minor / Informational Only">Minor / Informational Only</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Description & Notes *</label>
+      <textarea id="description" rows="3" placeholder="Describe the issue, location, or circumstances..." required></textarea>
+    </div>
+
+    <div class="btn-bar">
+      <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+      <button type="submit" id="submitBtn" class="btn btn-danger">Log Incident</button>
+    </div>
+    <div id="status" class="status-msg"></div>
+  </form>
+
+  <script>
+    document.getElementById('incidentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const select = document.getElementById('vehicleSelect');
+      const selectedOption = select.options[select.selectedIndex];
+      const rentalId = selectedOption.getAttribute('data-rental') || '';
+
+      const submitBtn = document.getElementById('submitBtn');
+      const status = document.getElementById('status');
+      submitBtn.disabled = true;
+      status.style.color = '#5f6368';
+      status.innerText = 'Submitting incident and updating vehicle status...';
+
+      const payload = {
+        cleanName: select.value,
+        rentalId: rentalId,
+        issueCategory: document.getElementById('issueCategory').value,
+        triggerOos: document.getElementById('triggerOos').checked,
+        statusImpact: document.getElementById('statusImpact').value,
+        description: document.getElementById('description').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          status.style.color = '#137333';
+          status.innerText = res.message;
+          setTimeout(() => { google.script.host.close(); }, 1200);
+        })
+        .withFailureHandler(function(err) {
+          submitBtn.disabled = false;
+          status.style.color = '#d93025';
+          status.innerText = 'Error: ' + err.message;
+        })
+        .processReportIncident(payload);
+    });
+  </script>
+</body>
+</html>

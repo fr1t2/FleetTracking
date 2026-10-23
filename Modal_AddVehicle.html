@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; color: #202124; background: #fafafa; }
+    h3 { margin-top: 0; color: #1a73e8; font-size: 18px; border-bottom: 2px solid #e8eaed; padding-bottom: 8px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #5f6368; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+    .row { display: flex; gap: 10px; }
+    .col { flex: 1; }
+    .btn-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    .btn { padding: 9px 18px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-secondary { background: #f1f3f4; color: #3c4043; }
+    .status-msg { margin-top: 8px; font-size: 12px; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <h3>➕ New Fleet Vehicle Entry</h3>
+  <form id="vehicleForm">
+    <div class="row">
+      <div class="col form-group">
+        <label>Clean Name *</label>
+        <input type="text" id="vanName" placeholder="e.g. Van #19" required />
+      </div>
+      <div class="col form-group">
+        <label>Rental / Unit # *</label>
+        <input type="text" id="rentalId" placeholder="e.g. P9103003" required />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col form-group">
+        <label>Rental Agency</label>
+        <select id="rentalAgency">
+          <? for (var i = 0; i < rentalAgencies.length; i++) { ?>
+            <option value="<?= rentalAgencies[i] ?>"><?= rentalAgencies[i] ?></option>
+          <? } ?>
+        </select>
+      </div>
+      <div class="col form-group">
+        <label>Make & Model</label>
+        <input type="text" id="makeModel" placeholder="e.g. Ford Transit 250" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col form-group">
+        <label>VIN (17 digits)</label>
+        <input type="text" id="vin" placeholder="1FTBR1Y89PKA..." maxlength="17" />
+      </div>
+      <div class="col form-group">
+        <label>License Plate</label>
+        <input type="text" id="licensePlate" placeholder="e.g. CO - ABC-1234" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col form-group">
+        <label>Pick-up Date</label>
+        <input type="date" id="pickupDate" />
+      </div>
+      <div class="col form-group">
+        <label>Service / Contract #</label>
+        <input type="text" id="serviceNum" placeholder="e.g. RA-88291" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Initial Notes / Condition</label>
+      <textarea id="notes" rows="2" placeholder="Tires good, Samsara unit installed..."></textarea>
+    </div>
+    <div class="btn-bar">
+      <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+      <button type="submit" id="submitBtn" class="btn btn-primary">Save to Fleet</button>
+    </div>
+    <div id="status" class="status-msg"></div>
+  </form>
+
+  <script>
+    document.getElementById('pickupDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('vehicleForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const status = document.getElementById('status');
+      submitBtn.disabled = true;
+      status.style.color = '#5f6368';
+      status.innerText = 'Registering vehicle and logging audit trail...';
+
+      const payload = {
+        vanName: document.getElementById('vanName').value,
+        rentalId: document.getElementById('rentalId').value,
+        rentalAgency: document.getElementById('rentalAgency').value,
+        makeModel: document.getElementById('makeModel').value,
+        vin: document.getElementById('vin').value,
+        licensePlate: document.getElementById('licensePlate').value,
+        pickupDate: document.getElementById('pickupDate').value,
+        serviceNum: document.getElementById('serviceNum').value,
+        notes: document.getElementById('notes').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          status.style.color = '#137333';
+          status.innerText = res.message;
+          setTimeout(() => { google.script.host.close(); }, 1200);
+        })
+        .withFailureHandler(function(err) {
+          submitBtn.disabled = false;
+          status.style.color = '#d93025';
+          status.innerText = 'Error: ' + err.message;
+        })
+        .processAddVehicle(payload);
+    });
+  </script>
+</body>
+</html>
