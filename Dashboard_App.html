@@ -471,7 +471,7 @@
   100% { transform: translateX(300%); width: 30%; }
 }
 </style>
-    
+
     <div class="brand">
       🚚 <span>VEO Fleet Hub</span>
     </div>
@@ -588,6 +588,51 @@
         <div class="empty-state">Select a vehicle to inspect full specifications and maintenance history.</div>
       </div>
     </div>
+
+<!-- EDIT VEHICLE MODAL -->
+<div id="editVehicleModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Vehicle Specifications</div>
+      <button class="modal-close" onclick="closeModal('editVehicleModal')">&times;</button>
+    </div>
+    <form id="editVehicleForm" onsubmit="submitEditVehicle(event)">
+      <div class="modal-body">
+        <div id="editVehicleAlert" class="alert-banner" style="display:none; padding:10px; margin-bottom:12px; border-radius:6px; font-size:13px;"></div>
+        <input type="hidden" id="ev_rental" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Clean Name / Van #</label>
+            <input type="text" id="ev_name" required />
+          </div>
+          <div class="form-group">
+            <label>License Plate</label>
+            <input type="text" id="ev_plate" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tag / Plate Expiration Date</label>
+            <input type="date" id="ev_plate_exp" />
+          </div>
+          <div class="form-group">
+            <label>Samsara Gateway Serial #</label>
+            <input type="text" id="ev_samsara" placeholder="e.g. GDM3-683-XW2" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Append Notes / Reason for change</label>
+          <textarea id="ev_notes" rows="2" placeholder="e.g. Replaced damaged Samsara gateway, renewed annual tags..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('editVehicleModal')">Cancel</button>
+        <button type="submit" id="ev_btn" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+    
   </main>
 
   <!-- Floating Mobile Action Drawer (FAB) -->
@@ -916,11 +961,23 @@
 
     container.innerHTML = state.vehicles.map(v => {
       const statusClass = (v.status === 'Active' || v.status === 'In Service') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-decom');
+
+      // Calculate tag expiration alert
+      let tagBadge = '';
+      if (v.plateExpDate && v.plateExpDate !== '—') {
+        const diffDays = Math.ceil((new Date(v.plateExpDate) - new Date()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 30 && diffDays >= 0) {
+          tagBadge = `<span style="background:#fef3c7; color:#b45309; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">⚠️ Tag Exp: ${diffDays}d</span>`;
+        } else if (diffDays < 0) {
+          tagBadge = `<span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">🚨 Tag EXPIRED</span>`;
+        }
+      }
+
       return `
         <div class="vehicle-card" onclick="openProfileForVan('${v.cleanName}')">
           <div class="card-top">
             <div>
-              <div class="card-name">${v.cleanName}</div>
+              <div class="card-name">${v.cleanName} ${tagBadge}</div>
               <div class="card-sub">${v.rentalId} &bull; ${v.agency || 'Rental'}</div>
             </div>
             <span class="status-pill ${statusClass}">${v.status}</span>
@@ -928,10 +985,13 @@
           <div style="font-size:12px; color:#475569;">
             ${v.makeModel || 'Cargo Van'} &bull; Plate: <strong>${v.plate || '—'}</strong>
           </div>
+          <div style="font-size:11px; color:#64748b; margin-top:2px;">
+            📡 Samsara: <strong>${v.samsaraSerial || '—'}</strong>
+          </div>
           <div class="card-meta">
             <div class="meta-item">Zone: <strong>${v.zone}</strong></div>
             <div class="meta-item">Driver: <strong>${v.driver}</strong></div>
-            <div class="meta-item">VIN: <strong>${v.vin ? v.vin.substring(0, 10) + '...' : '—'}</strong></div>
+            <div class="meta-item">Tag Exp: <strong>${v.plateExpDate || '—'}</strong></div>
             <div class="meta-item">Serviced: <strong>${v.lastService}</strong></div>
           </div>
         </div>
@@ -1033,13 +1093,16 @@ function renderDispatchBoard() {
             <h2 class="panel-title" style="font-size:18px;">${van.cleanName}</h2>
             <p style="font-size:12px; color:var(--text-muted);">${van.rentalId} &bull; ${van.agency} &bull; ${van.makeModel}</p>
           </div>
-          <span class="status-pill ${van.status === 'Out of Service' ? 'status-oos' : 'status-active'}">${van.status}</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-outline" style="padding:4px 10px; font-size:12px;" onclick="openEditVehicleModal('${van.rentalId}')">✏️ Edit Van</button>
+            <span class="status-pill ${van.status === 'Out of Service' ? 'status-oos' : 'status-active'}">${van.status}</span>
+          </div>
         </div>
 
         <div class="kpi-grid">
-          <div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:15px; font-weight:700;">${van.zone}</div></div>
-          <div class="kpi-card"><div class="kpi-title">Driver</div><div style="font-size:15px; font-weight:700;">${van.driver}</div></div>
-          <div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">${van.plate || '—'}</div></div>
+          <div class="kpi-card"><div class="kpi-title">License Plate</div><div style="font-size:15px; font-weight:700;">${van.plate || '—'}</div></div>
+          <div class="kpi-card"><div class="kpi-title">Tag / Plate Expiration</div><div style="font-size:15px; font-weight:700;">${van.plateExpDate || '—'}</div></div>
+          <div class="kpi-card"><div class="kpi-title">Samsara Gateway</div><div style="font-size:14px; font-weight:700; color:var(--primary);">${van.samsaraSerial || '—'}</div></div>
           <div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:12px; font-weight:600; word-break:break-all;">${van.vin || '—'}</div></div>
         </div>
       </div>

@@ -51,23 +51,27 @@ function getDashboardState() {
     cfg.rentalAgencies = Array.from(new Set(cfg.rentalAgencies));
   }
 
-  // 2. FAST BATCH READ: Vehicles
+  // 2. FAST BATCH READ: Vehicles (17 columns)
   const vSheet = ss.getSheetByName(VEHICLES_SHEET);
   const vehicles = [];
   const counts = { total: 0, active: 0, oos: 0, decommissioned: 0 };
 
   if (vSheet && vSheet.getLastRow() > 1) {
-    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 15).getValues();
+    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 17).getValues();
     vRows.forEach(r => {
       const cleanName = String(r[0] || '').trim();
       const rentalId = String(r[1] || '').trim();
-      const status = String(r[6] || 'Active').trim();
+      const status = String(r[8] || 'Active').trim(); // Col I is Status
       if (!cleanName && !rentalId) return;
 
       counts.total++;
       if (status === 'Active' || status === 'In Service') counts.active++;
       else if (status === 'Out of Service') counts.oos++;
       else if (status === 'Decommissioned') counts.decommissioned++;
+
+      let expDate = '—';
+      if (r[6] instanceof Date) expDate = Utilities.formatDate(r[6], tz, 'yyyy-MM-dd');
+      else if (r[6]) expDate = String(r[6]).trim();
 
       vehicles.push({
         cleanName: cleanName,
@@ -76,13 +80,15 @@ function getDashboardState() {
         makeModel: String(r[3] || 'Cargo Van'),
         vin: String(r[4] || ''),
         plate: String(r[5] || ''),
+        plateExpDate: expDate,
+        samsaraSerial: String(r[7] || 'Unassigned'),
         status: status,
-        pickupDate: (r[7] instanceof Date) ? Utilities.formatDate(r[7], tz, 'yyyy-MM-dd') : String(r[7] || '—'),
-        serviceNum: String(r[8] || ''),
-        zone: String(r[9] || 'Unassigned'),
-        driver: String(r[10] || 'Unassigned'),
-        lastService: (r[11] instanceof Date) ? Utilities.formatDate(r[11], tz, 'yyyy-MM-dd') : '—',
-        notes: String(r[12] || '')
+        pickupDate: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || '—'),
+        serviceNum: String(r[10] || ''),
+        zone: String(r[11] || 'Unassigned'),
+        driver: String(r[12] || 'Unassigned'),
+        lastService: (r[13] instanceof Date) ? Utilities.formatDate(r[13], tz, 'yyyy-MM-dd') : '—',
+        notes: String(r[14] || '')
       });
     });
   }
