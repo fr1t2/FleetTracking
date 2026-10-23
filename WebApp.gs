@@ -1,6 +1,5 @@
 /**
- * @fileoverview High-Speed Standalone Web App Backend
- * Batch reads all spreadsheet ranges in single calls to minimize latency.
+ * @fileoverview High-Performance Web App Backend
  */
 
 function doGet(e) {
@@ -11,32 +10,27 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * Returns full state with single-pass batch range reads.
- */
 function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tz = Session.getScriptTimeZone();
 
-  // 1. FAST BATCH READ: _Config in a single API call
+  // 1. Read _Config
   const cfgSheet = ss.getSheetByName(CONFIG_SHEET);
   const cfg = {
     settings: {},
-    shifts: ['Shift 1', 'Shift 2', 'Shift 3'],
+    shifts: [],
     zones: [],
     issueCategories: [],
     statuses: ['Active', 'In Service', 'Out of Service', 'Decommissioned'],
     focusOptions: [],
-    rentalAgencies: ['Enterprise', 'Penske', 'U-Haul'],
+    rentalAgencies: ['Enterprise', 'Penske', 'U-Haul', 'VEO'],
     statusImpacts: []
   };
 
   if (cfgSheet && cfgSheet.getLastRow() > 1) {
     const rawCfg = cfgSheet.getRange(2, 1, cfgSheet.getLastRow() - 1, Math.min(cfgSheet.getLastColumn(), 10)).getValues();
     rawCfg.forEach(row => {
-      // Key-Value (Cols A:B)
       if (row[0]) cfg.settings[String(row[0]).trim()] = row[1];
-      // Lists (Cols D through J)
       if (row[3]) cfg.shifts.push(String(row[3]).trim());
       if (row[4]) cfg.zones.push(String(row[4]).trim());
       if (row[5]) cfg.issueCategories.push(String(row[5]).trim());
@@ -45,13 +39,14 @@ function getDashboardState() {
       if (row[8]) cfg.rentalAgencies.push(String(row[8]).trim());
       if (row[9]) cfg.statusImpacts.push(String(row[9]).trim());
     });
-    // Deduplicate lists
-    cfg.shifts = Array.from(new Set(cfg.shifts));
-    cfg.statuses = Array.from(new Set(cfg.statuses));
-    cfg.rentalAgencies = Array.from(new Set(cfg.rentalAgencies));
+    cfg.shifts = Array.from(new Set(cfg.shifts)).filter(Boolean);
+    cfg.zones = Array.from(new Set(cfg.zones)).filter(Boolean);
+    cfg.rentalAgencies = Array.from(new Set(cfg.rentalAgencies)).filter(Boolean);
   }
 
-  // 2. FAST BATCH READ: Vehicles (17 columns)
+  if (!cfg.shifts.length) cfg.shifts = ['First Shift', 'Second Shift', 'Third Shift'];
+
+  // 2. Read Vehicles (17 columns)
   const vSheet = ss.getSheetByName(VEHICLES_SHEET);
   const vehicles = [];
   const counts = { total: 0, active: 0, oos: 0, decommissioned: 0 };
@@ -61,7 +56,7 @@ function getDashboardState() {
     vRows.forEach(r => {
       const cleanName = String(r[0] || '').trim();
       const rentalId = String(r[1] || '').trim();
-      const status = String(r[8] || 'Active').trim(); // Col I is Status
+      const status = String(r[8] || 'Active').trim();
       if (!cleanName && !rentalId) return;
 
       counts.total++;
@@ -93,7 +88,7 @@ function getDashboardState() {
     });
   }
 
-  // 3. FAST BATCH READ: Deployments
+  // 3. Read Deployments
   const dSheet = ss.getSheetByName(DEPLOYMENTS_SHEET);
   const deployments = [];
 
@@ -104,7 +99,6 @@ function getDashboardState() {
       if (r[1] instanceof Date) {
         depDate = Utilities.formatDate(r[1], tz, 'yyyy-MM-dd');
       } else if (r[1]) {
-        // Safe string parse fallback
         const parsed = new Date(r[1]);
         depDate = !isNaN(parsed) ? Utilities.formatDate(parsed, tz, 'yyyy-MM-dd') : String(r[1]);
       }
@@ -132,19 +126,16 @@ function getDashboardState() {
     });
   }
 
-  // 4. FAST BATCH READ: Incidents
+  // 4. Read Incidents
   const iSheet = ss.getSheetByName(INCIDENTS_SHEET);
   const incidents = [];
 
   if (iSheet && iSheet.getLastRow() > 1) {
     const iRows = iSheet.getRange(2, 1, iSheet.getLastRow() - 1, 13).getValues();
     iRows.forEach(r => {
-      let incDate = (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1] || '');
-      let resDate = (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || '');
-
       incidents.push({
         id: String(r[0] || ''),
-        date: incDate,
+        date: (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1] || ''),
         vehicle: String(r[2] || ''),
         rentalId: String(r[3] || ''),
         category: String(r[4] || ''),
@@ -152,31 +143,11 @@ function getDashboardState() {
         oos: String(r[6] || ''),
         impact: String(r[7] || ''),
         resolution: String(r[8] || ''),
-        dateResolved: resDate,
+        dateResolved: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || ''),
         resolvedBy: String(r[10] || '')
       });
     });
   }
-
-  // 5. Build Out-of-Service Vehicles list
-  const oosList = [];
-  vehicles.forEach(v => {
-    if (v.status === 'Out of Service') {
-      let openInc = null;
-      for (let j = incidents.length - 1; j >= 0; j--) {
-        if ((incidents[j].vehicle === v.cleanName || incidents[j].rentalId === v.rentalId) && !incidents[j].dateResolved) {
-          openInc = incidents[j];
-          break;
-        }
-      }
-      oosList.push({
-        cleanName: v.cleanName,
-        rentalId: v.rentalId,
-        displayName: `${v.cleanName} (${v.rentalId})`,
-        incident: openInc
-      });
-    }
-  });
 
   return {
     config: cfg,
@@ -184,7 +155,6 @@ function getDashboardState() {
     vehicles: vehicles,
     deployments: deployments,
     incidents: incidents,
-    oosVehicles: oosList,
     todayDate: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd')
   };
 }

@@ -5,6 +5,72 @@
 /**
  * Cleanly aligns Equinox #0 into the 17-column schema.
  */
+
+
+/**
+ * Run this function once to realign all sheets to the correct schema.
+ */
+function fixAllSheetErrors() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1. Realign Vehicles
+  const vSheet = ss.getSheetByName('Vehicles');
+  if (vSheet) {
+    const vHeaders = [
+      'Vehicle Clean Name', 'Rental Agreement / Unit #', 'Rental Agency', 'Make & Model',
+      'VIN', 'License Plate', 'Plate Expiration Date', 'Samsara Gateway Serial #',
+      'Current Status', 'Pick-up Date', 'Service Number', 'Current Assigned Zone',
+      'Current Assigned Tech', 'Last Service Date', 'Notes', 'Last Updated By', 'Last Updated At'
+    ];
+    vSheet.clearContents();
+    vSheet.getRange(1, 1, 1, vHeaders.length).setValues([vHeaders]).setFontWeight('bold');
+
+    const cleanRow = [
+      'Equinox #0',
+      'EP7391',
+      'VEO',
+      'Chevy Equinox',
+      '3GN7DMRP8TS147391',
+      'CO - 8620723',
+      '2027-04-30',        // Plate Exp Date
+      'GDM3-683-XW2',       // Samsara Serial #
+      'In Service',         // Current Status
+      new Date('2026-10-22'),
+      'ra-87666',
+      'Work Zone 2A',       // Current Assigned Zone
+      'james',              // Current Assigned Tech
+      new Date('2026-10-23'),
+      '',
+      'james@merkletree.us',
+      new Date('2026-10-23')
+    ];
+    vSheet.getRange(2, 1, 1, cleanRow.length).setValues([cleanRow]);
+  }
+
+  // 2. Fix Deployments Date to Today
+  const dSheet = ss.getSheetByName('Deployments');
+  if (dSheet && dSheet.getLastRow() >= 2) {
+    // Set deployment date to today so the dashboard matches
+    dSheet.getRange('B2').setValue(new Date());
+    dSheet.getRange('C2').setValue('First Shift');
+  }
+
+  // 3. Realign Incidents_Service
+  const iSheet = ss.getSheetByName('Incidents_Service');
+  if (iSheet) {
+    const iHeaders = [
+      'Incident ID', 'Date Reported', 'Vehicle Clean Name', 'Rental ID', 'Issue Category',
+      'Description / Event Details', 'OOS Triggered (YES/NO)', 'Status Impact', 'Resolution Notes',
+      'Date Resolved', 'Resolved By', 'Logged By', 'Created Timestamp'
+    ];
+    iSheet.clearContents();
+    iSheet.getRange(1, 1, 1, iHeaders.length).setValues([iHeaders]).setFontWeight('bold');
+  }
+
+  ss.toast('All spreadsheet columns and dates repaired!', 'System Ready', 4);
+}
+
+
 function fixEquinoxColumns() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Vehicles');
