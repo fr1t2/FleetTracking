@@ -439,4 +439,11 @@ function getSidebarHtml() {
     <div class="action-card">
       <h4>System Utilities</h4>
       <button class="btn btn-outline" onclick="google.script.run.updateVehiclesTableSchema()">⚙️ Update Sheet Columns</button>
-      <button class="btn btn-outline" onclick="google.script.run.test
+      <button class="btn btn-outline" onclick="google.script.run.testAuditLogger()">🧪 Test Audit Logger</button>
+    </div>
+
+    <div class="footer-note">All actions automatically logged with timestamp and user ID.</div>
+  </body>
+  </html>
+  `;
+}
