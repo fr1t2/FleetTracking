@@ -233,18 +233,34 @@
     </div>
   </div>
 
-  <!-- ADD VAN MODAL -->
+ <!-- ADD VAN MODAL -->
   <div id="addVehicleModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header"><div>➕ Add Vehicle</div><button class="modal-close" onclick="closeModal('addVehicleModal')">&times;</button></div>
       <form onsubmit="submitAddVehicle(event)">
         <div class="modal-body">
-          <div class="form-row"><div class="form-group"><label>Name *</label><input type="text" id="av_name" required></div><div class="form-group"><label>Rental # *</label><input type="text" id="av_rental" required></div></div>
-          <div class="form-row"><div class="form-group"><label>Agency</label><select id="av_agency"></select></div><div class="form-group"><label>Model</label><input type="text" id="av_model"></div></div>
-          <div class="form-row"><div class="form-group"><label>Plate</label><input type="text" id="av_plate"></div><div class="form-group"><label>Samsara ID</label><input type="text" id="av_samsara"></div></div>
+          <div class="form-row">
+            <div class="form-group"><label>Name *</label><input type="text" id="av_name" required></div>
+            <div class="form-group"><label>Rental # *</label><input type="text" id="av_rental" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Agency</label><select id="av_agency"></select></div>
+            <div class="form-group"><label>Make & Model</label><input type="text" id="av_model"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>VIN</label><input type="text" id="av_vin"></div>
+            <div class="form-group"><label>License Plate</label><input type="text" id="av_plate"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Tag Expiration</label><input type="date" id="av_plate_exp"></div>
+            <div class="form-group"><label>Samsara ID</label><input type="text" id="av_samsara"></div>
+          </div>
           <div class="form-group"><label>Addons & Builds</label><input type="text" id="av_addons" placeholder="e.g. Shelving, Inverter..."></div>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('addVehicleModal')">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('addVehicleModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
       </form>
     </div>
   </div>
@@ -730,16 +746,54 @@ function submitDispatch(e) {
         .endShift(depId, rentId);
     }
 
-    function submitAddVehicle(e) {
+function submitAddVehicle(e) {
       e.preventDefault();
-      document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>{ closeModal('addVehicleModal'); loadPortalData(); })
-      .processAddVehicle({
-        vanName: document.getElementById('av_name').value, rentalId: document.getElementById('av_rental').value,
-        rentalAgency: document.getElementById('av_agency').value, makeModel: document.getElementById('av_model').value,
-        vin: document.getElementById('av_vin').value, licensePlate: document.getElementById('av_plate').value,
-        samsaraSerial: document.getElementById('av_samsara').value, addons: document.getElementById('av_addons').value
+      
+      const payload = {
+        vanName: document.getElementById('av_name').value, 
+        rentalId: document.getElementById('av_rental').value,
+        rentalAgency: document.getElementById('av_agency').value, 
+        makeModel: document.getElementById('av_model').value,
+        vin: document.getElementById('av_vin') ? document.getElementById('av_vin').value : '', 
+        licensePlate: document.getElementById('av_plate').value,
+        plateExpDate: document.getElementById('av_plate_exp') ? document.getElementById('av_plate_exp').value : '',
+        samsaraSerial: document.getElementById('av_samsara').value, 
+        addons: document.getElementById('av_addons').value
+      };
+
+      // Close modal instantly
+      closeModal('addVehicleModal');
+
+      // --- OPTIMISTIC UI UPDATE ---
+      // Instantly inject the new vehicle into the dashboard
+      const now = new Date();
+      globalState.vehicles.push({
+        cleanName: payload.vanName,
+        rentalId: payload.rentalId,
+        agency: payload.rentalAgency,
+        makeModel: payload.makeModel || 'Cargo Van',
+        vin: payload.vin,
+        plate: payload.licensePlate,
+        plateExpDate: payload.plateExpDate || '—',
+        samsaraSerial: payload.samsaraSerial || 'Unassigned',
+        status: 'Warehouse (Ready)',
+        zone: '—',
+        driver: '—',
+        lastService: now.toISOString().split('T')[0],
+        notes: '',
+        addons: payload.addons
       });
+
+      // Instantly re-render the view
+      renderFleetOverview(globalState);
+      populateModals(globalState);
+
+      // --- BACKGROUND SYNC ---
+      document.getElementById('global-loader').style.display='block';
+      google.script.run
+        .withSuccessHandler(()=>{ loadPortalData(); })
+        .withFailureHandler(()=>{ loadPortalData(); })
+        .processAddVehicle(payload);
     }
 
     function openProfileForVan(name) { switchTab('profile'); document.getElementById('profile-van-select').value=name; renderVanProfile(); }
