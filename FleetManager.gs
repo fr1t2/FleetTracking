@@ -7,13 +7,10 @@
  */
 
 
-/**
- * Run this function once to realign all sheets to the correct schema.
- */
 function fixAllSheetErrors() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 1. Realign Vehicles
+  // 1. Realign Vehicles to 17-column layout
   const vSheet = ss.getSheetByName('Vehicles');
   if (vSheet) {
     const vHeaders = [
@@ -47,15 +44,14 @@ function fixAllSheetErrors() {
     vSheet.getRange(2, 1, 1, cleanRow.length).setValues([cleanRow]);
   }
 
-  // 2. Fix Deployments Date to Today
+  // 2. Fix Deployments Date & Shift
   const dSheet = ss.getSheetByName('Deployments');
   if (dSheet && dSheet.getLastRow() >= 2) {
-    // Set deployment date to today so the dashboard matches
     dSheet.getRange('B2').setValue(new Date());
     dSheet.getRange('C2').setValue('First Shift');
   }
 
-  // 3. Realign Incidents_Service
+  // 3. Reset Incidents_Service headers
   const iSheet = ss.getSheetByName('Incidents_Service');
   if (iSheet) {
     const iHeaders = [
@@ -67,9 +63,8 @@ function fixAllSheetErrors() {
     iSheet.getRange(1, 1, 1, iHeaders.length).setValues([iHeaders]).setFontWeight('bold');
   }
 
-  ss.toast('All spreadsheet columns and dates repaired!', 'System Ready', 4);
+  SpreadsheetApp.getActiveSpreadsheet().toast('All spreadsheet columns and dates repaired!', 'Fixed', 4);
 }
-
 
 function fixEquinoxColumns() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
