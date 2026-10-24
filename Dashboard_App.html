@@ -110,6 +110,10 @@
     .form-row { display: flex; gap: 12px; }
     .form-row .form-group { flex: 1; }
 
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th { background: var(--bg); color: var(--text-muted); font-weight: 700; padding: 12px; border-bottom: 2px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 12px; border-bottom: 1px solid var(--border); }
+
     .loader-bar { display:none; height:4px; width:100%; background:var(--veo-cyan); position:absolute; top:0; left:0; z-index:999; animation: loading 1.5s infinite ease-in-out; }
     @keyframes loading { 0% { transform: translateX(-100%); width: 30%; } 50% { transform: translateX(100%); width: 70%; } 100% { transform: translateX(300%); width: 30%; } }
 
@@ -152,6 +156,7 @@
       </div>
       <div class="topbar-actions">
         <button class="btn btn-outline" onclick="openModal('incidentModal')">⚠️ <span class="desktop-only">Report OOS</span></button>
+        <button class="btn btn-outline desktop-only" onclick="openModal('checkInModal')">✅ Check In</button>
         <button class="btn btn-primary" onclick="openModal('dispatchModal')">📋 <span class="desktop-only">Dispatch</span></button>
       </div>
     </div>
@@ -202,14 +207,17 @@
           </div>
         </div>
         <div class="kanban-board">
+          <!-- Ready -->
           <div class="kanban-col">
             <div class="kanban-title"><span>Warehouse (Ready)</span><span class="badge-count" id="kb-ready-count">0</span></div>
             <div id="kb-ready-col" style="display:flex; flex-direction:column; gap:12px;"></div>
           </div>
+          <!-- Active Route -->
           <div class="kanban-col">
             <div class="kanban-title"><span>Active Route (< 7 Hrs)</span><span class="badge-count" id="kb-active-count">0</span></div>
             <div id="kb-active-col" style="display:flex; flex-direction:column; gap:12px;"></div>
           </div>
+          <!-- Returning Soon -->
           <div class="kanban-col">
             <div class="kanban-title"><span style="color:var(--warning)">Returning Soon (> 7 Hrs)</span><span class="badge-count" id="kb-return-count">0</span></div>
             <div id="kb-return-col" style="display:flex; flex-direction:column; gap:12px;"></div>
@@ -217,22 +225,28 @@
         </div>
       </div>
 
-      <!-- 3. FLEET REGISTRY TAB (NOW A CARD GRID) -->
+      <!-- 3. FLEET REGISTRY TAB (CARD GRID) -->
       <div id="tab-fleet" class="tab-content">
         <div class="panel">
           <div class="panel-header">
             <input type="text" id="fleet-search" placeholder="🔍 Search van, plate..." style="padding:10px; width:100%; max-width:300px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);" onkeyup="renderFleetGrid()" />
-            <button class="btn btn-dark" onclick="openModal('addVehicleModal')">+ Add Van</button>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-outline" onclick="openModal('decomModal')">🛑 Decommission</button>
+              <button class="btn btn-dark" onclick="openModal('addVehicleModal')">+ Add Van</button>
+            </div>
           </div>
           <div id="fleet-card-grid" class="card-grid"></div>
         </div>
       </div>
 
-      <!-- 4. TECH PROFILES TAB (NOW A CARD GRID) -->
+      <!-- 4. TECH PROFILES TAB (CARD GRID) -->
       <div id="tab-techs" class="tab-content">
         <div class="panel">
           <div class="panel-header">
-            <input type="text" id="tech-search" placeholder="🔍 Search employee..." style="padding:10px; width:100%; max-width:300px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);" onkeyup="renderTechGrid()" />
+            <div style="display:flex; gap:10px; width:100%; max-width:400px;">
+              <input type="text" id="tech-search" placeholder="🔍 Search employee..." list="tech-dl" style="padding:10px; flex:1; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);" oninput="renderTechGrid()" />
+              <datalist id="tech-dl"></datalist>
+            </div>
             <button class="btn btn-outline" onclick="openModal('rosterModal')">👥 Manage Roster</button>
           </div>
           <div id="tech-card-grid" class="card-grid"></div>
@@ -385,8 +399,7 @@
       </form>
     </div>
   </div>
-
-
+  
   <!-- ================= JAVASCRIPT ================= -->
   <script>
     let globalState = null;
@@ -881,8 +894,39 @@
       google.script.run.withSuccessHandler(()=>loadPortalData()).endShift(depId, rentId);
     }
 
-    function triggerCsvExport() { /* Omitted for length, but API exists in backend */ alert("CSV Export active."); }
-    function triggerPdfPrint() { /* Omitted for length, but API exists in backend */ alert("PDF Export active."); }
+    function triggerCsvExport() {
+      const dateVal = document.getElementById('kb-date').value;
+      const shiftSelect = document.getElementById('dp_shift');
+      const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
+
+      google.script.run.withSuccessHandler(function(res) {
+        if (!res.success) { alert(res.message); return; }
+        const blob = new Blob([res.csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a'); 
+        link.href = URL.createObjectURL(blob); 
+        link.setAttribute('download', res.filename); 
+        document.body.appendChild(link); 
+        link.click(); 
+        document.body.removeChild(link);
+      }).withFailureHandler(function(err) { 
+        alert('Export failed: ' + err.message); 
+      }).exportShiftManifestCsv(dateVal, shiftName);
+    }
+
+    function triggerPdfPrint() {
+      const dateVal = document.getElementById('kb-date').value;
+      const shiftSelect = document.getElementById('dp_shift');
+      const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
+
+      google.script.run.withSuccessHandler(function(htmlString) {
+        const printWindow = window.open('', '_blank'); 
+        printWindow.document.open(); 
+        printWindow.document.write(htmlString); 
+        printWindow.document.close();
+      }).withFailureHandler(function(err) { 
+        alert('Failed to generate PDF: ' + err.message); 
+      }).getPrintableShiftManifestHtml(dateVal, shiftName);
+    }
   </script>
 </body>
 </html>
