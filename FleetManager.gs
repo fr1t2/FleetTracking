@@ -128,3 +128,46 @@ function decommissionVehicle(targetId, reason) {
 
   return { success: true, message: `Vehicle ${targetId} marked as Decommissioned.` };
 }
+
+/**
+ * Executes Phase 1 of the workflow overhaul.
+ * Upgrades Config, Vehicles, and Deployments sheets seamlessly.
+ */
+function runPhase1Upgrade() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1. _Config Tab Updates
+  const cfgSheet = ss.getSheetByName('_Config');
+  cfgSheet.getRange(1, 11).setValue('Tech Roster').setFontWeight('bold'); // Col K
+
+  // Ensure current statuses match the new operational workflow
+  const newStatuses = [['Warehouse (Ready)'], ['Dispatched'], ['Out of Service'], ['Decommissioned']];
+  cfgSheet.getRange(2, 7, 10, 1).clearContent();
+  cfgSheet.getRange(2, 7, newStatuses.length, 1).setValues(newStatuses);
+
+  // 2. Vehicles Tab Updates
+  const vSheet = ss.getSheetByName('Vehicles');
+  const vHeadersRow = vSheet.getRange(1, 1, 1, vSheet.getLastColumn()).getValues()[0];
+  if (!vHeadersRow.includes('Addons & Interior Builds')) {
+    vSheet.getRange(1, 18).setValue('Addons & Interior Builds').setFontWeight('bold'); // Col R
+  }
+
+  // Migrate statuses: Active / In Service -> Warehouse (Ready)
+  const vData = vSheet.getDataRange().getValues();
+  for (let i = 1; i < vData.length; i++) {
+    let status = vData[i][8]; // Col I
+    if (status === 'Active' || status === 'In Service') {
+      vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)');
+    }
+  }
+
+  // 3. Deployments Tab Updates
+  const dSheet = ss.getSheetByName('Deployments');
+  const dHeadersRow = dSheet.getRange(1, 1, 1, dSheet.getLastColumn()).getValues()[0];
+  if (!dHeadersRow.includes('Co-Driver / Trainee')) {
+    dSheet.getRange(1, 15).setValue('Co-Driver / Trainee').setFontWeight('bold'); // Col O
+    dSheet.getRange(1, 16).setValue('Is Training').setFontWeight('bold');         // Col P
+  }
+
+  SpreadsheetApp.getActiveSpreadsheet().toast('Phase 1 Schema Upgraded successfully!', 'Success', 5);
+}
