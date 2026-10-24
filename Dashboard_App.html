@@ -43,32 +43,67 @@
       top: 0;
       z-index: 40;
     }
-    .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: var(--text); }
-    .header-desktop-tabs { display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
-    .nav-btn {
-      border: none; background: transparent; padding: 7px 14px; font-size: 13px; font-weight: 600;
-      color: var(--text-muted); border-radius: 6px; cursor: pointer; transition: all 0.15s;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
     }
-    .nav-btn.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow); }
+    .header-desktop-tabs {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .nav-btn {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .nav-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+
     .header-actions { display: flex; gap: 6px; }
 
     .btn {
-      border: none; padding: 9px 14px; font-size: 13px; font-weight: 600; border-radius: 8px;
-      cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-      gap: 6px; transition: all 0.15s; min-height: 40px;
+      border: none;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+      min-height: 42px;
     }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-success { background: var(--success); color: #fff; }
     .btn-warning { background: var(--warning); color: #fff; }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
-    .btn-icon { width: 40px; height: 40px; padding: 0; border-radius: 8px; }
+    .btn-icon { width: 42px; height: 42px; padding: 0; border-radius: 8px; }
 
-    /* Bottom Navigation Bar */
     .bottom-nav {
       display: none;
       position: fixed;
-      bottom: 0; left: 0; right: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       background: var(--surface);
       border-top: 1px solid var(--border);
       padding: 6px 12px calc(6px + var(--safe-bottom)) 12px;
@@ -77,9 +112,18 @@
       box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
     }
     .b-nav-item {
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-      background: transparent; border: none; font-size: 11px; font-weight: 600;
-      color: var(--text-muted); padding: 6px 12px; border-radius: 8px; cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: transparent;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
     }
     .b-nav-item .icon { font-size: 18px; }
     .b-nav-item.active { color: var(--primary); }
@@ -88,118 +132,250 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* Top progress loader */
-    #global-loader {
-      display: none; height: 3px; width: 100%; background: #e2e8f0; overflow: hidden; position: sticky; top: 57px; z-index: 45;
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
     }
-    .loader-bar { height: 100%; width: 40%; background: #2563eb; animation: indeterminate 1.2s infinite ease-in-out; }
-    @keyframes indeterminate {
-      0% { transform: translateX(-100%); width: 30%; }
-      50% { transform: translateX(100%); width: 70%; }
-      100% { transform: translateX(300%); width: 30%; }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
     }
 
-    /* KPI Grid */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
-    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
-    .kpi-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; }
-    .kpi-value { font-size: 22px; font-weight: 700; color: var(--text); }
-
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 16px; }
-    .panel-header { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .panel-header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
     @media(min-width: 640px) {
       .panel-header { flex-direction: row; justify-content: space-between; align-items: center; }
     }
     .panel-title { font-size: 15px; font-weight: 700; color: var(--text); }
 
     .filter-bar {
-      display: flex; flex-direction: column; gap: 12px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
     }
     @media(min-width: 640px) {
-      .filter-bar { flex-direction: row; align-items: center; }
+      .filter-bar { flex-direction: row; align-items: center; flex-wrap: wrap; }
     }
-    .filter-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; width: 100%; }
+    .filter-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
     .filter-input {
-      padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
-      font-size: 13px; background: #fff; width: 100%; outline: none; min-height: 40px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+      min-height: 42px;
     }
-    .shift-toggle-group { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 8px; width: 100%; }
+    .shift-toggle-group {
+      display: flex;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
     .shift-btn {
-      flex: 1; border: none; padding: 8px 10px; font-size: 12px; font-weight: 600;
-      border-radius: 6px; cursor: pointer; background: transparent; color: var(--text-muted); min-height: 36px;
+      border: none;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-muted);
+      min-height: 38px;
     }
-    .shift-btn.active { background: #fff; color: var(--primary); box-shadow: var(--shadow); }
+    .shift-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
 
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
     .vehicle-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px; box-shadow: var(--shadow); cursor: pointer; display: flex; flex-direction: column; gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .card-name { font-size: 15px; font-weight: 700; color: var(--text); }
     .card-sub { font-size: 12px; color: var(--text-muted); }
-    .status-pill { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 999px; text-transform: uppercase; }
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
     .status-active { background: #dcfce7; color: #15803d; }
     .status-oos { background: #fee2e2; color: #b91c1c; }
     .status-decom { background: #f1f5f9; color: #64748b; }
 
     .card-meta {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px;
-      color: var(--text-muted); border-top: 1px solid #f1f5f9; padding-top: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-top: 1px solid #f1f5f9;
+      padding-top: 10px;
     }
     .meta-item strong { display: block; color: var(--text); font-size: 13px; font-weight: 600; }
 
     .table-responsive { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
     th {
-      background: #f8fafc; color: var(--text-muted); font-weight: 600;
-      padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase;
+      background: #f8fafc;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
 
     .mobile-dispatch-cards { display: flex; flex-direction: column; gap: 10px; }
     .m-dispatch-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px; box-shadow: var(--shadow); cursor: pointer;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
     }
-    .m-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .zone-badge { background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-block; }
+    .m-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .zone-badge {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-block;
+    }
     .empty-state { text-align: center; padding: 36px 16px; color: var(--text-muted); font-size: 13px; }
 
-    /* Modals */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
-      z-index: 100; display: none; align-items: flex-end; justify-content: center;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
     }
     @media(min-width: 640px) {
       .modal-overlay { align-items: center; padding: 16px; }
     }
     .modal-overlay.active { display: flex; }
     .modal-box {
-      background: var(--surface); width: 100%; max-width: 520px; border-radius: 16px 16px 0 0;
-      box-shadow: 0 -10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; max-height: 85vh;
+      background: var(--surface);
+      width: 100%;
+      max-width: 520px;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
     }
     @media(min-width: 640px) {
       .modal-box { border-radius: var(--radius); max-height: 90vh; }
     }
-    .modal-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
     .modal-close {
-      background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%;
-      font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      background: #f1f5f9;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .modal-body { padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .modal-footer {
-      padding: 12px 16px calc(12px + var(--safe-bottom)) 16px; border-top: 1px solid var(--border);
-      display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc;
+      padding: 12px 16px calc(12px + var(--safe-bottom)) 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #f8fafc;
     }
 
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; }
     .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
-      font-size: 14px; outline: none; background: #fff; min-height: 42px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      min-height: 44px;
     }
     .form-row { display: flex; flex-direction: column; gap: 0; }
     @media(min-width: 480px) {
@@ -207,22 +383,56 @@
       .form-row .form-group { flex: 1; }
     }
 
-    /* Floating Action Drawer */
     .mobile-action-menu {
-      position: fixed; bottom: calc(75px + var(--safe-bottom)); right: 16px;
-      z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      position: fixed;
+      bottom: calc(75px + var(--safe-bottom));
+      right: 16px;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
     }
     .fab-btn {
-      width: 52px; height: 52px; border-radius: 50%; background: var(--primary); color: #fff;
-      border: none; font-size: 22px; box-shadow: 0 4px 14px rgba(37,99,235,0.4); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 24px;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .fab-drawer { display: none; flex-direction: column; gap: 6px; margin-bottom: 4px; align-items: flex-end; }
+    .fab-drawer {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 4px;
+      align-items: flex-end;
+    }
     .fab-drawer.active { display: flex; }
     .fab-action-item {
-      background: var(--surface); border: 1px solid var(--border); padding: 8px 14px;
-      border-radius: 20px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow);
-      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    @keyframes indeterminate {
+      0% { transform: translateX(-100%); width: 30%; }
+      50% { transform: translateX(100%); width: 70%; }
+      100% { transform: translateX(300%); width: 30%; }
     }
 
     @media (max-width: 768px) {
@@ -233,21 +443,26 @@
     }
     @media (min-width: 769px) {
       .mobile-dispatch-cards { display: none; }
+      .mobile-action-menu { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Header -->
+  <!-- Top Progress Bar Loader -->
+  <div id="global-loader" style="display:none; height:3px; width:100%; background:#e2e8f0; overflow:hidden; position:sticky; top:0; z-index:45;">
+    <div style="height:100%; width:40%; background:#2563eb; animation: indeterminate 1.2s infinite ease-in-out;"></div>
+  </div>
+
   <header>
     <div class="brand">
       🚚 <span>VEO Fleet Hub</span>
     </div>
 
     <div class="header-desktop-tabs">
-      <button class="nav-btn active" id="d-btn-fleet" onclick="switchTab('fleet')">Fleet Overview</button>
-      <button class="nav-btn" id="d-btn-dispatch" onclick="switchTab('dispatch')">Daily Dispatch Board</button>
-      <button class="nav-btn" id="d-btn-profile" onclick="switchTab('profile')">Van 360° Profile</button>
+      <button class="nav-btn active" id="desk-btn-fleet" onclick="switchTab('fleet')">Fleet Overview</button>
+      <button class="nav-btn" id="desk-btn-dispatch" onclick="switchTab('dispatch')">Daily Dispatch Board</button>
+      <button class="nav-btn" id="desk-btn-profile" onclick="switchTab('profile')">Van 360° Profile</button>
     </div>
 
     <div class="header-actions">
@@ -260,17 +475,26 @@
     </div>
   </header>
 
-  <!-- Progress Loader Bar -->
-  <div id="global-loader"><div class="loader-bar"></div></div>
-
   <main>
     <!-- TAB 1: FLEET OVERVIEW -->
     <div id="tab-fleet" class="tab-content active">
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-title">Total Fleet</div><div class="kpi-value" id="kpi-total">0</div></div>
-        <div class="kpi-card"><div class="kpi-title">Active / In Service</div><div class="kpi-value" id="kpi-active" style="color:var(--success)">0</div></div>
-        <div class="kpi-card"><div class="kpi-title">Out of Service</div><div class="kpi-value" id="kpi-oos" style="color:var(--danger)">0</div></div>
-        <div class="kpi-card"><div class="kpi-title">Decommissioned</div><div class="kpi-value" id="kpi-decom" style="color:var(--text-muted)">0</div></div>
+        <div class="kpi-card">
+          <div class="kpi-title">Total Fleet</div>
+          <div class="kpi-value" id="kpi-total">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Active / In Service</div>
+          <div class="kpi-value" id="kpi-active" style="color:var(--success)">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Out of Service</div>
+          <div class="kpi-value" id="kpi-oos" style="color:var(--danger)">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Decommissioned</div>
+          <div class="kpi-value" id="kpi-decom" style="color:var(--text-muted)">0</div>
+        </div>
       </div>
 
       <div class="panel">
@@ -286,14 +510,16 @@
     <div id="tab-dispatch" class="tab-content">
       <div class="filter-bar">
         <div class="filter-group">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted);">Date:</label>
           <input type="date" id="dispatch-date" class="filter-input" onchange="renderDispatchBoard()" />
         </div>
         <div class="filter-group">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted);">Shift:</label>
           <div id="dynamic-shift-buttons" class="shift-toggle-group"></div>
         </div>
-        <div style="display:flex; gap:8px; width:100%; justify-content:flex-end;">
-          <button class="btn btn-outline" onclick="triggerCsvExport()">📥 Export CSV</button>
-          <button class="btn btn-primary" onclick="triggerPdfPrint()">🖨️ PDF / Print</button>
+        <div style="display:flex; gap:8px; margin-left:auto;">
+          <button class="btn btn-outline" onclick="triggerCsvExport()">📥 CSV</button>
+          <button class="btn btn-primary" onclick="triggerPdfPrint()">🖨️ PDF</button>
         </div>
       </div>
 
@@ -306,7 +532,7 @@
           <table>
             <thead>
               <tr>
-                <th>Vehicle</th>
+                <th>Van Clean Name</th>
                 <th>Rental ID</th>
                 <th>Driver / Technician</th>
                 <th>Work Zone</th>
@@ -314,6 +540,7 @@
                 <th>Target</th>
                 <th>Status</th>
                 <th>Time Out</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="dispatch-table-body"></tbody>
@@ -327,19 +554,19 @@
     <!-- TAB 3: VAN 360 PROFILE -->
     <div id="tab-profile" class="tab-content">
       <div class="filter-bar">
-        <div class="filter-group">
+        <div class="filter-group" style="width:100%;">
           <select id="profile-van-select" class="filter-input" onchange="renderVanProfile()">
             <option value="">-- Choose Van --</option>
           </select>
         </div>
       </div>
       <div id="profile-details-area">
-        <div class="empty-state">Select a vehicle to inspect full specifications and history.</div>
+        <div class="empty-state">Select a vehicle to inspect full specifications and maintenance history.</div>
       </div>
     </div>
   </main>
 
-  <!-- Floating Mobile Action Drawer (FAB) -->
+  <!-- Mobile Action Drawer -->
   <div class="mobile-action-menu">
     <div id="fab-drawer" class="fab-drawer">
       <div class="fab-action-item" onclick="triggerAction('addVehicleModal')">➕ Add Vehicle</div>
@@ -348,19 +575,22 @@
       <div class="fab-action-item" onclick="triggerAction('checkInModal')">✅ Check In Van</div>
       <div class="fab-action-item" onclick="triggerAction('decomModal')">🛑 Decommission</div>
     </div>
-    <button class="fab-btn" onclick="toggleFabDrawer()" title="Actions">⚡</button>
+    <button class="fab-btn" onclick="toggleFabDrawer()">⚡</button>
   </div>
 
   <!-- Mobile Bottom Nav -->
   <nav class="bottom-nav">
-    <button class="b-nav-item active" id="m-btn-fleet" onclick="switchTab('fleet')">
-      <span class="icon">🚚</span><span>Fleet</span>
+    <button class="b-nav-item active" id="bot-btn-fleet" onclick="switchTab('fleet')">
+      <span class="icon">🚚</span>
+      <span>Fleet</span>
     </button>
-    <button class="b-nav-item" id="m-btn-dispatch" onclick="switchTab('dispatch')">
-      <span class="icon">📋</span><span>Dispatch</span>
+    <button class="b-nav-item" id="bot-btn-dispatch" onclick="switchTab('dispatch')">
+      <span class="icon">📋</span>
+      <span>Dispatch</span>
     </button>
-    <button class="b-nav-item" id="m-btn-profile" onclick="switchTab('profile')">
-      <span class="icon">🔍</span><span>Profile</span>
+    <button class="b-nav-item" id="bot-btn-profile" onclick="switchTab('profile')">
+      <span class="icon">🔍</span>
+      <span>Profile</span>
     </button>
   </nav>
 
@@ -379,11 +609,11 @@
           <div class="form-row">
             <div class="form-group">
               <label>Clean Name *</label>
-              <input type="text" id="av_name" placeholder="e.g. Van #20" required />
+              <input type="text" id="av_name" placeholder="e.g. Equinox #0" required />
             </div>
             <div class="form-group">
               <label>Rental / Unit # *</label>
-              <input type="text" id="av_rental" placeholder="e.g. P9103004" required />
+              <input type="text" id="av_rental" placeholder="e.g. EP7391" required />
             </div>
           </div>
           <div class="form-row">
@@ -393,17 +623,17 @@
             </div>
             <div class="form-group">
               <label>Make & Model</label>
-              <input type="text" id="av_model" placeholder="Ford Transit 250" />
+              <input type="text" id="av_model" placeholder="Chevy Equinox" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>VIN</label>
-              <input type="text" id="av_vin" placeholder="1FTBR1Y89PKA..." maxlength="17" />
+              <input type="text" id="av_vin" placeholder="3GN7DMRP8TS147391" maxlength="17" />
             </div>
             <div class="form-group">
               <label>License Plate</label>
-              <input type="text" id="av_plate" placeholder="CO - ABC-1234" />
+              <input type="text" id="av_plate" placeholder="CO - 8620723" />
             </div>
           </div>
           <div class="form-row">
@@ -413,7 +643,7 @@
             </div>
             <div class="form-group">
               <label>Samsara Gateway Serial #</label>
-              <input type="text" id="av_samsara" placeholder="e.g. GDM3-683-XW2" />
+              <input type="text" id="av_samsara" placeholder="GDM3-683-XW2" />
             </div>
           </div>
           <div class="form-row">
@@ -428,7 +658,7 @@
           </div>
           <div class="form-group">
             <label>Notes</label>
-            <textarea id="av_notes" rows="2" placeholder="Condition, Samsara unit, etc."></textarea>
+            <textarea id="av_notes" rows="2" placeholder="Condition, notes, etc."></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -551,7 +781,7 @@
           </div>
           <div class="form-group">
             <label>Resolution & Repairs Completed *</label>
-            <textarea id="ci_notes" rows="3" placeholder="Repairs completed, ready for market deployment..." required></textarea>
+            <textarea id="ci_notes" rows="3" placeholder="Repairs completed, ready for route..." required></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -578,7 +808,7 @@
           </div>
           <div class="form-group">
             <label>Reason *</label>
-            <textarea id="dec_reason" rows="3" placeholder="End of rental lease, returned to agency, etc." required></textarea>
+            <textarea id="dec_reason" rows="3" placeholder="End of lease, returned to agency, etc." required></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -602,7 +832,7 @@
           <input type="hidden" id="ev_rental" />
           <div class="form-row">
             <div class="form-group">
-              <label>Clean Name / Van #</label>
+              <label>Clean Name / Identifier</label>
               <input type="text" id="ev_name" required />
             </div>
             <div class="form-group">
@@ -617,12 +847,12 @@
             </div>
             <div class="form-group">
               <label>Samsara Gateway Serial #</label>
-              <input type="text" id="ev_samsara" placeholder="e.g. GDM3-683-XW2" />
+              <input type="text" id="ev_samsara" />
             </div>
           </div>
           <div class="form-group">
-            <label>Append Notes / Maintenance update</label>
-            <textarea id="ev_notes" rows="2" placeholder="e.g. Replaced gateway, renewed tags..."></textarea>
+            <label>Append Notes</label>
+            <textarea id="ev_notes" rows="2" placeholder="e.g. Hardware swap, plate renewal..."></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -637,7 +867,7 @@
   <div id="editDispatchModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-title">✏️ Edit Dispatch Record</div>
+        <div class="modal-title">✏️ Edit Dispatch Assignment</div>
         <button class="modal-close" onclick="closeModal('editDispatchModal')">&times;</button>
       </div>
       <form id="editDispatchForm" onsubmit="submitEditDispatch(event)">
@@ -648,18 +878,18 @@
           <input type="hidden" id="ed_rental" />
           <div class="form-row">
             <div class="form-group">
-              <label>Driver / Technician *</label>
+              <label>Driver / Technician</label>
               <input type="text" id="ed_tech" required />
             </div>
             <div class="form-group">
-              <label>Shift *</label>
-              <select id="ed_shift" required></select>
+              <label>Shift</label>
+              <select id="ed_shift"></select>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Work Zone *</label>
-              <select id="ed_zone" required></select>
+              <label>Work Zone</label>
+              <select id="ed_zone"></select>
             </div>
             <div class="form-group">
               <label>Battery Target</label>
@@ -667,7 +897,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Goals & Operational Notes</label>
+            <label>Goals & Notes</label>
             <textarea id="ed_goals" rows="3"></textarea>
           </div>
         </div>
@@ -679,36 +909,49 @@
     </div>
   </div>
 
-  <!-- Client-Side Engine -->
+  <!-- ==================== JAVASCRIPT ==================== -->
   <script>
-    let globalState = null;
-    let currentShift = 'First Shift';
+    var globalState = null;
+    var currentShift = 'First Shift';
 
     window.onload = function() {
-      const todayIso = new Date().toISOString().split('T')[0];
-      document.getElementById('dispatch-date').value = todayIso;
-      document.getElementById('av_pickup').value = todayIso;
+      var today = new Date().toISOString().split('T')[0];
+      var dInput = document.getElementById('dispatch-date');
+      var pInput = document.getElementById('av_pickup');
+      if (dInput) dInput.value = today;
+      if (pInput) pInput.value = today;
       loadPortalData();
     };
 
     function showLoader(show) {
-      const el = document.getElementById('global-loader');
+      var el = document.getElementById('global-loader');
       if (el) el.style.display = show ? 'block' : 'none';
     }
 
     function switchTab(tabKey) {
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.b-nav-item').forEach(b => b.classList.remove('active'));
+      var tabs = ['fleet', 'dispatch', 'profile'];
+      for (var i = 0; i < tabs.length; i++) {
+        var t = tabs[i];
+        var content = document.getElementById('tab-' + t);
+        var deskBtn = document.getElementById('desk-btn-' + t);
+        var botBtn = document.getElementById('bot-btn-' + t);
 
-      const targetTab = document.getElementById('tab-' + tabKey);
-      if (targetTab) targetTab.classList.add('active');
-
-      const dBtn = document.getElementById('d-btn-' + tabKey);
-      if (dBtn) dBtn.classList.add('active');
-
-      const mBtn = document.getElementById('m-btn-' + tabKey);
-      if (mBtn) mBtn.classList.add('active');
+        if (content) {
+          if (t === tabKey) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        }
+        if (deskBtn) {
+          if (t === tabKey) deskBtn.classList.add('active');
+          else deskBtn.classList.remove('active');
+        }
+        if (botBtn) {
+          if (t === tabKey) botBtn.classList.add('active');
+          else botBtn.classList.remove('active');
+        }
+      }
 
       if (tabKey === 'dispatch' && globalState) {
         renderDispatchBoard();
@@ -717,9 +960,15 @@
 
     function setShift(shiftName) {
       currentShift = shiftName;
-      document.querySelectorAll('.shift-btn').forEach(b => {
-        b.classList.toggle('active', b.innerText === shiftName);
-      });
+      var buttons = document.querySelectorAll('.shift-btn');
+      for (var i = 0; i < buttons.length; i++) {
+        var b = buttons[i];
+        if (b.innerText === shiftName) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      }
       renderDispatchBoard();
     }
 
@@ -729,32 +978,723 @@
         .withSuccessHandler(function(state) {
           showLoader(false);
           globalState = state;
-
           populateDynamicShiftButtons(state);
           renderFleetOverview(state);
           renderDispatchBoard();
           populateProfileDropdown(state);
           populateModalOptions(state);
-
           if (callback) callback();
         })
         .withFailureHandler(function(err) {
           showLoader(false);
-          alert('Error connecting to fleet database: ' + err.message);
+          alert('Error loading fleet portal data: ' + (err.message || err));
         })
         .getDashboardState();
     }
 
     function populateDynamicShiftButtons(state) {
-      const container = document.getElementById('dynamic-shift-buttons');
+      var container = document.getElementById('dynamic-shift-buttons');
       if (!container) return;
 
-      const shifts = (state.config && state.config.shifts && state.config.shifts.length)
+      var shifts = (state.config && state.config.shifts && state.config.shifts.length)
         ? state.config.shifts
         : ['First Shift', 'Second Shift', 'Third Shift'];
 
-      if (!shifts.includes(currentShift)) {
-        currentShift = shifts[0];
+      var found = false;
+      for (var i = 0; i < shifts.length; i++) {
+        if (shifts[i] === currentShift) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) currentShift = shifts[0];
+
+      var html = '';
+      for (var j = 0; j < shifts.length; j++) {
+        var s = shifts[j];
+        var activeClass = (s === currentShift) ? ' active' : '';
+        html += '<button class="shift-btn' + activeClass + '" onclick="setShift(\'' + s + '\')">' + s + '</button>';
+      }
+      container.innerHTML = html;
+    }
+
+    function renderFleetOverview(state) {
+      document.getElementById('kpi-total').innerText = state.counts.total;
+      document.getElementById('kpi-active').innerText = state.counts.active;
+      document.getElementById('kpi-oos').innerText = state.counts.oos;
+      document.getElementById('kpi-decom').innerText = state.counts.decommissioned;
+
+      var container = document.getElementById('fleet-cards');
+      if (!state.vehicles || !state.vehicles.length) {
+        container.innerHTML = '<div class="empty-state">No vehicles in registry.</div>';
+        return;
       }
 
-      container.innerHTML = shifts.map(s => `
+      var html = '';
+      for (var i = 0; i < state.vehicles.length; i++) {
+        var v = state.vehicles[i];
+        var statusClass = (v.status === 'Active' || v.status === 'In Service') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-decom');
+
+        var tagBadge = '';
+        if (v.plateExpDate && v.plateExpDate !== '—') {
+          var diffDays = Math.ceil((new Date(v.plateExpDate) - new Date()) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 30 && diffDays >= 0) {
+            tagBadge = '<span style="background:#fef3c7; color:#b45309; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">⚠️ Exp: ' + diffDays + 'd</span>';
+          } else if (diffDays < 0) {
+            tagBadge = '<span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">🚨 EXPIRED</span>';
+          }
+        }
+
+        html += '<div class="vehicle-card" onclick="openProfileForVan(\'' + v.cleanName + '\')">' +
+          '<div class="card-top">' +
+            '<div>' +
+              '<div class="card-name">' + v.cleanName + ' ' + tagBadge + '</div>' +
+              '<div class="card-sub">' + v.rentalId + ' &bull; ' + (v.agency || 'Rental') + '</div>' +
+            '</div>' +
+            '<span class="status-pill ' + statusClass + '">' + v.status + '</span>' +
+          '</div>' +
+          '<div style="font-size:12px; color:#475569;">' + (v.makeModel || 'Cargo Van') + ' &bull; Plate: <strong>' + (v.plate || '—') + '</strong></div>' +
+          '<div style="font-size:11px; color:#64748b;">📡 Samsara: <strong>' + (v.samsaraSerial || '—') + '</strong></div>' +
+          '<div class="card-meta">' +
+            '<div class="meta-item">Zone: <strong>' + v.zone + '</strong></div>' +
+            '<div class="meta-item">Driver: <strong>' + v.driver + '</strong></div>' +
+            '<div class="meta-item">Tag Exp: <strong>' + (v.plateExpDate || '—') + '</strong></div>' +
+            '<div class="meta-item">Serviced: <strong>' + v.lastService + '</strong></div>' +
+          '</div>' +
+        '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function renderDispatchBoard() {
+      if (!globalState) return;
+
+      var selectedDate = document.getElementById('dispatch-date').value;
+      document.getElementById('dispatch-title').innerText = currentShift + ' (' + selectedDate + ')';
+
+      var tbody = document.getElementById('dispatch-table-body');
+      var mobileContainer = document.getElementById('mobile-dispatch-cards');
+
+      var filtered = [];
+      if (globalState.deployments && globalState.deployments.length) {
+        for (var i = 0; i < globalState.deployments.length; i++) {
+          var d = globalState.deployments[i];
+          var matchDate = !selectedDate || d.date === selectedDate;
+          var matchShift = d.shift.toLowerCase() === currentShift.toLowerCase();
+          if (matchDate && matchShift) {
+            filtered.push(d);
+          }
+        }
+      }
+
+      if (!filtered.length) {
+        var emptyMsg = 'No dispatches found for ' + currentShift + ' on ' + selectedDate + '.';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">' + emptyMsg + '</td></tr>';
+        mobileContainer.innerHTML = '<div class="empty-state">' + emptyMsg + '</div>';
+        return;
+      }
+
+      var tableHtml = '';
+      var mobileHtml = '';
+
+      for (var j = 0; j < filtered.length; j++) {
+        var item = filtered[j];
+
+        tableHtml += '<tr>' +
+          '<td><strong>' + item.vehicle + '</strong></td>' +
+          '<td>' + item.rentalId + '</td>' +
+          '<td><strong>' + item.tech + '</strong></td>' +
+          '<td><span class="zone-badge">' + item.zone + '</span></td>' +
+          '<td>' + (item.goals || '—') + '</td>' +
+          '<td>' + (item.target || '—') + '</td>' +
+          '<td><span class="status-pill status-active">' + item.status + '</span></td>' +
+          '<td>' + item.departureTime + '</td>' +
+          '<td><button class="btn btn-outline" style="min-height:30px; padding:4px 8px; font-size:11px;" onclick="openEditDispatchModal(\'' + item.id + '\')">✏️ Edit</button></td>' +
+        '</tr>';
+
+        mobileHtml += '<div class="m-dispatch-card" onclick="openEditDispatchModal(\'' + item.id + '\')">' +
+          '<div class="m-card-header">' +
+            '<div><strong style="font-size:15px;">' + item.vehicle + '</strong> <span style="font-size:12px; color:var(--text-muted);">(' + item.rentalId + ')</span></div>' +
+            '<span class="zone-badge">' + item.zone + '</span>' +
+          '</div>' +
+          '<div style="font-size:13px; font-weight:600; margin-bottom:4px;">👤 Driver: ' + item.tech + '</div>' +
+          '<div style="font-size:12px; color:#475569; margin-bottom:4px;">🎯 Goals: ' + (item.goals || 'Standard route') + '</div>' +
+          '<div style="font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:6px; margin-top:6px;">' +
+            '<span>Target: <strong>' + (item.target || '—') + '</strong></span>' +
+            '<span>Out: <strong>' + item.departureTime + '</strong></span>' +
+          '</div>' +
+        '</div>';
+      }
+
+      tbody.innerHTML = tableHtml;
+      mobileContainer.innerHTML = mobileHtml;
+    }
+
+    function populateProfileDropdown(state) {
+      var select = document.getElementById('profile-van-select');
+      var cur = select.value;
+      var html = '<option value="">-- Choose Van --</option>';
+      for (var i = 0; i < state.vehicles.length; i++) {
+        var v = state.vehicles[i];
+        html += '<option value="' + v.cleanName + '">' + v.cleanName + ' (' + v.rentalId + ')</option>';
+      }
+      select.innerHTML = html;
+      if (cur) select.value = cur;
+    }
+
+    function openProfileForVan(cleanName) {
+      switchTab('profile');
+      document.getElementById('profile-van-select').value = cleanName;
+      renderVanProfile();
+    }
+
+    function renderVanProfile() {
+      var cleanName = document.getElementById('profile-van-select').value;
+      var area = document.getElementById('profile-details-area');
+      if (!cleanName || !globalState) {
+        area.innerHTML = '<div class="empty-state">Select a vehicle to inspect full specifications and history.</div>';
+        return;
+      }
+
+      var van = null;
+      for (var i = 0; i < globalState.vehicles.length; i++) {
+        if (globalState.vehicles[i].cleanName === cleanName) {
+          van = globalState.vehicles[i];
+          break;
+        }
+      }
+      if (!van) return;
+
+      var vanIncidents = [];
+      for (var j = 0; j < globalState.incidents.length; j++) {
+        var inc = globalState.incidents[j];
+        if (inc.vehicle === cleanName || inc.rentalId === van.rentalId) {
+          vanIncidents.push(inc);
+        }
+      }
+
+      var incRows = '';
+      if (!vanIncidents.length) {
+        incRows = '<tr><td colspan="5" class="empty-state">No incidents recorded for this vehicle.</td></tr>';
+      } else {
+        for (var k = 0; k < vanIncidents.length; k++) {
+          var item = vanIncidents[k];
+          incRows += '<tr>' +
+            '<td><strong>' + item.id + '</strong></td>' +
+            '<td>' + item.date + '</td>' +
+            '<td>' + item.category + '</td>' +
+            '<td>' + item.details + '</td>' +
+            '<td>' + (item.resolution || '<span style="color:var(--danger)">Unresolved</span>') + '</td>' +
+          '</tr>';
+        }
+      }
+
+      area.innerHTML = '<div class="panel">' +
+        '<div class="panel-header">' +
+          '<div>' +
+            '<h2 class="panel-title" style="font-size:18px;">' + van.cleanName + '</h2>' +
+            '<p style="font-size:12px; color:var(--text-muted);">' + van.rentalId + ' &bull; ' + van.agency + ' &bull; ' + van.makeModel + '</p>' +
+          '</div>' +
+          '<div style="display:flex; gap:8px; align-items:center;">' +
+            '<button class="btn btn-outline" style="min-height:32px; padding:4px 10px; font-size:12px;" onclick="openEditVehicleModal(\'' + van.rentalId + '\')">✏️ Edit Van</button>' +
+            '<span class="status-pill ' + (van.status === 'Out of Service' ? 'status-oos' : 'status-active') + '">' + van.status + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="kpi-grid">' +
+          '<div class="kpi-card"><div class="kpi-title">Current Zone</div><div style="font-size:15px; font-weight:700;">' + van.zone + '</div></div>' +
+          '<div class="kpi-card"><div class="kpi-title">Driver</div><div style="font-size:15px; font-weight:700;">' + van.driver + '</div></div>' +
+          '<div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">' + (van.plate || '—') + '</div></div>' +
+          '<div class="kpi-card"><div class="kpi-title">Tag Exp</div><div style="font-size:14px; font-weight:700;">' + (van.plateExpDate || '—') + '</div></div>' +
+          '<div class="kpi-card"><div class="kpi-title">Samsara Gateway</div><div style="font-size:14px; font-weight:700; color:var(--primary);">' + (van.samsaraSerial || '—') + '</div></div>' +
+          '<div class="kpi-card"><div class="kpi-title">VIN</div><div style="font-size:12px; font-weight:600; word-break:break-all;">' + (van.vin || '—') + '</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="panel">' +
+        '<div class="panel-header"><h3 class="panel-title">🛠️ Service & Incident History</h3></div>' +
+        '<div class="table-responsive">' +
+          '<table>' +
+            '<thead><tr><th>ID</th><th>Date</th><th>Category</th><th>Details</th><th>Resolution</th></tr></thead>' +
+            '<tbody>' + incRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function filterFleetCards() {
+      var q = document.getElementById('fleet-search').value.toLowerCase();
+      var cards = document.querySelectorAll('.vehicle-card');
+      for (var i = 0; i < cards.length; i++) {
+        cards[i].style.display = cards[i].innerText.toLowerCase().indexOf(q) !== -1 ? 'flex' : 'none';
+      }
+    }
+
+    function toggleFabDrawer() {
+      document.getElementById('fab-drawer').classList.toggle('active');
+    }
+
+    function triggerAction(modalId) {
+      document.getElementById('fab-drawer').classList.remove('active');
+      openModal(modalId);
+    }
+
+    function openModal(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
+    function closeModal(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+      var alertBox = document.querySelector('#' + id + ' .alert-banner');
+      if (alertBox) alertBox.style.display = 'none';
+    }
+
+    function setAlert(alertId, type, message) {
+      var el = document.getElementById(alertId);
+      if (!el) return;
+      el.style.display = 'block';
+      if (type === 'success') {
+        el.style.background = '#ecfdf5';
+        el.style.color = '#065f46';
+        el.style.border = '1px solid #d1fae5';
+      } else {
+        el.style.background = '#fef2f2';
+        el.style.color = '#991b1b';
+        el.style.border = '1px solid #fee2e2';
+      }
+      el.innerText = message;
+    }
+
+    function populateModalOptions(state) {
+      var cfg = state.config;
+
+      var agencySel = document.getElementById('av_agency');
+      var agencies = cfg.rentalAgencies || ['Enterprise', 'Penske', 'U-Haul', 'VEO'];
+      var aHtml = '';
+      for (var i = 0; i < agencies.length; i++) aHtml += '<option value="' + agencies[i] + '">' + agencies[i] + '</option>';
+      agencySel.innerHTML = aHtml;
+
+      var dpVan = document.getElementById('dp_van');
+      var vHtml = '<option value="">-- Choose Available Van --</option>';
+      for (var j = 0; j < state.vehicles.length; j++) {
+        var v = state.vehicles[j];
+        if (v.status === 'Active' || v.status === 'In Service') {
+          vHtml += '<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + ' (' + v.rentalId + ') - [' + v.status + ']</option>';
+        }
+      }
+      dpVan.innerHTML = vHtml;
+
+      var shifts = cfg.shifts || ['First Shift', 'Second Shift', 'Third Shift'];
+      var sHtml = '';
+      for (var k = 0; k < shifts.length; k++) sHtml += '<option value="' + shifts[k] + '">' + shifts[k] + '</option>';
+      document.getElementById('dp_shift').innerHTML = sHtml;
+      var edShift = document.getElementById('ed_shift');
+      if (edShift) edShift.innerHTML = sHtml;
+
+      var zones = cfg.zones || [];
+      var zHtml = '<option value="">-- Select Zone --</option>';
+      for (var m = 0; m < zones.length; m++) zHtml += '<option value="' + zones[m] + '">' + zones[m] + '</option>';
+      document.getElementById('dp_zone').innerHTML = zHtml;
+      var edZone = document.getElementById('ed_zone');
+      if (edZone) edZone.innerHTML = zHtml;
+
+      var focuses = cfg.focusOptions || [];
+      var fHtml = '<option value="">-- Focus (Optional) --</option>';
+      for (var n = 0; n < focuses.length; n++) fHtml += '<option value="' + focuses[n] + '">' + focuses[n] + '</option>';
+      document.getElementById('dp_focus').innerHTML = fHtml;
+
+      var incVan = document.getElementById('inc_van');
+      var nonDecomHtml = '<option value="">-- Choose Vehicle --</option>';
+      for (var p = 0; p < state.vehicles.length; p++) {
+        var nv = state.vehicles[p];
+        if (nv.status !== 'Decommissioned') {
+          nonDecomHtml += '<option value="' + nv.cleanName + '" data-rental="' + nv.rentalId + '">' + nv.cleanName + ' (' + nv.rentalId + ') - [' + nv.status + ']</option>';
+        }
+      }
+      incVan.innerHTML = nonDecomHtml;
+
+      var cats = cfg.issueCategories || [];
+      var cHtml = '';
+      for (var q = 0; q < cats.length; q++) cHtml += '<option value="' + cats[q] + '">' + cats[q] + '</option>';
+      document.getElementById('inc_cat').innerHTML = cHtml;
+
+      var impacts = cfg.statusImpacts || [];
+      var impHtml = '';
+      for (var r = 0; r < impacts.length; r++) impHtml += '<option value="' + impacts[r] + '">' + impacts[r] + '</option>';
+      document.getElementById('inc_impact').innerHTML = impHtml;
+
+      var ciVan = document.getElementById('ci_van');
+      var oos = state.oosVehicles || [];
+      var ciHtml = oos.length ? '<option value="">-- Choose Out-of-Service Van --</option>' : '<option value="">🎉 No vans currently Out of Service</option>';
+      for (var s = 0; s < oos.length; s++) {
+        ciHtml += '<option value="' + oos[s].cleanName + '" data-rental="' + oos[s].rentalId + '">' + oos[s].displayName + '</option>';
+      }
+      ciVan.innerHTML = ciHtml;
+      handleCheckInVanChange();
+
+      var decVan = document.getElementById('dec_van');
+      decVan.innerHTML = nonDecomHtml;
+    }
+
+    function handleCheckInVanChange() {
+      var select = document.getElementById('ci_van');
+      var summaryBox = document.getElementById('ci_summary_box');
+      if (!select || !summaryBox) return;
+      summaryBox.style.display = 'none';
+    }
+
+    function submitAddVehicle(e) {
+      e.preventDefault();
+      var btn = document.getElementById('av_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('addVehicleAlert', 'success', 'Saving vehicle...');
+
+      var payload = {
+        vanName: document.getElementById('av_name').value,
+        rentalId: document.getElementById('av_rental').value,
+        rentalAgency: document.getElementById('av_agency').value,
+        makeModel: document.getElementById('av_model').value,
+        vin: document.getElementById('av_vin').value,
+        licensePlate: document.getElementById('av_plate').value,
+        plateExpDate: document.getElementById('av_plate_exp').value,
+        samsaraSerial: document.getElementById('av_samsara').value,
+        pickupDate: document.getElementById('av_pickup').value,
+        serviceNum: document.getElementById('av_service').value,
+        notes: document.getElementById('av_notes').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('addVehicleAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('addVehicleModal');
+            document.getElementById('addVehicleForm').reset();
+            loadPortalData();
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('addVehicleAlert', 'error', 'Error: ' + err.message);
+        })
+        .processAddVehicle(payload);
+    }
+
+    function submitDispatch(e) {
+      e.preventDefault();
+      var select = document.getElementById('dp_van');
+      if (!select.value) {
+        alert('Please select an active vehicle.');
+        return;
+      }
+
+      var opt = select.options[select.selectedIndex];
+      var btn = document.getElementById('dp_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('dispatchAlert', 'success', 'Dispatching vehicle...');
+
+      var payload = {
+        cleanName: select.value,
+        rentalId: opt.getAttribute('data-rental') || '',
+        assignedTech: document.getElementById('dp_tech').value,
+        shift: document.getElementById('dp_shift').value,
+        workZone: document.getElementById('dp_zone').value,
+        batteryTarget: document.getElementById('dp_target').value,
+        focusCategory: document.getElementById('dp_focus').value,
+        goals: document.getElementById('dp_goals').value,
+        dispatchDate: document.getElementById('dispatch-date').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('dispatchAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('dispatchModal');
+            document.getElementById('dispatchForm').reset();
+            loadPortalData();
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('dispatchAlert', 'error', 'Error: ' + err.message);
+        })
+        .processDispatchCheckout(payload);
+    }
+
+    function submitIncident(e) {
+      e.preventDefault();
+      var select = document.getElementById('inc_van');
+      if (!select.value) {
+        alert('Please select a vehicle.');
+        return;
+      }
+
+      var opt = select.options[select.selectedIndex];
+      var btn = document.getElementById('inc_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('incidentAlert', 'success', 'Submitting incident...');
+
+      var payload = {
+        cleanName: select.value,
+        rentalId: opt.getAttribute('data-rental') || '',
+        issueCategory: document.getElementById('inc_cat').value,
+        statusImpact: document.getElementById('inc_impact').value,
+        triggerOos: document.getElementById('inc_oos').checked,
+        description: document.getElementById('inc_desc').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('incidentAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('incidentModal');
+            document.getElementById('incidentForm').reset();
+            loadPortalData();
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('incidentAlert', 'error', 'Error: ' + err.message);
+        })
+        .processReportIncident(payload);
+    }
+
+    function submitCheckIn(e) {
+      e.preventDefault();
+      var select = document.getElementById('ci_van');
+      if (!select.value) {
+        alert('Please choose an out-of-service van.');
+        return;
+      }
+
+      var opt = select.options[select.selectedIndex];
+      var btn = document.getElementById('ci_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('checkInAlert', 'success', 'Returning van to service...');
+
+      var payload = {
+        cleanName: select.value,
+        rentalId: opt.getAttribute('data-rental') || '',
+        incidentId: '',
+        resolutionNotes: document.getElementById('ci_notes').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('checkInAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('checkInModal');
+            document.getElementById('checkInForm').reset();
+            loadPortalData();
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('checkInAlert', 'error', 'Error: ' + err.message);
+        })
+        .processCheckInVehicle(payload);
+    }
+
+    function submitDecom(e) {
+      e.preventDefault();
+      var select = document.getElementById('dec_van');
+      if (!select.value) {
+        alert('Please select a vehicle to decommission.');
+        return;
+      }
+
+      var btn = document.getElementById('dec_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('decomAlert', 'success', 'Decommissioning van...');
+
+      var targetId = select.value;
+      var reason = document.getElementById('dec_reason').value;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('decomAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('decomModal');
+            document.getElementById('decomForm').reset();
+            loadPortalData();
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('decomAlert', 'error', 'Error: ' + err.message);
+        })
+        .decommissionVehicle(targetId, reason);
+    }
+
+    function openEditVehicleModal(rentalId) {
+      var van = null;
+      for (var i = 0; i < globalState.vehicles.length; i++) {
+        if (globalState.vehicles[i].rentalId === rentalId) {
+          van = globalState.vehicles[i];
+          break;
+        }
+      }
+      if (!van) return;
+
+      document.getElementById('ev_rental').value = van.rentalId;
+      document.getElementById('ev_name').value = van.cleanName;
+      document.getElementById('ev_plate').value = van.plate || '';
+      document.getElementById('ev_plate_exp').value = (van.plateExpDate && van.plateExpDate !== '—') ? van.plateExpDate : '';
+      document.getElementById('ev_samsara').value = (van.samsaraSerial && van.samsaraSerial !== 'Unassigned') ? van.samsaraSerial : '';
+      document.getElementById('ev_notes').value = '';
+
+      openModal('editVehicleModal');
+    }
+
+    function submitEditVehicle(e) {
+      e.preventDefault();
+      var btn = document.getElementById('ev_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('editVehicleAlert', 'success', 'Saving changes...');
+
+      var payload = {
+        rentalId: document.getElementById('ev_rental').value,
+        vanName: document.getElementById('ev_name').value,
+        licensePlate: document.getElementById('ev_plate').value,
+        plateExpDate: document.getElementById('ev_plate_exp').value,
+        samsaraSerial: document.getElementById('ev_samsara').value,
+        notes: document.getElementById('ev_notes').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('editVehicleAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('editVehicleModal');
+            loadPortalData(function() {
+              renderVanProfile();
+            });
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('editVehicleAlert', 'error', 'Error: ' + err.message);
+        })
+        .updateVehicleDetails(payload);
+    }
+
+    function openEditDispatchModal(id) {
+      var d = null;
+      for (var i = 0; i < globalState.deployments.length; i++) {
+        if (globalState.deployments[i].id === id) {
+          d = globalState.deployments[i];
+          break;
+        }
+      }
+      if (!d) return;
+
+      document.getElementById('ed_id').value = d.id;
+      document.getElementById('ed_vehicle').value = d.vehicle;
+      document.getElementById('ed_rental').value = d.rentalId;
+      document.getElementById('ed_tech').value = d.tech;
+      document.getElementById('ed_shift').value = d.shift;
+      document.getElementById('ed_zone').value = d.zone;
+      document.getElementById('ed_target').value = d.target || '';
+      document.getElementById('ed_goals').value = d.goals || '';
+
+      openModal('editDispatchModal');
+    }
+
+    function submitEditDispatch(e) {
+      e.preventDefault();
+      var btn = document.getElementById('ed_btn');
+      btn.disabled = true;
+      showLoader(true);
+      setAlert('editDispatchAlert', 'success', 'Saving changes...');
+
+      var payload = {
+        id: document.getElementById('ed_id').value,
+        vehicle: document.getElementById('ed_vehicle').value,
+        rentalId: document.getElementById('ed_rental').value,
+        tech: document.getElementById('ed_tech').value,
+        shift: document.getElementById('ed_shift').value,
+        zone: document.getElementById('ed_zone').value,
+        target: document.getElementById('ed_target').value,
+        goals: document.getElementById('ed_goals').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('editDispatchAlert', 'success', res.message);
+          setTimeout(function() {
+            closeModal('editDispatchModal');
+            loadPortalData();
+          }, 700);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          showLoader(false);
+          setAlert('editDispatchAlert', 'error', 'Error: ' + err.message);
+        })
+        .updateDeploymentRecord(payload);
+    }
+
+    function triggerCsvExport() {
+      var dateVal = document.getElementById('dispatch-date').value;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res.success) {
+            alert(res.message);
+            return;
+          }
+          var blob = new Blob([res.csvContent], { type: 'text/csv;charset=utf-8;' });
+          var link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.setAttribute('download', res.filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .withFailureHandler(function(err) {
+          alert('Export failed: ' + err.message);
+        })
+        .exportShiftManifestCsv(dateVal, currentShift);
+    }
+
+    function triggerPdfPrint() {
+      var dateVal = document.getElementById('dispatch-date').value;
+      google.script.run
+        .withSuccessHandler(function(htmlString) {
+          var printWindow = window.open('', '_blank');
+          printWindow.document.open();
+          printWindow.document.write(htmlString);
+          printWindow.document.close();
+        })
+        .withFailureHandler(function(err) {
+          alert('Failed to generate printable manifest: ' + err.message);
+        })
+        .getPrintableShiftManifestHtml(dateVal, currentShift);
+    }
+  </script>
+</body>
+</html>
