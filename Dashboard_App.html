@@ -103,6 +103,7 @@
     </div>
     <div class="header-actions">
       <button class="btn btn-primary desktop-only" onclick="openModal('dispatchModal')">📋 Dispatch</button>
+      <!-- HERE IS THE ROSTER BUTTON -->
       <button class="btn btn-outline desktop-only" onclick="openModal('rosterModal')">👥 Roster</button>
       <button class="btn btn-outline desktop-only" onclick="openModal('addVehicleModal')">➕ Add Van</button>
       <button class="btn btn-outline" onclick="loadPortalData()">🔄</button>
@@ -161,7 +162,7 @@
   <div class="mobile-action-menu">
     <div id="fab-drawer" class="fab-drawer">
       <div class="fab-action-item" onclick="triggerAction('dispatchModal')">📋 Dispatch Van</div>
-      <div class="fab-action-item" onclick="triggerAction('checkInModal')">⚠️ Report / Check-In</div>
+      <!-- ACTION MENU ROSTER BUTTON -->
       <div class="fab-action-item" onclick="triggerAction('rosterModal')">👥 Manage Roster</div>
       <div class="fab-action-item" onclick="triggerAction('addVehicleModal')">➕ Add Vehicle</div>
     </div>
@@ -264,10 +265,11 @@
     }
 
     function buildShifts(st) {
+      if (!st.config.shifts) return;
       const arr = st.config.shifts.length ? st.config.shifts : ['First Shift'];
       if(!arr.includes(currentShift)) currentShift = arr[0];
       document.getElementById('dynamic-shift-buttons').innerHTML = arr.map(s => 
-        `<button class="shift-btn ${s===currentShift?'active':''}" onclick="setShift('${s}')">${s}</button>`
+        '<button class="shift-btn ' + (s===currentShift ? 'active' : '') + '" onclick="setShift(\'' + s + '\')">' + s + '</button>'
       ).join('');
     }
     function setShift(s) { currentShift = s; buildShifts(globalState); renderDispatchBoard(); }
@@ -282,10 +284,10 @@
       st.vehicles.forEach(v => {
         if(!showDecom && v.status==='Decommissioned') return;
         let c = v.status==='Warehouse (Ready)' ? 'status-ready' : (v.status==='Dispatched' ? 'status-dispatched' : (v.status==='Out of Service' ? 'status-oos' : 'status-decom'));
-        html += `<div class="vehicle-card" onclick="openProfileForVan('${v.cleanName}')">
-          <div class="card-top"><div><div class="card-name">${v.cleanName}</div><div style="font-size:11px; color:var(--text-muted);">${v.rentalId}</div></div><span class="status-pill ${c}">${v.status}</span></div>
-          <div style="font-size:12px; margin-top:8px;">Zone: <strong>${v.zone}</strong> | Tech: <strong>${v.driver}</strong></div>
-        </div>`;
+        html += '<div class="vehicle-card" onclick="openProfileForVan(\'' + v.cleanName + '\')">' +
+          '<div class="card-top"><div><div class="card-name">' + v.cleanName + '</div><div style="font-size:11px; color:var(--text-muted);">' + v.rentalId + '</div></div><span class="status-pill ' + c + '">' + v.status + '</span></div>' +
+          '<div style="font-size:12px; margin-top:8px;">Zone: <strong>' + v.zone + '</strong> | Tech: <strong>' + v.driver + '</strong></div>' +
+        '</div>';
       });
       document.getElementById('fleet-cards').innerHTML = html;
     }
@@ -297,43 +299,43 @@
       let html = '';
       filtered.forEach(d => {
         let isDone = d.status === 'Completed';
-        let actionBtn = isDone ? `<span class="status-pill status-decom">Finished ${d.returnTime}</span>` : `<button class="btn btn-warning" style="padding:4px 8px; font-size:11px;" onclick="endShift('${d.id}', '${d.rentalId}')">End Shift</button>`;
-        let driverStr = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:#64748b;">+ ${d.coDriver}</span>` : d.tech;
-        let trainBadge = d.isTraining ? `<span style="background:#fef08a; color:#854d0e; padding:2px 4px; font-size:10px; border-radius:4px;">Training</span>` : '';
-        html += `<tr>
-          <td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:#64748b;">${d.rentalId}</span></td>
-          <td>${driverStr}</td>
-          <td>${trainBadge}</td>
-          <td><span style="background:#e0f2fe; color:#0369a1; padding:3px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${d.zone}</span></td>
-          <td style="font-size:11px;">${d.goals}</td>
-          <td><span class="status-pill ${isDone?'status-decom':'status-ready'}">${d.status}</span></td>
-          <td>${actionBtn}</td>
-        </tr>`;
+        let actionBtn = isDone ? '<span class="status-pill status-decom">Finished ' + d.returnTime + '</span>' : '<button class="btn btn-warning" style="padding:4px 8px; font-size:11px;" onclick="endShift(\'' + d.id + '\', \'' + d.rentalId + '\')">End Shift</button>';
+        let driverStr = d.coDriver ? d.tech + '<br><span style="font-size:11px; color:#64748b;">+ ' + d.coDriver + '</span>' : d.tech;
+        let trainBadge = d.isTraining ? '<span style="background:#fef08a; color:#854d0e; padding:2px 4px; font-size:10px; border-radius:4px;">Training</span>' : '';
+        html += '<tr>' +
+          '<td><strong>' + d.vehicle + '</strong><br><span style="font-size:11px; color:#64748b;">' + d.rentalId + '</span></td>' +
+          '<td>' + driverStr + '</td>' +
+          '<td>' + trainBadge + '</td>' +
+          '<td><span style="background:#e0f2fe; color:#0369a1; padding:3px 6px; border-radius:4px; font-size:11px; font-weight:bold;">' + d.zone + '</span></td>' +
+          '<td style="font-size:11px;">' + d.goals + '</td>' +
+          '<td><span class="status-pill ' + (isDone ? 'status-decom' : 'status-ready') + '">' + d.status + '</span></td>' +
+          '<td>' + actionBtn + '</td>' +
+        '</tr>';
       });
       document.getElementById('dispatch-table-body').innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:20px;">No dispatches found.</td></tr>';
     }
 
     function populateModals(st) {
       const cfg = st.config;
-      let rOpts = '<option value="">-- Select --</option>' + cfg.techRoster.map(r=>`<option value="${r}">${r}</option>`).join('');
+      let rOpts = '<option value="">-- Select --</option>' + cfg.techRoster.map(r => '<option value="' + r + '">' + r + '</option>').join('');
       document.getElementById('dp_tech').innerHTML = rOpts;
       document.getElementById('dp_codriver').innerHTML = rOpts;
 
-      let vOpts = '<option value="">-- Ready Vans --</option>' + st.vehicles.filter(v=>v.status==='Warehouse (Ready)').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.rentalId})</option>`).join('');
+      let vOpts = '<option value="">-- Ready Vans --</option>' + st.vehicles.filter(v => v.status==='Warehouse (Ready)').map(v => '<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + ' (' + v.rentalId + ')</option>').join('');
       document.getElementById('dp_van').innerHTML = vOpts;
 
-      document.getElementById('dp_shift').innerHTML = cfg.shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
-      document.getElementById('dp_zone').innerHTML = '<option value="">-- Zone --</option>' + cfg.zones.map(z=>`<option value="${z}">${z}</option>`).join('');
-      document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + cfg.focusOptions.map(f=>`<option value="${f}">${f}</option>`).join('');
-      document.getElementById('av_agency').innerHTML = cfg.rentalAgencies.map(a=>`<option value="${a}">${a}</option>`).join('');
+      document.getElementById('dp_shift').innerHTML = cfg.shifts.map(s => '<option value="' + s + '">' + s + '</option>').join('');
+      document.getElementById('dp_zone').innerHTML = '<option value="">-- Zone --</option>' + cfg.zones.map(z => '<option value="' + z + '">' + z + '</option>').join('');
+      document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + cfg.focusOptions.map(f => '<option value="' + f + '">' + f + '</option>').join('');
+      document.getElementById('av_agency').innerHTML = cfg.rentalAgencies.map(a => '<option value="' + a + '">' + a + '</option>').join('');
 
-      let pOpts = '<option value="">-- Choose Van --</option>' + st.vehicles.map(v=>`<option value="${v.cleanName}">${v.cleanName}</option>`).join('');
+      let pOpts = '<option value="">-- Choose Van --</option>' + st.vehicles.map(v => '<option value="' + v.cleanName + '">' + v.cleanName + '</option>').join('');
       document.getElementById('profile-van-select').innerHTML = pOpts;
     }
 
     function renderRoster(st) {
       document.getElementById('roster-list').innerHTML = st.config.techRoster.map(r => 
-        `<span class="roster-tag">${r} <button onclick="removeRoster('${r}')">&times;</button></span>`
+        '<span class="roster-tag">' + r + ' <button onclick="removeRoster(\'' + r + '\')">&times;</button></span>'
       ).join('');
     }
 
@@ -392,20 +394,21 @@
     }
 
     function openProfileForVan(name) { switchTab('profile'); document.getElementById('profile-van-select').value=name; renderVanProfile(); }
+    
     function renderVanProfile() {
       const name = document.getElementById('profile-van-select').value;
       const v = globalState.vehicles.find(x=>x.cleanName===name);
       if(!v) return;
       let stClass = v.status==='Warehouse (Ready)' ? 'status-ready' : (v.status==='Dispatched' ? 'status-dispatched' : 'status-oos');
-      document.getElementById('profile-details-area').innerHTML = `
-        <div class="panel">
-          <div class="panel-header"><div><h2 style="font-size:18px;">${v.cleanName}</h2><p style="font-size:12px; color:var(--text-muted);">${v.rentalId}</p></div><span class="status-pill ${stClass}">${v.status}</span></div>
-          <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Addons / Builds</div><div style="font-size:13px; font-weight:600;">${v.addons || 'None'}</div></div>
-            <div class="kpi-card"><div class="kpi-title">Samsara</div><div style="font-size:14px; font-weight:700;">${v.samsaraSerial||'—'}</div></div>
-            <div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">${v.plate||'—'}</div></div>
-          </div>
-        </div>`;
+      document.getElementById('profile-details-area').innerHTML = 
+        '<div class="panel">' +
+          '<div class="panel-header"><div><h2 style="font-size:18px;">' + v.cleanName + '</h2><p style="font-size:12px; color:var(--text-muted);">' + v.rentalId + '</p></div><span class="status-pill ' + stClass + '">' + v.status + '</span></div>' +
+          '<div class="kpi-grid">' +
+            '<div class="kpi-card"><div class="kpi-title">Addons / Builds</div><div style="font-size:13px; font-weight:600;">' + (v.addons || 'None') + '</div></div>' +
+            '<div class="kpi-card"><div class="kpi-title">Samsara</div><div style="font-size:14px; font-weight:700;">' + (v.samsaraSerial||'—') + '</div></div>' +
+            '<div class="kpi-card"><div class="kpi-title">Plate</div><div style="font-size:14px; font-weight:700;">' + (v.plate||'—') + '</div></div>' +
+          '</div>' +
+        '</div>';
     }
   </script>
 </body>

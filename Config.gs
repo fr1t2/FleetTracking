@@ -23,11 +23,11 @@ function getSystemConfig() {
     focusOptions: [],
     rentalAgencies: [],
     statusImpacts: [],
-    techRoster: [], // [NEW] Centralized Employee Roster
+    techRoster: [], // Col K
     debugLogging: true
   };
 
-  // Read config block (Now scanning out to Col K for the Roster)
+  // Read config block out to Col 11 (K) for the Tech Roster
   const rawCfg = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
   rawCfg.forEach(row => {
     if (row[0]) config.settings[String(row[0]).trim()] = row[1];
@@ -41,7 +41,7 @@ function getSystemConfig() {
     if (row[10]) config.techRoster.push(String(row[10]).trim()); // Col K
   });
 
-  // Deduplicate and remove blanks
+  // Deduplicate and remove blanks safely
   config.shifts = Array.from(new Set(config.shifts)).filter(Boolean);
   config.zones = Array.from(new Set(config.zones)).filter(Boolean);
   config.issueCategories = Array.from(new Set(config.issueCategories)).filter(Boolean);
@@ -77,9 +77,7 @@ function logAudit(actionType, entity, recordId, details) {
 }
 
 /**
- * ---------------------------------------------------------
- * NEW: Roster Management API for the Dashboard
- * ---------------------------------------------------------
+ * Roster Management API for the Dashboard
  */
 function addTechToRoster(name) {
   if (!name) throw new Error("Employee name is required.");
@@ -112,7 +110,7 @@ function removeTechFromRoster(name) {
     }
   }
   
-  // Sort column K to remove empty gaps
+  // Sort column K to remove empty gaps (Sorts rows 2 down to the end of the data in Col K)
   sheet.getRange(2, 11, sheet.getLastRow(), 1).sort(11);
   logAudit('ROSTER_UPDATED', 'System', name, 'Removed from tech roster');
   return { success: true, message: `${name} removed from roster.` };
