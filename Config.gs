@@ -81,37 +81,58 @@ function logAudit(actionType, entity, recordId, details) {
  */
 function addTechToRoster(name) {
   if (!name) throw new Error("Employee name is required.");
+  const cleanName = name.trim();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET);
   const lastRow = Math.max(sheet.getLastRow(), 2);
   const rosterData = sheet.getRange(2, 11, lastRow - 1, 1).getValues();
   
+  // 1. Prevent exact duplicates from being added
+  for (let i = 0; i < rosterData.length; i++) {
+    if (String(rosterData[i][0]).trim().toLowerCase() === cleanName.toLowerCase()) {
+      return { success: true, message: `${cleanName} is already on the roster.` };
+    }
+  }
+
+  // 2. Find the first empty cell in Column K and insert
   let insertRow = lastRow + 1;
   for (let i = 0; i < rosterData.length; i++) {
-    if (!rosterData[i][0]) {
+    if (!String(rosterData[i][0]).trim()) {
       insertRow = i + 2;
       break;
     }
   }
-  sheet.getRange(insertRow, 11).setValue(name.trim());
-  logAudit('ROSTER_UPDATED', 'System', name, 'Added to tech roster');
-  return { success: true, message: `${name} added to employee roster.` };
+  
+  sheet.getRange(insertRow, 11).setValue(cleanName);
+  logAudit('ROSTER_UPDATED', 'System', cleanName, 'Added to tech roster');
+  return { success: true, message: `${cleanName} added to employee roster.` };
 }
 
 function removeTechFromRoster(name) {
   if (!name) throw new Error("Employee name is required.");
+  const cleanName = name.trim().toLowerCase();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET);
   const lastRow = Math.max(sheet.getLastRow(), 2);
-  const rosterData = sheet.getRange(2, 11, lastRow - 1, 1).getValues();
   
+  // Read the current roster list
+  const rosterData = sheet.getRange(2, 11, lastRow - 1, 1).getValues();
+  const newRosterList = [];
+  
+  // 1. Filter out ALL instances of the removed name, keeping the rest
   for (let i = 0; i < rosterData.length; i++) {
-    if (String(rosterData[i][0]).trim().toLowerCase() === name.trim().toLowerCase()) {
-      sheet.getRange(i + 2, 11).clearContent();
-      break;
+    const cellValue = String(rosterData[i][0]).trim();
+    if (cellValue && cellValue.toLowerCase() !== cleanName) {
+      newRosterList.push([cellValue]);
     }
   }
   
-  // Sort column K to remove empty gaps (Sorts rows 2 down to the end of the data in Col K)
-  sheet.getRange(2, 11, sheet.getLastRow(), 1).sort(11);
+  // 2. Clear the entire column K below the header
+  sheet.getRange(2, 11, lastRow, 1).clearContent();
+  
+  // 3. Write the clean, gap-free list back to the sheet
+  if (newRosterList.length > 0) {
+    sheet.getRange(2, 11, newRosterList.length, 1).setValues(newRosterList);
+  }
+  
   logAudit('ROSTER_UPDATED', 'System', name, 'Removed from tech roster');
-  return { success: true, message: `${name} removed from roster.` };
+  return { success: true, message: `${name.trim()} removed from roster.` };
 }
