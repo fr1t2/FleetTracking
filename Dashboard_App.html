@@ -717,13 +717,33 @@
     function submitCheckIn(e) {
       e.preventDefault();
       const sel = document.getElementById('ci_van');
-      const p = { cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', resolutionNotes: document.getElementById('ci_notes').value };
+      const p = { 
+        cleanName: sel.value, 
+        rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', 
+        resolutionNotes: document.getElementById('ci_notes').value 
+      };
+      
       closeModal('checkInModal');
-      const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-      if(vIdx > -1) globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
-      renderHomeOverview(); renderFleetList(); populateModals();
+      
+      // --- OPTIMISTIC UI UPDATE ---
+      const vIdx = globalState.vehicles.findIndex(v => v.rentalId === p.rentalId);
+      if(vIdx > -1) {
+        globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
+        globalState.vehicles[vIdx].notes = ''; // Clears the OOS warning visually
+      }
+      
+      // Immediately reflect the van moving out of OOS and back to the Kanban board
+      renderHomeOverview(); 
+      renderDispatchKanban(); 
+      renderFleetList(); 
+      populateModals();
+      
+      // --- BACKGROUND SYNC ---
       document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>loadPortalData()).processCheckInVehicle(p);
+      google.script.run
+        .withSuccessHandler(()=>loadPortalData())
+        .withFailureHandler(()=>loadPortalData())
+        .processCheckInVehicle(p);
     }
 
     function submitDecom(e) {
