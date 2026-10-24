@@ -12,13 +12,53 @@ function processDispatchCheckout(data) {
 
   let fullGoals = data.focusCategory ? `[${data.focusCategory}] ${data.goals || ''}` : (data.goals || '');
 
+  // 1. AUTO-RESOLVE CONFLICTS (Enforce single-van/single-driver rules)
+  const dData = deploySheet.getDataRange().getValues();
+  const vData = vehicleSheet.getDataRange().getValues();
+  
+  for (let j = 1; j < dData.length; j++) {
+    if (String(dData[j][9]).trim() === 'Dispatched') {
+      const depRental = String(dData[j][4]).trim().toLowerCase();
+      const lead = String(dData[j][5]).trim().toLowerCase();
+      const co = String(dData[j][14]).trim().toLowerCase();
+      
+      const targetRental = String(data.rentalId).trim().toLowerCase();
+      const targetLead = String(data.assignedTech).trim().toLowerCase();
+      const targetCo = String(data.coDriver).trim().toLowerCase();
+
+      let isConflict = false;
+      if (depRental === targetRental) isConflict = true; // Van is already assigned
+      if (lead && (lead === targetLead || (targetCo && lead === targetCo))) isConflict = true; // Lead tech is already driving
+      if (co && (co === targetLead || (targetCo && co === targetCo))) isConflict = true; // Co-driver is already driving
+
+      if (isConflict) {
+        // Complete the conflicting shift
+        deploySheet.getRange(j + 1, 10).setValue('Completed');
+        deploySheet.getRange(j + 1, 12).setValue(now);
+        
+        // If the tech was driving a DIFFERENT van, reset that old van back to Warehouse (Ready)
+        if (depRental !== targetRental) {
+          for (let k = 1; k < vData.length; k++) {
+            if (String(vData[k][1]).trim().toLowerCase() === depRental) {
+              vehicleSheet.getRange(k + 1, 9).setValue('Warehouse (Ready)');
+              vehicleSheet.getRange(k + 1, 12).clearContent();
+              vehicleSheet.getRange(k + 1, 13).clearContent();
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2. LOG NEW DEPLOYMENT
   deploySheet.appendRow([
     deployId, now, data.shift, data.cleanName, data.rentalId,
     data.assignedTech, data.workZone, fullGoals, data.batteryTarget || '',
     'Dispatched', now, '', user, now, data.coDriver || '', data.isTraining ? 'Yes' : 'No'
   ]);
 
-  const vData = vehicleSheet.getDataRange().getValues();
+  // 3. UPDATE TARGET VEHICLE
   for (let i = 1; i < vData.length; i++) {
     if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
       const row = i + 1;
