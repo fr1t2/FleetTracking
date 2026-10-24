@@ -97,3 +97,60 @@ function decommissionVehicle(targetId, reason) {
   logAudit('VEHICLE_DECOMMISSIONED', 'Vehicles', targetId, reason);
   return { success: true, message: `Vehicle marked as Decommissioned.` };
 }
+
+function processReportIncident(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const incSheet = ss.getSheetByName('Incidents_Service');
+    const vSheet = ss.getSheetByName('Vehicles');
+    const dSheet = ss.getSheetByName('Deployments');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+    const incId = 'INC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
+
+    // 1. Log the Incident
+    incSheet.appendRow([
+      incId, now, data.cleanName, data.rentalId,
+      data.issueCategory, data.description,
+      data.triggerOos ? 'YES' : 'NO', data.statusImpact,
+      '', '', '', user, now
+    ]);
+
+    // 2. Handle Workflow if OOS is Triggered
+    if (data.triggerOos) {
+      
+      // A. Update Vehicle Status and Strip the Driver / Zone Assignment
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+          const row = i + 1;
+          vSheet.getRange(row, 9).setValue('Out of Service'); // Set Status
+          vSheet.getRange(row, 12).clearContent();            // Clear Zone
+          vSheet.getRange(row, 13).clearContent();            // Clear Assigned Tech
+          vSheet.getRange(row, 16).setValue(user);
+          vSheet.getRange(row, 17).setValue(now);
+          break;
+        }
+      }
+
+      // B. Auto-End the Active Shift for this Van
+      if (dSheet) {
+        const dData = dSheet.getDataRange().getValues();
+        for (let j = 1; j < dData.length; j++) {
+          // If the rental ID matches AND the shift is currently 'Dispatched'
+          if (String(dData[j][4]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && 
+              String(dData[j][9]).trim() === 'Dispatched') {
+            const dRow = j + 1;
+            dSheet.getRange(dRow, 10).setValue('Completed'); // End the shift
+            dSheet.getRange(dRow, 12).setValue(now);         // Log the exact return time
+          }
+        }
+      }
+    }
+
+    logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS Triggered: ${data.triggerOos}`);
+    return { success: true, message: 'Incident reported successfully.' };
+  } catch (err) {
+    throw new Error(err.message);
+  }
+}

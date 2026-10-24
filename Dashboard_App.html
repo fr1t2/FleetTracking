@@ -172,11 +172,11 @@
             </div>
           </div>
           <div>
-            <div class="panel" style="background:var(--veo-cyan); color:#000; border:none;">
-              <h3 style="font-size:14px; text-transform:uppercase; margin-bottom:10px; font-weight:800;">Fleet Status</h3>
-              <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:700;"><span>Ready to Deploy:</span><span id="kpi-ready">0</span></div>
-              <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:700;"><span>Active on Route:</span><span id="kpi-route">0</span></div>
-              <div style="display:flex; justify-content:space-between; font-weight:700;"><span>Down for Repair:</span><span id="kpi-down">0</span></div>
+            <div class="panel" style="border: 2px solid var(--veo-cyan); box-shadow: 0 0 15px rgba(0,229,255,0.1);">
+              <h3 style="font-size:14px; text-transform:uppercase; margin-bottom:12px; font-weight:800; color:var(--text-muted); letter-spacing:1px;">Fleet Status</h3>
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:700;"><span>Ready to Deploy:</span><span id="kpi-ready" style="color:var(--veo-cyan-dark); font-size:16px;">0</span></div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:700;"><span>Active on Route:</span><span id="kpi-route" style="color:var(--veo-cyan-dark); font-size:16px;">0</span></div>
+              <div style="display:flex; justify-content:space-between; font-weight:700;"><span>Down for Repair:</span><span id="kpi-down" style="color:var(--danger); font-size:16px;">0</span></div>
             </div>
             <div class="panel">
               <div class="panel-header">
@@ -678,13 +678,40 @@
         triggerOos: document.getElementById('inc_oos').checked, description: document.getElementById('inc_desc').value
       };
       closeModal('incidentModal');
+      
+      // --- OPTIMISTIC UI UPDATE ---
       if(p.triggerOos) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        // 1. Instantly Strip Van Info & Mark OOS
         const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-        if(vIdx > -1) globalState.vehicles[vIdx].status = 'Out of Service';
-        renderHomeOverview(); renderFleetList(); populateModals();
+        if(vIdx > -1) {
+          globalState.vehicles[vIdx].status = 'Out of Service';
+          globalState.vehicles[vIdx].zone = '—';
+          globalState.vehicles[vIdx].driver = '—';
+        }
+        
+        // 2. Instantly End the Shift on the Kanban Board
+        const dIdx = globalState.deployments.findIndex(d => d.rentalId === p.rentalId && d.status === 'Dispatched');
+        if (dIdx > -1) {
+          globalState.deployments[dIdx].status = 'Completed';
+          globalState.deployments[dIdx].returnTime = timeString;
+        }
+
+        // 3. Instantly render all screens to reflect the change
+        renderHomeOverview(); 
+        renderDispatchKanban(); 
+        renderFleetList(); 
+        populateModals();
       }
+      
+      // --- BACKGROUND SYNC ---
       document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
+      google.script.run
+        .withSuccessHandler(()=>loadPortalData())
+        .withFailureHandler(()=>loadPortalData()) // Re-syncs if network error
+        .processReportIncident(p);
     }
 
     function submitCheckIn(e) {
