@@ -413,20 +413,42 @@
     }
 
     function addRoster(name) {
+      if(!name) return;
+      document.getElementById('roster-input').value = '';
+
+      // --- OPTIMISTIC UI UPDATE ---
+      const cleanName = name.trim();
+      const rosterLower = globalState.config.techRoster.map(r => r.toLowerCase());
+      if (!rosterLower.includes(cleanName.toLowerCase())) {
+        globalState.config.techRoster.push(cleanName);
+        globalState.config.techRoster.sort();
+        renderRoster(globalState);
+        populateModals(globalState); // Immediately updates the Dispatch dropdowns!
+      }
+
+      // --- BACKGROUND SYNC ---
       document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>{
-        document.getElementById('roster-input').value='';
-        loadPortalData();
-      }).addTechToRoster(name);
+      google.script.run
+        .withSuccessHandler(() => document.getElementById('global-loader').style.display='none')
+        .withFailureHandler(() => loadPortalData())
+        .addTechToRoster(cleanName);
     }
 
     function removeRoster(name) {
       if(!confirm("Remove " + name + " from roster?")) return;
+      document.getElementById('roster-input').value = '';
+
+      // --- OPTIMISTIC UI UPDATE ---
+      globalState.config.techRoster = globalState.config.techRoster.filter(r => r.toLowerCase() !== name.toLowerCase());
+      renderRoster(globalState);
+      populateModals(globalState);
+
+      // --- BACKGROUND SYNC ---
       document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>{
-        document.getElementById('roster-input').value='';
-        loadPortalData();
-      }).removeTechFromRoster(name);
+      google.script.run
+        .withSuccessHandler(() => document.getElementById('global-loader').style.display='none')
+        .withFailureHandler(() => loadPortalData())
+        .removeTechFromRoster(name);
     }
 
     /* -----------------------------------------------------
@@ -503,9 +525,8 @@
       e.preventDefault();
       const sel = document.getElementById('dp_van');
       const opt = sel.options[sel.selectedIndex];
-      document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>{ closeModal('dispatchModal'); loadPortalData(); })
-      .processDispatchCheckout({
+      
+      const payload = {
         cleanName: sel.value, rentalId: opt.getAttribute('data-rental'),
         assignedTech: document.getElementById('dp_tech').value,
         coDriver: document.getElementById('dp_codriver').value,
@@ -516,13 +537,95 @@
         focusCategory: document.getElementById('dp_focus').value,
         goals: document.getElementById('dp_goals').value,
         dispatchDate: document.getElementById('dispatch-date').value
+      };
+
+      // Close modal instantly
+      closeModal('dispatchModal');
+
+      // --- OPTIMISTIC UI UPDATE ---
+      const now = new Date();
+      let timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      // 1. Add temp deployment to local memory
+      globalState.deployments.unshift({
+        id: '...', // Pending ID
+        date: payload.dispatchDate,
+        shift: payload.shift,
+        vehicle: payload.cleanName,
+        rentalId: payload.rentalId,
+        tech: payload.assignedTech,
+        zone: payload.workZone,
+        goals: payload.focusCategory ? '[' + payload.focusCategory + '] ' + payload.goals : payload.goals,
+        target: payload.batteryTarget,
+        status: 'Dispatched',
+        departureTime: timeString,
+        coDriver: payload.coDriver,
+        isTraining: payload.isTraining
       });
+
+      // 2. Update Vehicle locally
+      const vIndex = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if (vIndex !== -1) {
+        globalState.vehicles[vIndex].status = 'Dispatched';
+        globalState.vehicles[vIndex].zone = payload.workZone;
+        globalState.vehicles[vIndex].driver = payload.coDriver ? payload.assignedTech + ' & ' + payload.coDriver : payload.assignedTech;
+      }
+
+      // 3. Render immediately!
+      renderDispatchBoard();
+      renderFleetOverview(globalState);
+
+      // --- BACKGROUND SYNC ---
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run
+        .withSuccessHandler(() => {
+          // Silently reload in background to get the real Deployment ID
+          loadPortalData(); 
+        })
+        .withFailureHandler(() => loadPortalData()) // Revert if failed
+        .processDispatchCheckout(payload);
     }
 
     function endShift(depId, rentId) {
       if(!confirm("End this shift and return van to warehouse?")) return;
-      document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>loadPortalData()).endShift(depId, rentId);
+      
+      // 1. OPTIMISTIC UI UPDATE: Instantly change the state locally before the server responds
+      const now = new Date();
+      let timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      // Update Deployment in local memory
+      const dIndex = globalState.deployments.findIndex(d => d.id === depId);
+      if (dIndex !== -1) {
+        globalState.deployments[dIndex].status = 'Completed';
+        globalState.deployments[dIndex].returnTime = timeString;
+      }
+      
+      // Update Vehicle in local memory
+      const vIndex = globalState.vehicles.findIndex(v => v.rentalId === rentId);
+      if (vIndex !== -1) {
+        globalState.vehicles[vIndex].status = 'Warehouse (Ready)';
+        globalState.vehicles[vIndex].zone = '—';
+        globalState.vehicles[vIndex].driver = '—';
+      }
+
+      // Update the UI immediately without waiting
+      renderDispatchBoard();
+      renderFleetOverview(globalState);
+      
+      // 2. BACKGROUND SYNC: Send the update to Google Sheets silently
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run
+        .withSuccessHandler(() => {
+          document.getElementById('global-loader').style.display = 'none';
+          // Optional: You could call loadPortalData() here if you wanted to sync any changes 
+          // made by other users, but it's not required since our local state is now accurate.
+        })
+        .withFailureHandler((err) => {
+          // If it fails, alert the user and reload the real data to fix the optimistic assumption
+          alert("Failed to save end-of-shift to database: " + err.message);
+          loadPortalData(); 
+        })
+        .endShift(depId, rentId);
     }
 
     function submitAddVehicle(e) {
@@ -554,6 +657,42 @@
           '</div>' +
         '</div>';
     }
+    function submitIncident(e) {
+      e.preventDefault();
+      const sel = document.getElementById('inc_van');
+      const opt = sel.options[sel.selectedIndex];
+      
+      const payload = {
+        cleanName: sel.value,
+        rentalId: opt.getAttribute('data-rental') || '',
+        issueCategory: document.getElementById('inc_cat').value,
+        statusImpact: document.getElementById('inc_impact').value,
+        triggerOos: document.getElementById('inc_oos').checked,
+        description: document.getElementById('inc_desc').value
+      };
+
+      closeModal('incidentModal');
+
+      // --- OPTIMISTIC UI UPDATE ---
+      if (payload.triggerOos) {
+        const vIndex = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+        if (vIndex !== -1) {
+          globalState.vehicles[vIndex].status = 'Out of Service';
+          renderFleetOverview(globalState);
+          populateModals(globalState); // Immediately removes it from Dispatch options
+        }
+      }
+
+      // --- BACKGROUND SYNC ---
+      document.getElementById('global-loader').style.display='block';
+      google.script.run
+        .withSuccessHandler(() => {
+          loadPortalData(); // Reload to get real Incident ID for the Check-In dropdown
+        })
+        .withFailureHandler(() => loadPortalData())
+        .processReportIncident(payload);
+    }
+    
   </script>
 </body>
 </html>
