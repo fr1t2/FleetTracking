@@ -541,13 +541,41 @@
     function renderTechProfile() {
       const name = document.getElementById('tech-search-input').value.trim();
       const area = document.getElementById('tech-details-area');
+      
+      // NEW: Show all active techs if no name is searched
       if (!name || !globalState) {
-        area.innerHTML = '<div class="empty-state">Search or select an employee to view their historical dispatch statistics.</div>';
+        if (!globalState) return;
+        const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
+        
+        if (activeDeps.length === 0) {
+          area.innerHTML = '<div class="empty-state">No technicians are currently out on shift. Search an employee above to view their history.</div>';
+          return;
+        }
+
+        let html = '<div class="panel"><div class="panel-header"><h2 class="panel-title">🟢 Currently on Shift</h2></div><div class="card-grid">';
+        activeDeps.forEach(d => {
+          let driverStr = d.coDriver ? d.tech + ' & ' + d.coDriver : d.tech;
+          let trainBadge = d.isTraining ? '<span style="background:#fef08a; color:#854d0e; padding:2px 4px; font-size:10px; border-radius:4px; margin-left:6px;">Training</span>' : '';
+          html += 
+            '<div class="vehicle-card" style="border-left: 4px solid var(--primary); cursor:default;">' +
+              '<div class="card-top">' +
+                '<div class="card-name">' + driverStr + ' ' + trainBadge + '</div>' +
+                '<span class="status-pill status-dispatched" style="font-size:10px;">' + d.shift + '</span>' +
+              '</div>' +
+              '<div style="font-size:13px; margin-top:10px;">Van: <strong>' + d.vehicle + '</strong> <span style="color:var(--text-muted)">(' + d.rentalId + ')</span></div>' +
+              '<div style="font-size:13px; margin-top:4px;">Zone: <strong>' + d.zone + '</strong></div>' +
+              '<div style="font-size:11px; color:var(--text-muted); margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">' +
+                'Out since: <strong>' + d.departureTime + '</strong>' +
+              '</div>' +
+            '</div>';
+        });
+        html += '</div></div>';
+        area.innerHTML = html;
         return;
       }
 
+      // Existing logic for individual tech stats...
       const lowerName = name.toLowerCase();
-      // Filter for shifts where the employee was either lead or co-driver (exact match)
       const deps = globalState.deployments.filter(d => 
         d.tech.toLowerCase() === lowerName || 
         (d.coDriver && d.coDriver.toLowerCase() === lowerName)
@@ -560,16 +588,12 @@
         return;
       }
 
-      // Calculate Stats
       const totalShifts = deps.length;
-      
-      // Sort deployments latest date first
       deps.sort((a, b) => (a.date > b.date ? -1 : (a.date < b.date ? 1 : 0)));
       
       const lastVan = deps[0].vehicle;
       const lastZone = deps[0].zone;
 
-      // Calculate top van and top zone frequencies
       const vanCounts = {};
       const zoneCounts = {};
       deps.forEach(d => {
@@ -604,8 +628,8 @@
           '<div class="table-responsive"><table><thead><tr><th>Date</th><th>Shift</th><th>Van</th><th>Zone</th><th>Role</th></tr></thead><tbody>' + histHtml + '</tbody></table></div>' +
         '</div>';
     }
-
-    function submitDispatch(e) {
+    
+function submitDispatch(e) {
       e.preventDefault();
       const sel = document.getElementById('dp_van');
       const opt = sel.options[sel.selectedIndex];
@@ -619,21 +643,20 @@
         workZone: document.getElementById('dp_zone').value,
         batteryTarget: document.getElementById('dp_target').value,
         focusCategory: document.getElementById('dp_focus').value,
-        goals: document.getElementById('dp_goals').value,
-        dispatchDate: document.getElementById('dispatch-date').value
+        goals: document.getElementById('dp_goals').value
+        // dispatchDate removed from payload to force server to use exact NOW()
       };
 
-      // Close modal instantly
       closeModal('dispatchModal');
 
-      // --- OPTIMISTIC UI UPDATE ---
+      // Optimistic UI Update using actual current time
       const now = new Date();
       let timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      let dateString = now.toISOString().split('T')[0]; // Format for local sorting
       
-      // 1. Add temp deployment to local memory
       globalState.deployments.unshift({
-        id: '...', // Pending ID
-        date: payload.dispatchDate,
+        id: '...', 
+        date: dateString,
         shift: payload.shift,
         vehicle: payload.cleanName,
         rentalId: payload.rentalId,
@@ -647,7 +670,6 @@
         isTraining: payload.isTraining
       });
 
-      // 2. Update Vehicle locally
       const vIndex = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
       if (vIndex !== -1) {
         globalState.vehicles[vIndex].status = 'Dispatched';
@@ -655,18 +677,14 @@
         globalState.vehicles[vIndex].driver = payload.coDriver ? payload.assignedTech + ' & ' + payload.coDriver : payload.assignedTech;
       }
 
-      // 3. Render immediately!
       renderDispatchBoard();
       renderFleetOverview(globalState);
+      renderTechProfile(); // Instantly add to the new "Currently on Shift" view
 
-      // --- BACKGROUND SYNC ---
       document.getElementById('global-loader').style.display = 'block';
       google.script.run
-        .withSuccessHandler(() => {
-          // Silently reload in background to get the real Deployment ID
-          loadPortalData(); 
-        })
-        .withFailureHandler(() => loadPortalData()) // Revert if failed
+        .withSuccessHandler(() => loadPortalData())
+        .withFailureHandler(() => loadPortalData()) 
         .processDispatchCheckout(payload);
     }
 

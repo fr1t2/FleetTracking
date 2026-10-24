@@ -7,19 +7,11 @@ function processDispatchCheckout(data) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const deploySheet = ss.getSheetByName('Deployments');
     const vehicleSheet = ss.getSheetByName('Vehicles');
+    
+    // BUG FIX: Use the exact current moment (=NOW()) for the dispatch record
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
     const deployId = 'DEP-' + Utilities.getUuid().substring(0, 8).toUpperCase();
-    
-    // TIMEZONE FIX: Parse YYYY-MM-DD explicitly into the local timezone
-    let dispatchDate = now;
-    if (data.dispatchDate) {
-      const parts = data.dispatchDate.split('-');
-      if (parts.length === 3) {
-        // new Date(year, monthIndex, day) forces the script's local timezone
-        dispatchDate = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
-      }
-    }
 
     let fullGoals = '';
     if (data.focusCategory) {
@@ -28,9 +20,9 @@ function processDispatchCheckout(data) {
       fullGoals = data.goals || '';
     }
 
-    // Append Deployments (16 Cols)
+    // Append Deployments (Date and Departure Time both use exact 'now')
     deploySheet.appendRow([
-      deployId, dispatchDate, data.shift, data.cleanName, data.rentalId,
+      deployId, now, data.shift, data.cleanName, data.rentalId,
       data.assignedTech, data.workZone, fullGoals, data.batteryTarget || '',
       'Dispatched', now, '', user, now, 
       data.coDriver || '', data.isTraining ? 'Yes' : 'No'
@@ -57,6 +49,7 @@ function processDispatchCheckout(data) {
     throw new Error(err.message);
   }
 }
+
 /**
  * Checks a van back into the Warehouse, clearing its driver and logging the return time.
  */
