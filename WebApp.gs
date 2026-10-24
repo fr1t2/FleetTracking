@@ -1,5 +1,5 @@
 /**
- * @fileoverview High-Performance Web App Backend
+ * @fileoverview High-Speed Web App Router & Single-Pass Data Engine.
  */
 
 function doGet(e) {
@@ -10,11 +10,14 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+/**
+ * Returns complete database state in one optimized JSON payload.
+ */
 function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tz = Session.getScriptTimeZone();
 
-  // 1. Read _Config
+  // 1. FAST READ: _Config
   const cfgSheet = ss.getSheetByName(CONFIG_SHEET);
   const cfg = {
     settings: {},
@@ -43,10 +46,9 @@ function getDashboardState() {
     cfg.zones = Array.from(new Set(cfg.zones)).filter(Boolean);
     cfg.rentalAgencies = Array.from(new Set(cfg.rentalAgencies)).filter(Boolean);
   }
-
   if (!cfg.shifts.length) cfg.shifts = ['First Shift', 'Second Shift', 'Third Shift'];
 
-  // 2. Read Vehicles (17 columns)
+  // 2. FAST READ: Vehicles (17 columns)
   const vSheet = ss.getSheetByName(VEHICLES_SHEET);
   const vehicles = [];
   const counts = { total: 0, active: 0, oos: 0, decommissioned: 0 };
@@ -88,7 +90,7 @@ function getDashboardState() {
     });
   }
 
-  // 3. Read Deployments
+  // 3. FAST READ: Deployments
   const dSheet = ss.getSheetByName(DEPLOYMENTS_SHEET);
   const deployments = [];
 
@@ -126,7 +128,7 @@ function getDashboardState() {
     });
   }
 
-  // 4. Read Incidents
+  // 4. FAST READ: Incidents
   const iSheet = ss.getSheetByName(INCIDENTS_SHEET);
   const incidents = [];
 
@@ -149,12 +151,33 @@ function getDashboardState() {
     });
   }
 
+  // 5. Out-of-service list
+  const oosList = [];
+  vehicles.forEach(v => {
+    if (v.status === 'Out of Service') {
+      let openInc = null;
+      for (let j = incidents.length - 1; j >= 0; j--) {
+        if ((incidents[j].vehicle === v.cleanName || incidents[j].rentalId === v.rentalId) && !incidents[j].dateResolved) {
+          openInc = incidents[j];
+          break;
+        }
+      }
+      oosList.push({
+        cleanName: v.cleanName,
+        rentalId: v.rentalId,
+        displayName: `${v.cleanName} (${v.rentalId})`,
+        incident: openInc
+      });
+    }
+  });
+
   return {
     config: cfg,
     counts: counts,
     vehicles: vehicles,
     deployments: deployments,
     incidents: incidents,
+    oosVehicles: oosList,
     todayDate: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd')
   };
 }

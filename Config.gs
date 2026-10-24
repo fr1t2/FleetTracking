@@ -1,5 +1,5 @@
 /**
- * @fileoverview System Constants, Config Parser, and Centralized Audit Logger.
+ * @fileoverview System Constants, Config Parser, and Audit Logger.
  */
 
 const CONFIG_SHEET = '_Config';
@@ -30,7 +30,6 @@ function getSystemConfig() {
     debugLogging: true
   };
 
-  // Read Key-Value pairs (Cols A:B)
   const kvData = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
   kvData.forEach(([k, v]) => {
     if (k) config.settings[String(k).trim()] = v;
@@ -45,7 +44,8 @@ function getSystemConfig() {
     return sheet.getRange(2, colIndex, lastRow - 1, 1)
       .getValues()
       .map(r => r[0])
-      .filter(v => v !== '' && v !== null && v !== undefined);
+      .filter(v => v !== '' && v !== null && v !== undefined)
+      .map(v => String(v).trim());
   }
 
   config.shifts = getColumnValues(4);            // Col D
@@ -56,33 +56,8 @@ function getSystemConfig() {
   config.rentalAgencies = getColumnValues(9);    // Col I
   config.statusImpacts = getColumnValues(10);    // Col J
 
-  // Fallbacks if columns are not yet filled
-  if (!config.issueCategories.length) {
-    config.issueCategories = [
-      'Mechanical / Engine',
-      'Flat Tire / Wheel',
-      'Check Engine Light',
-      'Body / Exterior Damage',
-      'Scheduled Maintenance',
-      'Battery / Electrical',
-      'Safety Inspection Failure',
-      'Samsara / Tech Equipment'
-    ];
-  }
-
-  if (!config.statusImpacts.length) {
-    config.statusImpacts = [
-      'Out of Service - Needs Repair',
-      'Out of Service - On Hold',
-      'Out of Service - Dealer Return',
-      'In Service - Roadworthy',
-      'In Service - Monitor'
-    ];
-  }
-
-  if (!config.rentalAgencies.length) {
-    config.rentalAgencies = ['Enterprise', 'U-Haul', 'Penske', 'Merchants Fleet', 'Budget', 'Company Owned'];
-  }
+  if (!config.shifts.length) config.shifts = ['First Shift', 'Second Shift', 'Third Shift'];
+  if (!config.rentalAgencies.length) config.rentalAgencies = ['Enterprise', 'Penske', 'U-Haul', 'VEO'];
 
   return config;
 }
