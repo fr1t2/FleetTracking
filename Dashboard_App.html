@@ -141,6 +141,7 @@
       <div class="nav-item" onclick="switchTab('dispatch')"><span style="font-size:18px;">📋</span><span class="nav-text">Dispatch Board</span></div>
       <div class="nav-item" onclick="switchTab('fleet')"><span style="font-size:18px;">🚚</span><span class="nav-text">Fleet Registry</span></div>
       <div class="nav-item" onclick="switchTab('techs')"><span style="font-size:18px;">👤</span><span class="nav-text">Tech Profiles</span></div>
+      <div class="nav-item" onclick="switchTab('history')"><span style="font-size:18px;">🕰️</span><span class="nav-text">Shift History</span></div>
     </div>
     <div class="sidebar-footer">
       <button class="theme-toggle" onclick="toggleTheme()">🌓 <span class="theme-text">Toggle Theme</span></button>
@@ -162,6 +163,7 @@
     </div>
 
     <div class="content-area">
+      
       <!-- 1. HOME OVERVIEW TAB -->
       <div id="tab-home" class="tab-content active">
         <div class="home-grid">
@@ -176,7 +178,6 @@
             </div>
           </div>
           <div>
-            <!-- THE UPDATED FLEET STATUS TEAL PANEL -->
             <div class="panel" style="border: 2px solid var(--veo-cyan); box-shadow: 0 0 15px rgba(0,229,255,0.1);">
               <h3 style="font-size:14px; text-transform:uppercase; margin-bottom:12px; font-weight:800; color:var(--text-muted); letter-spacing:1px;">Fleet Status</h3>
               <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:700;"><span>Ready to Deploy:</span><span id="kpi-ready" style="color:var(--veo-cyan-dark); font-size:16px;">0</span></div>
@@ -199,25 +200,18 @@
         <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center; flex-wrap:wrap; gap:10px;">
           <div style="display:flex; gap:10px; align-items:center;">
             <input type="date" id="kb-date" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:bold;" onchange="renderDispatchKanban()" />
-            <button class="btn btn-outline" onclick="loadPortalData()">🔄 Refresh</button>
-          </div>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-outline" onclick="triggerCsvExport()">📥 CSV</button>
-            <button class="btn btn-outline" onclick="triggerPdfPrint()">🖨️ PDF</button>
+            <button class="btn btn-outline" onclick="loadPortalData()">🔄 Refresh Data</button>
           </div>
         </div>
         <div class="kanban-board">
-          <!-- Ready -->
           <div class="kanban-col">
             <div class="kanban-title"><span>Warehouse (Ready)</span><span class="badge-count" id="kb-ready-count">0</span></div>
             <div id="kb-ready-col" style="display:flex; flex-direction:column; gap:12px;"></div>
           </div>
-          <!-- Active Route -->
           <div class="kanban-col">
             <div class="kanban-title"><span>Active Route (< 7 Hrs)</span><span class="badge-count" id="kb-active-count">0</span></div>
             <div id="kb-active-col" style="display:flex; flex-direction:column; gap:12px;"></div>
           </div>
-          <!-- Returning Soon -->
           <div class="kanban-col">
             <div class="kanban-title"><span style="color:var(--warning)">Returning Soon (> 7 Hrs)</span><span class="badge-count" id="kb-return-count">0</span></div>
             <div id="kb-return-col" style="display:flex; flex-direction:column; gap:12px;"></div>
@@ -225,7 +219,7 @@
         </div>
       </div>
 
-      <!-- 3. FLEET REGISTRY TAB (CARD GRID) -->
+      <!-- 3. FLEET REGISTRY TAB -->
       <div id="tab-fleet" class="tab-content">
         <div class="panel">
           <div class="panel-header">
@@ -239,7 +233,7 @@
         </div>
       </div>
 
-      <!-- 4. TECH PROFILES TAB (CARD GRID) -->
+      <!-- 4. TECH PROFILES TAB -->
       <div id="tab-techs" class="tab-content">
         <div class="panel">
           <div class="panel-header">
@@ -252,10 +246,33 @@
           <div id="tech-card-grid" class="card-grid"></div>
         </div>
       </div>
+
+      <!-- 5. SHIFT HISTORY TAB -->
+      <div id="tab-history" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <div style="display:flex; gap:10px; align-items:center;">
+              <input type="date" id="hist-date" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:bold;" onchange="renderHistoryTab()" />
+              <select id="hist-shift" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:bold;" onchange="renderHistoryTab()"></select>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-outline" onclick="triggerCsvExport()">📥 Export CSV</button>
+              <button class="btn btn-outline" onclick="triggerPdfPrint()">🖨️ Print PDF</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Shift</th><th>Van</th><th>Technician(s)</th><th>Zone</th><th>Focus / Target</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead>
+              <tbody id="history-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
-  <!-- ================= ACTION MODALS (NEW INTERACTIVE CLICK MENUS) ================= -->
+  <!-- ================= ACTION MODALS (INTERACTIVE CLICK MENUS) ================= -->
 
   <!-- VAN ACTION MODAL -->
   <div id="vanActionModal" class="modal-overlay">
@@ -272,7 +289,6 @@
       <div class="modal-body" id="ta_body"></div>
     </div>
   </div>
-
 
   <!-- ================= EXISTING STANDARD MODALS ================= -->
 
@@ -399,14 +415,16 @@
       </form>
     </div>
   </div>
-  
+
   <!-- ================= JAVASCRIPT ================= -->
   <script>
     let globalState = null;
 
     window.onload = function() {
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
-      document.getElementById('kb-date').value = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('kb-date').value = today;
+      document.getElementById('hist-date').value = today;
       loadPortalData();
     };
 
@@ -424,7 +442,7 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById('tab-'+t).classList.add('active');
       
-      const titles = { 'home':'Home Overview', 'dispatch':'Graphical Dispatch', 'fleet':'Fleet Registry', 'techs':'Tech Profiles' };
+      const titles = { 'home':'Home Overview', 'dispatch':'Graphical Dispatch', 'fleet':'Fleet Registry', 'techs':'Tech Profiles', 'history':'Shift History' };
       document.getElementById('page-title').innerText = titles[t];
       document.getElementById('sidebar').classList.remove('mobile-open');
 
@@ -432,6 +450,7 @@
       if(t==='dispatch') renderDispatchKanban();
       if(t==='fleet') renderFleetGrid();
       if(t==='techs') renderTechGrid();
+      if(t==='history') renderHistoryTab();
     }
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -447,6 +466,7 @@
         renderDispatchKanban();
         renderFleetGrid();
         renderTechGrid();
+        renderHistoryTab();
       }).getDashboardState();
     }
 
@@ -531,7 +551,6 @@
       }).join('');
     }
 
-    /* --- NEW GRID RENDERERS FOR TABS 3 & 4 --- */
     function renderFleetGrid() {
       if(!globalState) return;
       const q = document.getElementById('fleet-search').value.toLowerCase();
@@ -562,7 +581,7 @@
         
         const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
         const statusStr = activeDep ? `🚙 On Route in ${activeDep.vehicle}` : `⚪ Available in Warehouse`;
-        const sClass = activeDep ? 'active' : 'ready'; // active = cyan edge, ready = green edge
+        const sClass = activeDep ? 'active' : 'ready';
 
         html += `
         <div class="k-card ${sClass}" onclick="openTechActionModal('${t}')">
@@ -573,8 +592,45 @@
       document.getElementById('tech-card-grid').innerHTML = html;
     }
 
+    function renderHistoryTab() {
+      if(!globalState) return;
+      const dateVal = document.getElementById('hist-date').value;
+      const shiftVal = document.getElementById('hist-shift').value;
+      
+      let deps = globalState.deployments.filter(d => d.date === dateVal && d.shift === shiftVal);
+      
+      let html = '';
+      if (deps.length === 0) {
+        html = '<tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">No deployment records found for this date and shift.</td></tr>';
+      } else {
+        deps.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+        deps.forEach(d => {
+          let techs = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:var(--text-muted);">+ ${d.coDriver}</span>` : d.tech;
+          let isDone = d.status === 'Completed';
+          let sClass = isDone ? 'color:var(--success); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;';
+          
+          let goalText = '';
+          if (d.goals) goalText += `<div style="font-weight:600;">${d.goals}</div>`;
+          if (d.target) goalText += `<div style="font-size:11px; color:var(--text-muted);">Target: ${d.target}</div>`;
+          if (!goalText) goalText = '—';
 
-    /* --- NEW ACTION MODAL LOGIC --- */
+          html += `<tr>
+            <td><span class="status-pill" style="font-size:10px; background:var(--bg); padding:4px 8px; border-radius:4px;">${d.shift}</span></td>
+            <td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td>
+            <td>${techs}</td>
+            <td><span class="zone-badge">${d.zone}</span></td>
+            <td style="max-width:200px; white-space:normal;">${goalText}</td>
+            <td>${d.departureTime}</td>
+            <td>${d.returnTime || '—'}</td>
+            <td style="${sClass}">${d.status}</td>
+          </tr>`;
+        });
+      }
+      document.getElementById('history-table-body').innerHTML = html;
+    }
+
+
+    /* --- ACTION MODAL LOGIC --- */
     function openVanActionModal(rentalId) {
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if(!v) return;
@@ -648,7 +704,6 @@
       openModal('techActionModal');
     }
 
-    // Prefill Helpers for the action menus
     function prefillDispatchVan(cleanName) { document.getElementById('dp_van').value = cleanName; openModal('dispatchModal'); }
     function prefillDispatchTech(techName) { document.getElementById('dp_tech').value = techName; openModal('dispatchModal'); }
     function prefillIncidentVan(cleanName) { document.getElementById('inc_van').value = cleanName; openModal('incidentModal'); }
@@ -673,7 +728,10 @@
       let decOpts = '<option value="">-- Select Van --</option>' + globalState.vehicles.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
       document.getElementById('dec_van').innerHTML = decOpts;
 
-      document.getElementById('dp_shift').innerHTML = cfg.shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
+      let sOpts = cfg.shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
+      document.getElementById('dp_shift').innerHTML = sOpts;
+      document.getElementById('hist-shift').innerHTML = sOpts;
+
       document.getElementById('dp_zone').innerHTML = '<option value="">-- Zone --</option>' + cfg.zones.map(z=>`<option value="${z}">${z}</option>`).join('');
       document.getElementById('ed_zone').innerHTML = document.getElementById('dp_zone').innerHTML;
       document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + cfg.focusOptions.map(f=>`<option value="${f}">${f}</option>`).join('');
@@ -783,7 +841,7 @@
         const dIdx = globalState.deployments.findIndex(d => d.rentalId === p.rentalId && d.status === 'Dispatched');
         if (dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = timeString; }
         
-        renderHomeOverview(); renderDispatchKanban(); renderFleetGrid(); renderTechGrid(); populateModals();
+        renderHomeOverview(); renderDispatchKanban(); renderFleetGrid(); renderTechGrid(); renderHistoryTab(); populateModals();
       }
       document.getElementById('global-loader').style.display='block';
       google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
@@ -859,7 +917,7 @@
       const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
       if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? `${p.assignedTech} & ${p.coDriver}` : p.assignedTech; }
 
-      renderHomeOverview(); renderDispatchKanban(); renderFleetGrid(); renderTechGrid(); populateModals();
+      renderHomeOverview(); renderDispatchKanban(); renderFleetGrid(); renderTechGrid(); renderHistoryTab(); populateModals();
       document.getElementById('global-loader').style.display='block';
       google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
     }
@@ -878,7 +936,7 @@
       closeModal('editDispatchModal');
       const dIdx = globalState.deployments.findIndex(d=>d.id===p.id);
       if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
-      renderDispatchKanban();
+      renderDispatchKanban(); renderHistoryTab();
       document.getElementById('global-loader').style.display='block';
       google.script.run.withSuccessHandler(()=>loadPortalData()).updateDeploymentRecord(p);
     }
@@ -889,14 +947,14 @@
       if(dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
       const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===rentId);
       if(vIdx > -1) globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
-      renderHomeOverview(); renderDispatchKanban(); renderFleetGrid(); renderTechGrid(); populateModals();
+      renderHomeOverview(); renderDispatchKanban(); renderFleetGrid(); renderTechGrid(); renderHistoryTab(); populateModals();
       document.getElementById('global-loader').style.display='block';
       google.script.run.withSuccessHandler(()=>loadPortalData()).endShift(depId, rentId);
     }
 
     function triggerCsvExport() {
-      const dateVal = document.getElementById('kb-date').value;
-      const shiftSelect = document.getElementById('dp_shift');
+      const dateVal = document.getElementById('hist-date').value;
+      const shiftSelect = document.getElementById('hist-shift');
       const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
 
       google.script.run.withSuccessHandler(function(res) {
@@ -914,8 +972,8 @@
     }
 
     function triggerPdfPrint() {
-      const dateVal = document.getElementById('kb-date').value;
-      const shiftSelect = document.getElementById('dp_shift');
+      const dateVal = document.getElementById('hist-date').value;
+      const shiftSelect = document.getElementById('hist-shift');
       const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
 
       google.script.run.withSuccessHandler(function(htmlString) {
