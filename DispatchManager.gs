@@ -10,7 +10,16 @@ function processDispatchCheckout(data) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
     const deployId = 'DEP-' + Utilities.getUuid().substring(0, 8).toUpperCase();
-    const dispatchDate = data.dispatchDate ? new Date(data.dispatchDate) : now;
+    
+    // TIMEZONE FIX: Parse YYYY-MM-DD explicitly into the local timezone
+    let dispatchDate = now;
+    if (data.dispatchDate) {
+      const parts = data.dispatchDate.split('-');
+      if (parts.length === 3) {
+        // new Date(year, monthIndex, day) forces the script's local timezone
+        dispatchDate = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
+      }
+    }
 
     let fullGoals = '';
     if (data.focusCategory) {
@@ -48,7 +57,6 @@ function processDispatchCheckout(data) {
     throw new Error(err.message);
   }
 }
-
 /**
  * Checks a van back into the Warehouse, clearing its driver and logging the return time.
  */
