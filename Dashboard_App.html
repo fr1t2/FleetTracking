@@ -249,6 +249,90 @@
     </div>
   </div>
 
+<!-- REPORT ISSUE MODAL -->
+  <div id="incidentModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><div style="color:var(--danger)">⚠️ Report Vehicle Issue</div><button class="modal-close" onclick="closeModal('incidentModal')">&times;</button></div>
+      <form onsubmit="submitIncident(event)">
+        <div class="modal-body">
+          <div class="form-group"><label>Select Vehicle *</label><select id="inc_van" required></select></div>
+          <div class="form-group"><label>Issue Category *</label><select id="inc_cat" required></select></div>
+          <div class="form-group"><label>Status Impact *</label><select id="inc_impact" required></select></div>
+          <div style="background:#fef2f2; border:1px solid #fee2e2; border-radius:8px; padding:10px; margin-bottom:12px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--danger); cursor:pointer;">
+              <input type="checkbox" id="inc_oos" checked style="width:auto;" /> 🚨 Set vehicle to "Out of Service"
+            </label>
+          </div>
+          <div class="form-group"><label>Event Description *</label><textarea id="inc_desc" rows="3" required></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('incidentModal')">Cancel</button><button type="submit" class="btn btn-danger">Log Incident</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CHECK IN MODAL -->
+  <div id="checkInModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><div style="color:var(--success)">✅ Return Van to Service</div><button class="modal-close" onclick="closeModal('checkInModal')">&times;</button></div>
+      <form onsubmit="submitCheckIn(event)">
+        <div class="modal-body">
+          <div class="form-group"><label>Out-of-Service Van *</label><select id="ci_van" required onchange="handleCheckInVanChange()"></select></div>
+          <div id="ci_summary_box" style="display:none; background:#ecfdf5; border:1px solid #d1fae5; border-radius:8px; padding:10px; margin-bottom:12px; font-size:12px;">
+            <strong style="color:var(--success)">Open Issue:</strong><div id="ci_summary_text" style="color:#065f46; margin-top:2px;"></div>
+          </div>
+          <div class="form-group"><label>Resolution & Repairs Completed *</label><textarea id="ci_notes" rows="3" required></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('checkInModal')">Cancel</button><button type="submit" class="btn btn-success">Check In Van</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DECOMMISSION MODAL -->
+  <div id="decomModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><div style="color:var(--danger)">🛑 Decommission Van</div><button class="modal-close" onclick="closeModal('decomModal')">&times;</button></div>
+      <form onsubmit="submitDecom(event)">
+        <div class="modal-body">
+          <div class="form-group"><label>Select Vehicle *</label><select id="dec_van" required></select></div>
+          <div class="form-group"><label>Reason *</label><textarea id="dec_reason" rows="3" required></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('decomModal')">Cancel</button><button type="submit" class="btn btn-danger">Decommission</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT VEHICLE MODAL -->
+  <div id="editVehicleModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><div>✏️ Edit Vehicle Specifications</div><button class="modal-close" onclick="closeModal('editVehicleModal')">&times;</button></div>
+      <form onsubmit="submitEditVehicle(event)">
+        <div class="modal-body">
+          <input type="hidden" id="ev_rental" />
+          <div class="form-row"><div class="form-group"><label>Clean Name</label><input type="text" id="ev_name" required></div><div class="form-group"><label>License Plate</label><input type="text" id="ev_plate"></div></div>
+          <div class="form-row"><div class="form-group"><label>Tag Expiration Date</label><input type="date" id="ev_plate_exp"></div><div class="form-group"><label>Samsara Gateway Serial #</label><input type="text" id="ev_samsara"></div></div>
+          <div class="form-group"><label>Addons & Builds</label><input type="text" id="ev_addons"></div>
+          <div class="form-group"><label>Append Notes</label><textarea id="ev_notes" rows="2"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('editVehicleModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT DISPATCH MODAL -->
+  <div id="editDispatchModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><div>✏️ Edit Dispatch Assignment</div><button class="modal-close" onclick="closeModal('editDispatchModal')">&times;</button></div>
+      <form onsubmit="submitEditDispatch(event)">
+        <div class="modal-body">
+          <input type="hidden" id="ed_id" /><input type="hidden" id="ed_vehicle" /><input type="hidden" id="ed_rental" />
+          <div class="form-row"><div class="form-group"><label>Driver / Tech</label><select id="ed_tech" required></select></div><div class="form-group"><label>Shift</label><select id="ed_shift"></select></div></div>
+          <div class="form-row"><div class="form-group"><label>Work Zone</label><select id="ed_zone"></select></div><div class="form-group"><label>Battery Target</label><input type="text" id="ed_target"></div></div>
+          <div class="form-group"><label>Goals & Notes</label><textarea id="ed_goals" rows="3"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('editDispatchModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
+      </form>
+    </div>
+  </div>
   <script>
     var globalState = null;
     var currentShift = 'First Shift';
@@ -657,42 +741,197 @@
           '</div>' +
         '</div>';
     }
+
+/* --- MISSING MODAL FUNCTIONS (INCIDENT, CHECK-IN, DECOM, EXPORTS) --- */
+
+    function handleCheckInVanChange() {
+      const sel = document.getElementById('ci_van');
+      const box = document.getElementById('ci_summary_box');
+      if (!sel || !sel.value) { box.style.display = 'none'; return; }
+      
+      const opt = sel.options[sel.selectedIndex];
+      const rawInc = opt.getAttribute('data-incident');
+      const inc = rawInc ? JSON.parse(rawInc) : null;
+      if (inc && inc.id) {
+        document.getElementById('ci_summary_text').innerHTML = `<strong>${inc.category} &bull; ${inc.impact}</strong><br>"${inc.details}"`;
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
     function submitIncident(e) {
       e.preventDefault();
       const sel = document.getElementById('inc_van');
       const opt = sel.options[sel.selectedIndex];
-      
       const payload = {
-        cleanName: sel.value,
-        rentalId: opt.getAttribute('data-rental') || '',
-        issueCategory: document.getElementById('inc_cat').value,
-        statusImpact: document.getElementById('inc_impact').value,
-        triggerOos: document.getElementById('inc_oos').checked,
-        description: document.getElementById('inc_desc').value
+        cleanName: sel.value, rentalId: opt.getAttribute('data-rental') || '',
+        issueCategory: document.getElementById('inc_cat').value, statusImpact: document.getElementById('inc_impact').value,
+        triggerOos: document.getElementById('inc_oos').checked, description: document.getElementById('inc_desc').value
       };
 
       closeModal('incidentModal');
 
-      // --- OPTIMISTIC UI UPDATE ---
+      // Optimistic UI Update
       if (payload.triggerOos) {
         const vIndex = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
-        if (vIndex !== -1) {
-          globalState.vehicles[vIndex].status = 'Out of Service';
-          renderFleetOverview(globalState);
-          populateModals(globalState); // Immediately removes it from Dispatch options
-        }
+        if (vIndex !== -1) globalState.vehicles[vIndex].status = 'Out of Service';
+        renderFleetOverview(globalState);
       }
 
-      // --- BACKGROUND SYNC ---
       document.getElementById('global-loader').style.display='block';
-      google.script.run
-        .withSuccessHandler(() => {
-          loadPortalData(); // Reload to get real Incident ID for the Check-In dropdown
-        })
-        .withFailureHandler(() => loadPortalData())
-        .processReportIncident(payload);
+      google.script.run.withSuccessHandler(() => loadPortalData()).withFailureHandler(() => loadPortalData()).processReportIncident(payload);
     }
-    
+
+    function submitCheckIn(e) {
+      e.preventDefault();
+      const sel = document.getElementById('ci_van');
+      const opt = sel.options[sel.selectedIndex];
+      const rawInc = opt.getAttribute('data-incident');
+      const inc = rawInc ? JSON.parse(rawInc) : null;
+      const payload = {
+        cleanName: sel.value, rentalId: opt.getAttribute('data-rental') || '',
+        incidentId: (inc && inc.id) ? inc.id : '', resolutionNotes: document.getElementById('ci_notes').value
+      };
+
+      closeModal('checkInModal');
+
+      // Optimistic UI Update
+      const vIndex = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if (vIndex !== -1) globalState.vehicles[vIndex].status = 'Warehouse (Ready)';
+      renderFleetOverview(globalState);
+
+      document.getElementById('global-loader').style.display='block';
+      google.script.run.withSuccessHandler(() => loadPortalData()).withFailureHandler(() => loadPortalData()).processCheckInVehicle(payload);
+    }
+
+    function submitDecom(e) {
+      e.preventDefault();
+      const targetId = document.getElementById('dec_van').value;
+      const reason = document.getElementById('dec_reason').value;
+
+      closeModal('decomModal');
+
+      // Optimistic UI Update
+      const vIndex = globalState.vehicles.findIndex(v => v.cleanName === targetId);
+      if (vIndex !== -1) globalState.vehicles[vIndex].status = 'Decommissioned';
+      renderFleetOverview(globalState);
+
+      document.getElementById('global-loader').style.display='block';
+      google.script.run.withSuccessHandler(() => loadPortalData()).withFailureHandler(() => loadPortalData()).decommissionVehicle(targetId, reason);
+    }
+
+    function openEditVehicleModal(rentalId) {
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if(!v) return;
+      document.getElementById('ev_rental').value = v.rentalId;
+      document.getElementById('ev_name').value = v.cleanName;
+      document.getElementById('ev_plate').value = v.plate || '';
+      document.getElementById('ev_plate_exp').value = v.plateExpDate && v.plateExpDate !== '—' ? v.plateExpDate : '';
+      document.getElementById('ev_samsara').value = v.samsaraSerial || '';
+      document.getElementById('ev_addons').value = v.addons || '';
+      document.getElementById('ev_notes').value = '';
+      openModal('editVehicleModal');
+    }
+
+    function submitEditVehicle(e) {
+      e.preventDefault();
+      const payload = {
+        rentalId: document.getElementById('ev_rental').value, vanName: document.getElementById('ev_name').value,
+        licensePlate: document.getElementById('ev_plate').value, plateExpDate: document.getElementById('ev_plate_exp').value,
+        samsaraSerial: document.getElementById('ev_samsara').value, addons: document.getElementById('ev_addons').value,
+        notes: document.getElementById('ev_notes').value
+      };
+
+      closeModal('editVehicleModal');
+
+      // Optimistic UI Update
+      const vIndex = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if (vIndex !== -1) {
+        globalState.vehicles[vIndex].cleanName = payload.vanName;
+        globalState.vehicles[vIndex].plate = payload.licensePlate;
+        globalState.vehicles[vIndex].plateExpDate = payload.plateExpDate || '—';
+        globalState.vehicles[vIndex].samsaraSerial = payload.samsaraSerial || '—';
+        globalState.vehicles[vIndex].addons = payload.addons;
+        renderVanProfile();
+        renderFleetOverview(globalState);
+      }
+
+      document.getElementById('global-loader').style.display='block';
+      google.script.run.withSuccessHandler(() => loadPortalData()).withFailureHandler(() => loadPortalData()).updateVehicleDetails(payload);
+    }
+
+    function openEditDispatchModal(id) {
+      const d = globalState.deployments.find(x => x.id === id);
+      if(!d) return;
+      
+      // Load current tech roster into the edit dropdown
+      let rOpts = '<option value="">-- Select --</option>' + globalState.config.techRoster.map(r => `<option value="${r}">${r}</option>`).join('');
+      document.getElementById('ed_tech').innerHTML = rOpts;
+
+      // Populate fields
+      document.getElementById('ed_id').value = d.id;
+      document.getElementById('ed_vehicle').value = d.vehicle;
+      document.getElementById('ed_rental').value = d.rentalId;
+      document.getElementById('ed_tech').value = d.tech;
+      document.getElementById('ed_shift').innerHTML = globalState.config.shifts.map(s => `<option value="${s}">${s}</option>`).join('');
+      document.getElementById('ed_shift').value = d.shift;
+      document.getElementById('ed_zone').innerHTML = '<option value="">-- Zone --</option>' + globalState.config.zones.map(z => `<option value="${z}">${z}</option>`).join('');
+      document.getElementById('ed_zone').value = d.zone;
+      document.getElementById('ed_target').value = d.target || '';
+      document.getElementById('ed_goals').value = d.goals || '';
+      openModal('editDispatchModal');
+    }
+
+    function submitEditDispatch(e) {
+      e.preventDefault();
+      const payload = {
+        id: document.getElementById('ed_id').value, vehicle: document.getElementById('ed_vehicle').value,
+        rentalId: document.getElementById('ed_rental').value, tech: document.getElementById('ed_tech').value,
+        shift: document.getElementById('ed_shift').value, zone: document.getElementById('ed_zone').value,
+        target: document.getElementById('ed_target').value, goals: document.getElementById('ed_goals').value
+      };
+
+      closeModal('editDispatchModal');
+
+      // Optimistic UI Update
+      const dIndex = globalState.deployments.findIndex(d => d.id === payload.id);
+      if (dIndex !== -1) {
+        globalState.deployments[dIndex].tech = payload.tech;
+        globalState.deployments[dIndex].shift = payload.shift;
+        globalState.deployments[dIndex].zone = payload.zone;
+        globalState.deployments[dIndex].target = payload.target;
+        globalState.deployments[dIndex].goals = payload.goals;
+        renderDispatchBoard();
+      }
+
+      document.getElementById('global-loader').style.display='block';
+      google.script.run.withSuccessHandler(() => loadPortalData()).withFailureHandler(() => loadPortalData()).updateDeploymentRecord(payload);
+    }
+
+    /* --- EXPORT FUNCTIONS --- */
+    function triggerCsvExport() {
+      const dateVal = document.getElementById('dispatch-date').value;
+      google.script.run.withSuccessHandler(function(res) {
+        if (!res.success) { alert(res.message); return; }
+        const blob = new Blob([res.csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', res.filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }).withFailureHandler(function(err) { alert('Export failed: ' + err.message); }).exportShiftManifestCsv(dateVal, currentShift);
+    }
+
+    function triggerPdfPrint() {
+      const dateVal = document.getElementById('dispatch-date').value;
+      google.script.run.withSuccessHandler(function(htmlString) {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.open(); printWindow.document.write(htmlString); printWindow.document.close();
+      }).withFailureHandler(function(err) { alert('Failed to generate PDF: ' + err.message); }).getPrintableShiftManifestHtml(dateVal, currentShift);
+    }
+
   </script>
 </body>
 </html>
