@@ -1,7 +1,6 @@
 /**
- * @fileoverview High-Speed Web App Router & Single-Pass Data Engine.
+ * @fileoverview High-Speed Web App Backend
  */
-
 function doGet(e) {
   return HtmlService.createTemplateFromFile('Dashboard_App')
     .evaluate()
@@ -10,111 +9,58 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * Returns complete database state in one optimized JSON payload.
- */
 function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tz = Session.getScriptTimeZone();
+  const cfg = getSystemConfig(); // Uses the config we built in Phase 1
 
-  // 1. FAST READ: _Config
-  const cfgSheet = ss.getSheetByName(CONFIG_SHEET);
-  const cfg = {
-    settings: {},
-    shifts: [],
-    zones: [],
-    issueCategories: [],
-    statuses: ['Active', 'In Service', 'Out of Service', 'Decommissioned'],
-    focusOptions: [],
-    rentalAgencies: ['Enterprise', 'Penske', 'U-Haul', 'VEO'],
-    statusImpacts: []
-  };
-
-  if (cfgSheet && cfgSheet.getLastRow() > 1) {
-    const rawCfg = cfgSheet.getRange(2, 1, cfgSheet.getLastRow() - 1, Math.min(cfgSheet.getLastColumn(), 10)).getValues();
-    rawCfg.forEach(row => {
-      if (row[0]) cfg.settings[String(row[0]).trim()] = row[1];
-      if (row[3]) cfg.shifts.push(String(row[3]).trim());
-      if (row[4]) cfg.zones.push(String(row[4]).trim());
-      if (row[5]) cfg.issueCategories.push(String(row[5]).trim());
-      if (row[6]) cfg.statuses.push(String(row[6]).trim());
-      if (row[7]) cfg.focusOptions.push(String(row[7]).trim());
-      if (row[8]) cfg.rentalAgencies.push(String(row[8]).trim());
-      if (row[9]) cfg.statusImpacts.push(String(row[9]).trim());
-    });
-    cfg.shifts = Array.from(new Set(cfg.shifts)).filter(Boolean);
-    cfg.zones = Array.from(new Set(cfg.zones)).filter(Boolean);
-    cfg.rentalAgencies = Array.from(new Set(cfg.rentalAgencies)).filter(Boolean);
-  }
-  if (!cfg.shifts.length) cfg.shifts = ['First Shift', 'Second Shift', 'Third Shift'];
-
-  // 2. FAST READ: Vehicles (17 columns)
-  const vSheet = ss.getSheetByName(VEHICLES_SHEET);
+  // Vehicles (18 Columns)
+  const vSheet = ss.getSheetByName('Vehicles');
   const vehicles = [];
-  const counts = { total: 0, active: 0, oos: 0, decommissioned: 0 };
+  const counts = { total: 0, ready: 0, dispatched: 0, oos: 0, decommissioned: 0 };
 
   if (vSheet && vSheet.getLastRow() > 1) {
-    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 17).getValues();
+    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 18).getValues();
     vRows.forEach(r => {
       const cleanName = String(r[0] || '').trim();
       const rentalId = String(r[1] || '').trim();
-      const status = String(r[8] || 'Active').trim();
+      const status = String(r[8] || 'Warehouse (Ready)').trim(); // Col I
       if (!cleanName && !rentalId) return;
 
-      counts.total++;
-      if (status === 'Active' || status === 'In Service') counts.active++;
+      if (status !== 'Decommissioned') counts.total++;
+      if (status === 'Warehouse (Ready)') counts.ready++;
+      else if (status === 'Dispatched') counts.dispatched++;
       else if (status === 'Out of Service') counts.oos++;
       else if (status === 'Decommissioned') counts.decommissioned++;
-
-      let expDate = '—';
-      if (r[6] instanceof Date) expDate = Utilities.formatDate(r[6], tz, 'yyyy-MM-dd');
-      else if (r[6]) expDate = String(r[6]).trim();
 
       vehicles.push({
         cleanName: cleanName,
         rentalId: rentalId,
         agency: String(r[2] || ''),
-        makeModel: String(r[3] || 'Cargo Van'),
+        makeModel: String(r[3] || ''),
         vin: String(r[4] || ''),
         plate: String(r[5] || ''),
-        plateExpDate: expDate,
-        samsaraSerial: String(r[7] || 'Unassigned'),
+        plateExpDate: (r[6] instanceof Date) ? Utilities.formatDate(r[6], tz, 'yyyy-MM-dd') : String(r[6] || '—'),
+        samsaraSerial: String(r[7] || ''),
         status: status,
-        pickupDate: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || '—'),
-        serviceNum: String(r[10] || ''),
-        zone: String(r[11] || 'Unassigned'),
-        driver: String(r[12] || 'Unassigned'),
+        zone: String(r[11] || '—'),
+        driver: String(r[12] || '—'),
         lastService: (r[13] instanceof Date) ? Utilities.formatDate(r[13], tz, 'yyyy-MM-dd') : '—',
-        notes: String(r[14] || '')
+        notes: String(r[14] || ''),
+        addons: String(r[17] || '') // Col R
       });
     });
   }
 
-  // 3. FAST READ: Deployments
-  const dSheet = ss.getSheetByName(DEPLOYMENTS_SHEET);
+  // Deployments (16 Columns)
+  const dSheet = ss.getSheetByName('Deployments');
   const deployments = [];
-
   if (dSheet && dSheet.getLastRow() > 1) {
-    const dRows = dSheet.getRange(2, 1, dSheet.getLastRow() - 1, 14).getValues();
+    const dRows = dSheet.getRange(2, 1, dSheet.getLastRow() - 1, 16).getValues();
     dRows.forEach(r => {
-      let depDate = '';
-      if (r[1] instanceof Date) {
-        depDate = Utilities.formatDate(r[1], tz, 'yyyy-MM-dd');
-      } else if (r[1]) {
-        const parsed = new Date(r[1]);
-        depDate = !isNaN(parsed) ? Utilities.formatDate(parsed, tz, 'yyyy-MM-dd') : String(r[1]);
-      }
-
-      let timeOut = '—';
-      if (r[10] instanceof Date) {
-        timeOut = Utilities.formatDate(r[10], tz, 'hh:mm a');
-      } else if (r[10]) {
-        timeOut = String(r[10]);
-      }
-
       deployments.push({
         id: String(r[0] || ''),
-        date: depDate,
+        date: (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1]),
         shift: String(r[2] || '').trim(),
         vehicle: String(r[3] || ''),
         rentalId: String(r[4] || ''),
@@ -123,21 +69,23 @@ function getDashboardState() {
         goals: String(r[7] || ''),
         target: String(r[8] || ''),
         status: String(r[9] || 'Dispatched'),
-        departureTime: timeOut
+        departureTime: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'hh:mm a') : String(r[10]),
+        returnTime: (r[11] instanceof Date) ? Utilities.formatDate(r[11], tz, 'hh:mm a') : String(r[11] || ''),
+        coDriver: String(r[14] || ''),
+        isTraining: String(r[15] || '') === 'Yes'
       });
     });
   }
 
-  // 4. FAST READ: Incidents
-  const iSheet = ss.getSheetByName(INCIDENTS_SHEET);
+  // Incidents
+  const iSheet = ss.getSheetByName('Incidents_Service');
   const incidents = [];
-
   if (iSheet && iSheet.getLastRow() > 1) {
     const iRows = iSheet.getRange(2, 1, iSheet.getLastRow() - 1, 13).getValues();
     iRows.forEach(r => {
       incidents.push({
         id: String(r[0] || ''),
-        date: (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1] || ''),
+        date: (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1]),
         vehicle: String(r[2] || ''),
         rentalId: String(r[3] || ''),
         category: String(r[4] || ''),
@@ -145,39 +93,15 @@ function getDashboardState() {
         oos: String(r[6] || ''),
         impact: String(r[7] || ''),
         resolution: String(r[8] || ''),
-        dateResolved: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || ''),
-        resolvedBy: String(r[10] || '')
+        dateResolved: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9])
       });
     });
   }
 
-  // 5. Out-of-service list
-  const oosList = [];
-  vehicles.forEach(v => {
-    if (v.status === 'Out of Service') {
-      let openInc = null;
-      for (let j = incidents.length - 1; j >= 0; j--) {
-        if ((incidents[j].vehicle === v.cleanName || incidents[j].rentalId === v.rentalId) && !incidents[j].dateResolved) {
-          openInc = incidents[j];
-          break;
-        }
-      }
-      oosList.push({
-        cleanName: v.cleanName,
-        rentalId: v.rentalId,
-        displayName: `${v.cleanName} (${v.rentalId})`,
-        incident: openInc
-      });
-    }
+  const oosList = vehicles.filter(v => v.status === 'Out of Service').map(v => {
+    let openInc = incidents.find(i => (i.rentalId === v.rentalId) && !i.dateResolved);
+    return { cleanName: v.cleanName, rentalId: v.rentalId, displayName: `${v.cleanName} (${v.rentalId})`, incident: openInc };
   });
 
-  return {
-    config: cfg,
-    counts: counts,
-    vehicles: vehicles,
-    deployments: deployments,
-    incidents: incidents,
-    oosVehicles: oosList,
-    todayDate: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd')
-  };
+  return { config: cfg, counts: counts, vehicles: vehicles, deployments: deployments, incidents: incidents, oosVehicles: oosList, todayDate: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd') };
 }
