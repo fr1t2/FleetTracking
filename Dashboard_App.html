@@ -60,6 +60,9 @@
     th { background: #f8fafc; color: var(--text-muted); font-weight: 600; padding: 10px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; }
     td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; }
     
+    .zone-badge { background: #e0f2fe; color: #0369a1; padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .empty-state { text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13px; }
+
     .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; }
     .modal-overlay.active { display: flex; }
     .modal-box { background: var(--surface); width: 100%; max-width: 520px; border-radius: 12px; max-height: 90vh; display: flex; flex-direction: column; }
@@ -84,8 +87,8 @@
     .fab-drawer.active { display: flex; }
     .fab-action-item { background: var(--surface); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow); }
 
-    .roster-tag { background: #e2e8f0; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; margin: 0 6px 6px 0; }
-    .roster-tag button { background: none; border: none; cursor: pointer; color: var(--danger); font-weight: bold; }
+    .roster-tag { background: #e2e8f0; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; margin: 0 6px 6px 0; }
+    .roster-tag button { background: none; border: none; cursor: pointer; color: var(--danger); font-weight: bold; font-size: 16px; line-height: 1; }
 
     @media (max-width: 768px) { .header-desktop-tabs, .desktop-only { display: none; } .bottom-nav { display: flex; } }
     @media (min-width: 769px) { .mobile-action-menu { display: none; } }
@@ -99,11 +102,11 @@
     <div class="header-desktop-tabs">
       <button class="nav-btn active" id="desk-btn-fleet" onclick="switchTab('fleet')">Fleet Overview</button>
       <button class="nav-btn" id="desk-btn-dispatch" onclick="switchTab('dispatch')">Daily Dispatch Board</button>
+      <button class="nav-btn" id="desk-btn-tech" onclick="switchTab('tech')">Tech Stats</button>
       <button class="nav-btn" id="desk-btn-profile" onclick="switchTab('profile')">Van 360° Profile</button>
     </div>
     <div class="header-actions">
       <button class="btn btn-primary desktop-only" onclick="openModal('dispatchModal')">📋 Dispatch</button>
-      <!-- HERE IS THE ROSTER BUTTON -->
       <button class="btn btn-outline desktop-only" onclick="openModal('rosterModal')">👥 Roster</button>
       <button class="btn btn-outline desktop-only" onclick="openModal('addVehicleModal')">➕ Add Van</button>
       <button class="btn btn-outline" onclick="loadPortalData()">🔄</button>
@@ -146,23 +149,37 @@
       </div>
     </div>
 
-    <!-- 3. PROFILE TAB -->
+    <!-- 3. TECH STATS TAB -->
+    <div id="tab-tech" class="tab-content">
+      <div class="filter-bar">
+        <div class="filter-group" style="width:100%;">
+          <input type="text" id="tech-search-input" class="filter-input" placeholder="🔍 Search or select employee..." list="tech-stats-dl" oninput="renderTechProfile()" style="width:100%; max-width:400px;">
+          <datalist id="tech-stats-dl"></datalist>
+        </div>
+      </div>
+      <div id="tech-details-area">
+        <div class="empty-state">Search or select an employee to view their historical dispatch statistics.</div>
+      </div>
+    </div>
+
+    <!-- 4. PROFILE TAB -->
     <div id="tab-profile" class="tab-content">
       <div class="filter-bar"><select id="profile-van-select" class="filter-input" onchange="renderVanProfile()"><option value="">-- Choose Van --</option></select></div>
-      <div id="profile-details-area"><div style="text-align:center; padding:40px; color:var(--text-muted);">Select a vehicle to inspect full specifications and history.</div></div>
+      <div id="profile-details-area"><div class="empty-state">Select a vehicle to inspect full specifications and history.</div></div>
     </div>
   </main>
 
   <nav class="bottom-nav">
     <button class="b-nav-item active" id="bot-btn-fleet" onclick="switchTab('fleet')"><span>🚚</span><span>Fleet</span></button>
     <button class="b-nav-item" id="bot-btn-dispatch" onclick="switchTab('dispatch')"><span>📋</span><span>Dispatch</span></button>
+    <button class="b-nav-item" id="bot-btn-tech" onclick="switchTab('tech')"><span>👤</span><span>Techs</span></button>
     <button class="b-nav-item" id="bot-btn-profile" onclick="switchTab('profile')"><span>🔍</span><span>Profile</span></button>
   </nav>
 
   <div class="mobile-action-menu">
     <div id="fab-drawer" class="fab-drawer">
       <div class="fab-action-item" onclick="triggerAction('dispatchModal')">📋 Dispatch Van</div>
-      <!-- ACTION MENU ROSTER BUTTON -->
+      <div class="fab-action-item" onclick="triggerAction('checkInModal')">⚠️ Report / Check-In</div>
       <div class="fab-action-item" onclick="triggerAction('rosterModal')">👥 Manage Roster</div>
       <div class="fab-action-item" onclick="triggerAction('addVehicleModal')">➕ Add Vehicle</div>
     </div>
@@ -174,13 +191,17 @@
   <!-- ROSTER MODAL -->
   <div id="rosterModal" class="modal-overlay">
     <div class="modal-box">
-      <div class="modal-header"><div>👥 Employee Tech Roster</div><button class="modal-close" onclick="closeModal('rosterModal')">&times;</button></div>
+      <div class="modal-header"><div>👥 Manage Employee Roster</div><button class="modal-close" onclick="closeModal('rosterModal')">&times;</button></div>
       <div class="modal-body">
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Type a name to filter the list. Type a new name and click Add to expand the roster.</p>
         <div style="display:flex; gap:8px; margin-bottom:16px;">
-          <input type="text" id="new-roster-name" class="filter-input" placeholder="New employee name..." style="flex:1;">
-          <button class="btn btn-primary" onclick="addRoster()">Add</button>
+          <!-- Searchable Datalist Input -->
+          <input type="text" id="roster-input" class="filter-input" placeholder="Search or add employee..." style="flex:1;" list="roster-dl" oninput="handleRosterInput()">
+          <datalist id="roster-dl"></datalist>
+          
+          <button id="roster-action-btn" class="btn btn-primary" onclick="handleRosterAction()">Add</button>
         </div>
-        <div id="roster-list" style="padding:10px; background:#f8fafc; border-radius:8px; border:1px solid var(--border);"></div>
+        <div id="roster-list" style="padding:14px; background:#f8fafc; border-radius:8px; border:1px solid var(--border);"></div>
       </div>
     </div>
   </div>
@@ -240,10 +261,13 @@
     function switchTab(t) {
       document.querySelectorAll('.nav-btn, .b-nav-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
       document.getElementById('tab-'+t).classList.add('active');
       if(document.getElementById('desk-btn-'+t)) document.getElementById('desk-btn-'+t).classList.add('active');
       if(document.getElementById('bot-btn-'+t)) document.getElementById('bot-btn-'+t).classList.add('active');
+      
       if(t==='dispatch') renderDispatchBoard();
+      if(t==='tech') renderTechProfile();
     }
 
     function toggleFabDrawer() { document.getElementById('fab-drawer').classList.toggle('active'); }
@@ -306,13 +330,13 @@
           '<td><strong>' + d.vehicle + '</strong><br><span style="font-size:11px; color:#64748b;">' + d.rentalId + '</span></td>' +
           '<td>' + driverStr + '</td>' +
           '<td>' + trainBadge + '</td>' +
-          '<td><span style="background:#e0f2fe; color:#0369a1; padding:3px 6px; border-radius:4px; font-size:11px; font-weight:bold;">' + d.zone + '</span></td>' +
+          '<td><span class="zone-badge">' + d.zone + '</span></td>' +
           '<td style="font-size:11px;">' + d.goals + '</td>' +
           '<td><span class="status-pill ' + (isDone ? 'status-decom' : 'status-ready') + '">' + d.status + '</span></td>' +
           '<td>' + actionBtn + '</td>' +
         '</tr>';
       });
-      document.getElementById('dispatch-table-body').innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:20px;">No dispatches found.</td></tr>';
+      document.getElementById('dispatch-table-body').innerHTML = html || '<tr><td colspan="7" class="empty-state">No dispatches found.</td></tr>';
     }
 
     function populateModals(st) {
@@ -320,6 +344,11 @@
       let rOpts = '<option value="">-- Select --</option>' + cfg.techRoster.map(r => '<option value="' + r + '">' + r + '</option>').join('');
       document.getElementById('dp_tech').innerHTML = rOpts;
       document.getElementById('dp_codriver').innerHTML = rOpts;
+
+      // Populate datalists for Tech Stats & Roster
+      const dlOpts = cfg.techRoster.map(r => '<option value="' + r + '">').join('');
+      document.getElementById('roster-dl').innerHTML = dlOpts;
+      document.getElementById('tech-stats-dl').innerHTML = dlOpts;
 
       let vOpts = '<option value="">-- Ready Vans --</option>' + st.vehicles.filter(v => v.status==='Warehouse (Ready)').map(v => '<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + ' (' + v.rentalId + ')</option>').join('');
       document.getElementById('dp_van').innerHTML = vOpts;
@@ -333,18 +362,60 @@
       document.getElementById('profile-van-select').innerHTML = pOpts;
     }
 
+    /* -----------------------------------------------------
+       DYNAMIC ROSTER UI (SEARCH & ADD/REMOVE TOGGLE)
+       ----------------------------------------------------- */
     function renderRoster(st) {
       document.getElementById('roster-list').innerHTML = st.config.techRoster.map(r => 
-        '<span class="roster-tag">' + r + ' <button onclick="removeRoster(\'' + r + '\')">&times;</button></span>'
+        '<span class="roster-tag" data-name="' + r.toLowerCase() + '">' + r + ' <button onclick="removeRoster(\'' + r + '\')" title="Remove">&times;</button></span>'
       ).join('');
+      handleRosterInput();
     }
 
-    function addRoster() {
-      const name = document.getElementById('new-roster-name').value;
-      if(!name) return;
+    function handleRosterInput() {
+      const val = document.getElementById('roster-input').value.trim().toLowerCase();
+      const btn = document.getElementById('roster-action-btn');
+      
+      let isExisting = false;
+      if (globalState && globalState.config && globalState.config.techRoster) {
+        const rosterLower = globalState.config.techRoster.map(r => r.toLowerCase());
+        isExisting = rosterLower.includes(val);
+      }
+
+      // Swap button logic: If name exists -> "Remove", else -> "Add"
+      if (val && isExisting) {
+        btn.innerText = 'Remove';
+        btn.className = 'btn btn-danger';
+      } else {
+        btn.innerText = 'Add';
+        btn.className = 'btn btn-primary';
+      }
+
+      // Filter visible tags below
+      const tags = document.querySelectorAll('#roster-list .roster-tag');
+      tags.forEach(t => {
+        const tName = t.getAttribute('data-name');
+        t.style.display = tName.includes(val) ? 'inline-flex' : 'none';
+      });
+    }
+
+    function handleRosterAction() {
+      const val = document.getElementById('roster-input').value.trim();
+      if(!val) return;
+      
+      const rosterLower = globalState.config.techRoster.map(r => r.toLowerCase());
+      if (rosterLower.includes(val.toLowerCase())) {
+        const orig = globalState.config.techRoster.find(r => r.toLowerCase() === val.toLowerCase());
+        removeRoster(orig);
+      } else {
+        addRoster(val);
+      }
+    }
+
+    function addRoster(name) {
       document.getElementById('global-loader').style.display='block';
       google.script.run.withSuccessHandler(()=>{
-        document.getElementById('new-roster-name').value='';
+        document.getElementById('roster-input').value='';
         loadPortalData();
       }).addTechToRoster(name);
     }
@@ -352,7 +423,80 @@
     function removeRoster(name) {
       if(!confirm("Remove " + name + " from roster?")) return;
       document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(()=>loadPortalData()).removeTechFromRoster(name);
+      google.script.run.withSuccessHandler(()=>{
+        document.getElementById('roster-input').value='';
+        loadPortalData();
+      }).removeTechFromRoster(name);
+    }
+
+    /* -----------------------------------------------------
+       TECH STATS DASHBOARD (TAB 4)
+       ----------------------------------------------------- */
+    function renderTechProfile() {
+      const name = document.getElementById('tech-search-input').value.trim();
+      const area = document.getElementById('tech-details-area');
+      if (!name || !globalState) {
+        area.innerHTML = '<div class="empty-state">Search or select an employee to view their historical dispatch statistics.</div>';
+        return;
+      }
+
+      const lowerName = name.toLowerCase();
+      // Filter for shifts where the employee was either lead or co-driver (exact match)
+      const deps = globalState.deployments.filter(d => 
+        d.tech.toLowerCase() === lowerName || 
+        (d.coDriver && d.coDriver.toLowerCase() === lowerName)
+      );
+
+      if (deps.length === 0) {
+        const isRoster = globalState.config.techRoster.some(r => r.toLowerCase() === lowerName);
+        const title = isRoster ? globalState.config.techRoster.find(r => r.toLowerCase() === lowerName) : name;
+        area.innerHTML = '<div class="panel"><div class="panel-header"><h2 class="panel-title">' + title + '</h2></div><div class="empty-state">No shift history found for this employee.</div></div>';
+        return;
+      }
+
+      // Calculate Stats
+      const totalShifts = deps.length;
+      
+      // Sort deployments latest date first
+      deps.sort((a, b) => (a.date > b.date ? -1 : (a.date < b.date ? 1 : 0)));
+      
+      const lastVan = deps[0].vehicle;
+      const lastZone = deps[0].zone;
+
+      // Calculate top van and top zone frequencies
+      const vanCounts = {};
+      const zoneCounts = {};
+      deps.forEach(d => {
+        vanCounts[d.vehicle] = (vanCounts[d.vehicle] || 0) + 1;
+        zoneCounts[d.zone] = (zoneCounts[d.zone] || 0) + 1;
+      });
+
+      let mostVan = '', maxV = 0;
+      for (let v in vanCounts) { if (vanCounts[v] > maxV) { mostVan = v; maxV = vanCounts[v]; } }
+      let mostZone = '', maxZ = 0;
+      for (let z in zoneCounts) { if (zoneCounts[z] > maxZ) { mostZone = z; maxZ = zoneCounts[z]; } }
+
+      let histHtml = '';
+      deps.forEach(d => {
+        let role = d.tech.toLowerCase() === lowerName ? 'Lead' : 'Co-Driver';
+        histHtml += '<tr><td>' + d.date + '</td><td>' + d.shift + '</td><td>' + d.vehicle + '</td><td><span class="zone-badge">' + d.zone + '</span></td><td>' + role + '</td></tr>';
+      });
+
+      area.innerHTML = 
+        '<div class="panel">' +
+          '<div class="panel-header"><h2 class="panel-title" style="font-size:18px;">' + deps[0].tech + '</h2></div>' +
+          '<div class="kpi-grid">' +
+            '<div class="kpi-card"><div class="kpi-title">Shifts Worked</div><div style="font-size:22px; font-weight:700; color:var(--primary);">' + totalShifts + '</div></div>' +
+            '<div class="kpi-card"><div class="kpi-title">Last Van</div><div style="font-size:15px; font-weight:600;">' + lastVan + '</div></div>' +
+            '<div class="kpi-card"><div class="kpi-title">Last Zone</div><div style="font-size:15px; font-weight:600;">' + lastZone + '</div></div>' +
+            '<div class="kpi-card"><div class="kpi-title">Top Van</div><div style="font-size:15px; font-weight:600;">' + mostVan + ' <span style="color:var(--text-muted); font-size:12px;">(' + maxV + 'x)</span></div></div>' +
+            '<div class="kpi-card"><div class="kpi-title">Top Zone</div><div style="font-size:15px; font-weight:600;">' + mostZone + ' <span style="color:var(--text-muted); font-size:12px;">(' + maxZ + 'x)</span></div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="panel">' +
+          '<div class="panel-header"><h3 class="panel-title">📋 Shift History</h3></div>' +
+          '<div class="table-responsive"><table><thead><tr><th>Date</th><th>Shift</th><th>Van</th><th>Zone</th><th>Role</th></tr></thead><tbody>' + histHtml + '</tbody></table></div>' +
+        '</div>';
     }
 
     function submitDispatch(e) {
