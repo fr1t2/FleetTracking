@@ -40,7 +40,6 @@
   }
 
   function changeLayout() {
-    // Bulletproof layout hider - will not crash if a layout doesn't exist
     ['classic', 'modern', 'focus'].forEach(id => {
       const el = document.getElementById('layout-' + id);
       if(el) el.style.display = 'none';
@@ -204,38 +203,101 @@
     openModal('decomModal'); 
   }
 
+  /* --- THE NEW VAN ENTITY PROFILE (HOME ASSISTANT STYLE) --- */
   function openVanActionModal(rentalId) {
     const v = globalState.vehicles.find(x => x.rentalId === rentalId);
     if(!v) return;
     
     const title = document.getElementById('va_title');
-    if(title) title.innerText = `${v.cleanName} (${v.rentalId})`;
-    
-    let html = `<div style="margin-bottom:20px; font-size:14px;">
-      <div style="margin-bottom:6px;">Status: <strong>${v.status}</strong></div>
-      <div style="margin-bottom:6px;">Plate: <strong>${v.plate}</strong></div>
-      <div style="color:var(--danger); font-weight:600; font-size:13px;">${v.notes}</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:10px;">`;
+    if(title) title.innerText = `${v.cleanName} Profile`;
 
+    // Calculate dynamic telemetry
+    const pastDeps = (globalState.deployments || []).filter(d => d.rentalId === rentalId && d.status === 'Completed');
+    const lastDep = pastDeps.length > 0 ? pastDeps[0] : null; 
+    const lastDriver = lastDep ? lastDep.tech : 'None';
+    const lastZone = lastDep ? lastDep.zone : 'None';
+    
+    const vIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
+    
+    // Mock Coast integration check based on addons string
+    let coastEnabled = 'Yes';
+    if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
+    
+    let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+    
+    // Status Banner
+    let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
+    html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="font-size:18px; font-weight:900;">${v.status.toUpperCase()}</div>
+      <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${v.makeModel} &bull; Plate: ${v.plate}</div>
+      <div style="color:var(--danger); font-weight:600; font-size:13px; margin-top:6px;">${v.notes || ''}</div>
+    </div>`;
+    
+    // Quick Stats Grid
+    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Driver</div>
+        <div style="font-weight:800; font-size:14px; margin-top:4px;">${lastDriver}</div>
+      </div>
+      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Zone</div>
+        <div style="font-weight:800; font-size:14px; margin-top:4px;">${lastZone}</div>
+      </div>
+      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div>
+        <div style="font-weight:800; font-size:14px; margin-top:4px;"><a href="https://cloud.samsara.com/fleet/vehicles?q=${v.samsaraSerial}" target="_blank" style="color:var(--veo-cyan); text-decoration:none;">${v.samsaraSerial||'N/A'} ↗</a></div>
+      </div>
+      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div>
+        <div style="font-weight:800; font-size:14px; margin-top:4px; color:${coastEnabled==='Yes'?'var(--success)':'var(--text-muted)'}">${coastEnabled}</div>
+      </div>
+    </div>`;
+    
+    // Primary Actions
+    html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
+    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
     if (v.status === 'Warehouse (Ready)') {
-      html += `<button class="btn btn-primary" onclick="closeModal('vanActionModal'); prefillDispatchVan('${v.cleanName}')">📋 Dispatch Van</button>`;
-      html += `<button class="btn btn-danger" onclick="closeModal('vanActionModal'); prefillIncidentVan('${v.cleanName}')">⚠️ Mark Out of Service</button>`;
+      html += `<button class="btn btn-primary" onclick="closeModal('vanActionModal'); prefillDispatchVan('${v.cleanName}')">📋 Deploy Van</button>`;
+      html += `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillIncidentVan('${v.cleanName}')">⚠️ Mark OOS</button>`;
     } else if (v.status === 'Dispatched') {
       const dep = globalState.deployments.find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
       if (dep) {
-        html += `<button class="btn btn-dark" onclick="closeModal('vanActionModal'); endShift('${dep.id}', '${v.rentalId}')">🛑 End Shift & Check In</button>`;
-        html += `<button class="btn btn-outline" onclick="closeModal('vanActionModal'); openEditDispatchModal('${dep.id}')">✏️ Edit Active Dispatch Info</button>`;
+        html += `<button class="btn btn-dark" onclick="closeModal('vanActionModal'); endShift('${dep.id}', '${v.rentalId}')">🛑 End Shift</button>`;
+        html += `<button class="btn btn-outline" onclick="closeModal('vanActionModal'); openEditDispatchModal('${dep.id}')">✏️ Edit Route</button>`;
       }
-      html += `<button class="btn btn-danger" onclick="closeModal('vanActionModal'); prefillIncidentVan('${v.cleanName}')">⚠️ Mark Out of Service</button>`;
+      html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillIncidentVan('${v.cleanName}')">⚠️ Mark OOS</button>`;
     } else if (v.status === 'Out of Service') {
-      html += `<button class="btn btn-success" onclick="closeModal('vanActionModal'); prefillCheckInVan('${v.cleanName}')">✅ Check In to Warehouse</button>`;
+      html += `<button class="btn btn-success" style="grid-column:1/-1;" onclick="closeModal('vanActionModal'); prefillCheckInVan('${v.cleanName}')">✅ Repairs Done - Check In</button>`;
     }
-
-    html += `<div style="border-top:1px solid var(--border-color); margin:10px 0;"></div>`;
-    html += `<button class="btn btn-outline" onclick="closeModal('vanActionModal'); openEditVehicleModal('${v.rentalId}')">⚙️ Edit Van Specs</button>`;
-    html += `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillDecomVan('${v.cleanName}')">🗑️ Decommission Van</button>`;
     html += `</div>`;
+
+    // Secondary Actions / Detail Modals
+    html += `<div style="display:flex; gap:10px; margin-top:8px;">
+      <button class="btn btn-outline" style="flex:1; font-size:11px;" onclick="closeModal('vanActionModal'); openEditVehicleModal('${v.rentalId}')">⚙️ Edit Specs / Addons</button>
+      <button class="btn btn-outline" style="flex:1; font-size:11px; color:var(--text-muted);" onclick="const e = document.getElementById('van-service-history'); e.style.display = e.style.display==='none' ? 'block' : 'none';">🛠️ Toggle Service Log</button>
+    </div>`;
+
+    // Collapsible Service History
+    html += `<div id="van-service-history" style="display:none; margin-top:12px; background:var(--bg-main); border-radius:8px; padding:12px; border:1px solid var(--border-color); max-height:200px; overflow-y:auto;">
+      <div style="font-size:12px; text-transform:uppercase; font-weight:800; margin-bottom:12px;">Recorded Service History</div>`;
+    
+    if(vIncidents.length === 0) {
+      html += `<div style="font-size:12px; color:var(--text-muted);">No service history found.</div>`;
+    } else {
+      vIncidents.forEach(inc => {
+        let isRes = !!inc.dateResolved;
+        html += `<div style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+            <span>${inc.date || inc.dateReported || ''}</span>
+            <span style="color:${isRes ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${isRes ? 'Resolved' : 'Open'}</span>
+          </div>
+          <div style="font-weight:700; font-size:13px; margin-top:2px;">${inc.category}</div>
+          <div style="font-size:12px; margin-top:2px; color:var(--text-main);">${inc.details}</div>
+          ${isRes && inc.resolution ? `<div style="font-size:11px; margin-top:4px; color:var(--text-muted);">Fix: ${inc.resolution}</div>` : ''}
+        </div>`;
+      });
+    }
+    html += `</div></div>`;
     
     const body = document.getElementById('va_body');
     if(body) body.innerHTML = html;
@@ -246,7 +308,7 @@
   function openTechActionModal(techName) {
     const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === techName || d.coDriver === techName));
     const allDeps = globalState.deployments.filter(d => d.tech === techName || d.coDriver === techName);
-    allDeps.sort((a,b) => (a.date || '').localeCompare(b.date || ''));
+    allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || '')); // Newest first
 
     const title = document.getElementById('ta_title');
     if(title) title.innerText = techName;
@@ -464,7 +526,6 @@
     const p = { cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', resolutionNotes: document.getElementById('ci_notes').value };
     closeModal('checkInModal');
     
-    // Optimistic Wipe
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) { 
         globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; 
