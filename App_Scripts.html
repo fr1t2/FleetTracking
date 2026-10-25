@@ -319,20 +319,23 @@
     openModal('vanActionModal');
   }
 
-  function openTechActionModal(techName) {
+function openTechActionModal(techName) {
     const t = globalState.techs.find(x => x.name === techName); if(!t) return;
     const title = document.getElementById('ta_title'); if(title) title.innerText = `${t.name} Profile`;
     
     const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
     const allDeps = globalState.deployments.filter(d => d.tech === t.name || d.coDriver === t.name);
     allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-    const accidents = (globalState.incidents || []).filter(i => i.driverInvolved === t.name);
-
+    
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
     let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (t.status==='Off-Duty' ? 'var(--text-muted)' : 'var(--danger)'));
+    if(t.status === 'PTO') bannerColor = '#007aff';
     
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
-      <div style="font-size:18px; font-weight:900;">${activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()}</div>
+      <div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;">
+        <span>${activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()}</span>
+        <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal('techActionModal'); document.getElementById('att_tech').value='${t.name}'; document.getElementById('att_date').value=new Date().toISOString().split('T')[0]; openModal('attendanceModal');">📅 Log Time Off</button>
+      </div>
       <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${t.shift} &bull; ${t.startTime} - ${t.endTime} &bull; ${t.workDays}</div>
       ${t.restricted ? `<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 DRIVING RESTRICTED</div>` : ''}
     </div>`;
@@ -345,6 +348,9 @@
         <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Passed Test</div><div style="font-weight:900; font-size:14px; margin-top:4px; color:${t.passedTest?'var(--success)':'var(--danger)'}">${t.passedTest?'YES':'NO'}</div>
       </div>
     </div>`;
+    
+    // --> THIS IS THE NEW 7-DAY 24HR TIMELINE WIDGET <--
+    html += buildTechTimelineGraphic(t.workDays, t.startTime, t.endTime);
 
     html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
     html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
@@ -357,30 +363,62 @@
     }
     html += `</div>`;
 
-    html += `<div style="display:flex; gap:10px; margin-top:8px;">
-      <button class="btn btn-outline" style="flex:1; font-size:11px;" onclick="closeModal('techActionModal'); openTechEditModal('${t.name}')">⚙️ Edit Profile Stats</button>
-      <button class="btn btn-outline" style="flex:1; font-size:11px; color:var(--text-muted);" onclick="const e = document.getElementById('tech-hist-drawer'); e.style.display = e.style.display==='none' ? 'block' : 'none';">🕰️ View History</button>
-    </div>`;
-
-    html += `<div id="tech-hist-drawer" style="display:none; margin-top:12px; background:var(--bg-main); border-radius:8px; padding:12px; border:1px solid var(--border-color); max-height:200px; overflow-y:auto;">`;
-    if(accidents.length > 0) {
-      html += `<div style="font-size:11px; color:var(--danger); font-weight:900; text-transform:uppercase; margin-bottom:8px;">Accident / Incident Records</div>`;
-      accidents.forEach(a => {
-        html += `<div style="border-left:2px solid var(--danger); padding-left:8px; margin-bottom:12px; font-size:12px;"><strong>${a.dateReported}</strong> - ${a.vehicle} <br><span style="color:var(--text-muted);">${a.category}</span></div>`;
-      });
-      html += `<div style="border-bottom:1px solid var(--border-color); margin-bottom:12px;"></div>`;
-    }
-    html += `<div style="font-size:11px; text-transform:uppercase; font-weight:800; margin-bottom:8px; color:var(--text-muted);">Recent Shifts</div>`;
-    if(allDeps.length === 0) html += `<div style="font-size:12px; color:var(--text-muted);">No recorded shifts.</div>`;
-    else {
-      allDeps.slice(0, 5).forEach(d => {
-        html += `<div style="padding:4px 0; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; font-size:12px;"><span><strong>${d.vehicle}</strong> &bull; ${d.zone}</span><span style="color:var(--text-muted);">${d.date}</span></div>`;
-      });
-    }
-    html += `</div></div>`;
+    html += `<button class="btn btn-outline" style="width:100%; font-size:11px; margin-top:8px;" onclick="closeModal('techActionModal'); openTechEditModal('${t.name}')">⚙️ Edit Profile Stats</button></div>`;
 
     const body = document.getElementById('ta_body'); if(body) body.innerHTML = html;
     openModal('techActionModal');
+  }
+  
+  // ADD THIS TIMELINE GENERATOR FUNCTION RIGHT BELOW IT
+  function buildTechTimelineGraphic(workDaysStr, startStr, endStr) {
+    let s = 0, e = 0;
+    if (startStr && endStr) { 
+      let [h1,m1] = startStr.split(':'); s = (parseInt(h1) + parseInt(m1||0)/60) / 24 * 100; 
+      let [h2,m2] = endStr.split(':'); e = (parseInt(h2) + parseInt(m2||0)/60) / 24 * 100; 
+    }
+    
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const str = (workDaysStr||'').toLowerCase();
+    let wDays = [];
+    
+    // Parse "Mon-Fri" ranges
+    const match = str.match(/(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)/);
+    if (match) {
+       const dayNames = ['mon','tue','wed','thu','fri','sat','sun'];
+       let i1 = dayNames.findIndex(d => match[1].includes(d));
+       let i2 = dayNames.findIndex(d => match[2].includes(d));
+       if(i1 > -1 && i2 > -1) {
+          if(i1 <= i2) { for(let i=i1; i<=i2; i++) wDays.push(dayNames[i]); }
+          else { for(let i=i1; i<7; i++) wDays.push(dayNames[i]); for(let i=0; i<=i2; i++) wDays.push(dayNames[i]); }
+       }
+    } else {
+       days.forEach(d => { if(str.includes(d.toLowerCase())) wDays.push(d.toLowerCase()); });
+       if(wDays.length===0 && str) wDays = days; 
+    }
+    
+    let html = `<div style="display:flex; flex-direction:column; gap:6px; font-size:10px; font-weight:700; background:var(--bg-panel); padding:16px; border-radius:8px; border:1px solid var(--border-color);">`;
+    html += `<div style="margin-bottom:4px; color:var(--text-muted); text-transform:uppercase; font-size:11px; display:flex; justify-content:space-between;"><span>Weekly Schedule</span> <span>00:00 - 24:00</span></div>`;
+    
+    days.forEach(d => {
+       let isWorking = wDays.includes(d.toLowerCase()); 
+       let barHtml = '';
+       if (isWorking && startStr && endStr) {
+          if (e >= s) { barHtml = `<div style="position:absolute; left:${s}%; width:${e-s}%; top:0; bottom:0; background:var(--veo-cyan); border-radius:4px; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div>`; } 
+          else { barHtml = `<div style="position:absolute; left:${s}%; width:${100-s}%; top:0; bottom:0; background:var(--veo-cyan); border-radius:4px 0 0 4px; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div><div style="position:absolute; left:0; width:${e}%; top:0; bottom:0; background:var(--veo-cyan); border-radius:0 4px 4px 0; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div>`; }
+       }
+       html += `<div style="display:flex; align-items:center; gap:8px;">
+         <div style="width:25px; color:${isWorking ? 'var(--text-main)' : 'var(--text-muted)'}; opacity:${isWorking?1:0.4};">${d}</div>
+         <div style="flex:1; height:12px; background:rgba(0,0,0,0.05); border-radius:4px; position:relative; border:1px solid var(--border-color); overflow:hidden;">
+           ${barHtml}
+           <div style="position:absolute; left:25%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div>
+           <div style="position:absolute; left:50%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div>
+           <div style="position:absolute; left:75%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div>
+         </div>
+       </div>`;
+    });
+    html += `<div style="display:flex; justify-content:space-between; margin-left:33px; color:var(--text-muted); font-size:9px; margin-top:2px; padding:0 2px;"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>`;
+    html += `</div>`;
+    return html;
   }
 
   function openTechEditModal(techName) {
@@ -677,4 +715,36 @@
       const printWindow = window.open('', '_blank'); printWindow.document.open(); printWindow.document.write(htmlString); printWindow.document.close();
     }).withFailureHandler(function(err) { alert('Failed to generate PDF: ' + err.message); }).getPrintableShiftManifestHtml(dateVal, shiftName);
   }
+
+function uiDeleteTech() {
+    const techName = document.getElementById('te_orig_name').value;
+    if(!techName || !confirm(`⚠️ Are you absolutely sure you want to terminate/remove ${techName}? This cannot be undone.`)) return;
+    
+    closeModal('techEditModal');
+    globalState.techs = globalState.techs.filter(t => t.name !== techName);
+    
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
+    refreshActiveViews();
+    google.script.run.withSuccessHandler(()=>loadPortalData()).processDeleteTech(techName);
+  }
+
+  function submitAttendance(e) {
+    e.preventDefault();
+    const p = {
+      techName: document.getElementById('att_tech').value,
+      date: document.getElementById('att_date').value,
+      type: document.getElementById('att_type').value,
+      notes: document.getElementById('att_notes').value
+    };
+    closeModal('attendanceModal');
+    
+    // Optimistic Update
+    const tIdx = globalState.techs.findIndex(t => t.name === p.techName);
+    if(tIdx > -1) globalState.techs[tIdx].status = p.type;
+    refreshActiveViews();
+    
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
+    google.script.run.withSuccessHandler(()=>loadPortalData()).logTechAttendance(p);
+  }
+
 </script>

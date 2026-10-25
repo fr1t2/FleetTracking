@@ -150,7 +150,8 @@
         <div class="form-row">
           <div class="form-group"><label>Assigned Shift</label><select id="te_shift"></select></div>
           <div class="form-group"><label>Current Status</label><select id="te_status">
-            <option value="Available">🟢 Available</option><option value="Off-Duty">⚪ Off-Duty</option><option value="Sick">🤢 Sick (OOS)</option><option value="NCNS">🚨 NCNS (OOS)</option>
+            <option value="Available">🟢 Available</option><option value="Off-Duty">⚪ Off-Duty</option>
+            <option value="Sick">🤢 Sick (OOS)</option><option value="NCNS">🚨 NCNS (OOS)</option><option value="PTO">🌴 PTO (Scheduled)</option>
           </select></div>
         </div>
         <div class="form-row"><div class="form-group"><label>Start Time</label><input type="time" id="te_start"></div><div class="form-group"><label>End Time</label><input type="time" id="te_end"></div></div>
@@ -162,7 +163,31 @@
           <label style="display:flex; align-items:center; gap:8px; color:var(--danger); font-weight:bold;"><input type="checkbox" id="te_restricted" style="width:auto;"> 🛑 DRIVING RESTRICTED (Co-Driver Only)</label>
         </div>
       </div>
-      <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('techEditModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Profile</button></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); margin-right:auto;" onclick="uiDeleteTech()">🗑️ Remove Tech</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal('techEditModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Profile</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- LOG ATTENDANCE MODAL -->
+<div id="attendanceModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header"><div>📅 Log Attendance Exception</div><button class="modal-close" onclick="closeModal('attendanceModal')">&times;</button></div>
+    <form onsubmit="submitAttendance(event)">
+      <div class="modal-body">
+        <div class="form-group"><label>Technician</label><input type="text" id="att_tech" readonly style="background:var(--bg-panel); font-weight:bold;"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Date *</label><input type="date" id="att_date" required></div>
+          <div class="form-group"><label>Exception Type *</label><select id="att_type" required>
+            <option value="Sick">🤢 Sick / Call Out</option><option value="NCNS">🚨 No Call No Show (NCNS)</option><option value="PTO">🌴 PTO (Vacation)</option>
+          </select></div>
+        </div>
+        <div class="form-group"><label>Notes / Details</label><textarea id="att_notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('attendanceModal')">Cancel</button><button type="submit" class="btn btn-primary">Log & Update Status</button></div>
     </form>
   </div>
 </div>

@@ -52,3 +52,71 @@ function updateTechProfile(data) {
   logAudit('TECH_UPDATED', 'Tech_Profiles', data.name, `Status: ${data.status} | Restricted: ${data.restricted}`);
   return { success: true };
 }
+
+/**
+ * Permanently removes a tech from the system
+ */
+function processDeleteTech(techName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 1. Remove from Tech Profiles
+  const tSheet = ss.getSheetByName('Tech_Profiles');
+  if (tSheet) {
+    const tData = tSheet.getDataRange().getValues();
+    for (let i = 1; i < tData.length; i++) {
+      if (String(tData[i][0]).trim().toLowerCase() === techName.toLowerCase()) {
+        tSheet.deleteRow(i + 1);
+        break;
+      }
+    }
+  }
+
+  // 2. Remove from Config Roster
+  const cSheet = ss.getSheetByName('_Config');
+  if (cSheet) {
+    const cData = cSheet.getDataRange().getValues();
+    for (let i = 1; i < cData.length; i++) {
+      if (String(cData[i][9]).trim().toLowerCase() === techName.toLowerCase()) { // Col J is Tech Roster
+        cSheet.getRange(i + 1, 10).clearContent(); 
+        break;
+      }
+    }
+  }
+  
+  if (typeof logAudit === 'function') logAudit('TECH_DELETED', 'Tech_Profiles', techName, 'Terminated / Removed from service');
+  return { success: true };
+}
+
+/**
+ * Logs an attendance event (Sick, NCNS, PTO) and updates their profile status
+ */
+function logTechAttendance(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const now = new Date();
+  const user = Session.getActiveUser().getEmail() || 'local-user';
+  
+  // 1. Create Attendance_Log tab if it doesn't exist
+  let aSheet = ss.getSheetByName('Attendance_Log');
+  if (!aSheet) {
+    aSheet = ss.insertSheet('Attendance_Log');
+    aSheet.appendRow(['Date', 'Tech Name', 'Event Type', 'Notes', 'Logged By', 'Timestamp']);
+    aSheet.getRange('A1:F1').setFontWeight('bold').setBackground('#f0f2f5');
+  }
+
+  // 2. Record the Event
+  aSheet.appendRow([ data.date, data.techName, data.type, data.notes, user, now ]);
+
+  // 3. Auto-update their Tech Profile status
+  const tSheet = ss.getSheetByName('Tech_Profiles');
+  if (tSheet) {
+    const tData = tSheet.getDataRange().getValues();
+    for (let i = 1; i < tData.length; i++) {
+      if (String(tData[i][0]).trim().toLowerCase() === data.techName.trim().toLowerCase()) {
+        tSheet.getRange(i + 1, 10).setValue(data.type); // Col J is Status
+        break;
+      }
+    }
+  }
+
+  return { success: true };
+}
