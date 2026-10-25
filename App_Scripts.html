@@ -16,20 +16,25 @@
   /* --- APP SHELL ROUTING --- */
   function toggleTheme() {
     const s = document.getElementById('theme-selector');
-    s.value = s.value === 'dark' ? 'light' : 'dark';
-    changeTheme();
+    if(s) {
+      s.value = s.value === 'dark' ? 'light' : 'dark';
+      changeTheme();
+    }
   }
   function changeTheme() {
-    const theme = document.getElementById('theme-selector').value;
+    const selector = document.getElementById('theme-selector');
+    const theme = selector ? selector.value : 'dark';
     if (theme === 'light') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', theme);
   }
 
   function switchTab(t) {
     document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+    if(event && event.currentTarget) event.currentTarget.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('tab-'+t).classList.add('active');
+    
+    const tabEl = document.getElementById('tab-'+t);
+    if(tabEl) tabEl.classList.add('active');
     
     if(globalState) refreshActiveViews();
   }
@@ -41,18 +46,23 @@
       if(el) el.style.display = 'none';
     });
     
-    const layoutType = document.getElementById('layout-selector').value;
-    const target = document.getElementById(`layout-${layoutType}`);
-    if(target) target.style.display = 'block';
+    const selector = document.getElementById('layout-selector');
+    if(selector) {
+      const layoutType = selector.value;
+      const target = document.getElementById(`layout-${layoutType}`);
+      if(target) target.style.display = 'block';
+    }
     
     if(globalState) refreshActiveViews();
   }
 
   function loadPortalData() {
-    document.getElementById('global-loader').style.display='block';
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
+    
     google.script.run.withSuccessHandler(function(st) {
       globalState = st;
-      document.getElementById('global-loader').style.display='none';
+      if(loader) loader.style.display='none';
       populateModals();
       refreshActiveViews();
     }).getDashboardState();
@@ -61,21 +71,25 @@
   function refreshActiveViews() {
     if(!globalState) return;
     
-    const layoutType = document.getElementById('layout-selector').value;
+    const selector = document.getElementById('layout-selector');
+    const layoutType = selector ? selector.value : 'modern';
+    
     if (layoutType === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
     if (layoutType === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
     if (layoutType === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
     
-    renderFleetGrid();
-    renderTechGrid();
-    renderHistoryTab();
+    if(typeof renderFleetGrid === 'function') renderFleetGrid();
+    if(typeof renderTechGrid === 'function') renderTechGrid();
+    if(typeof renderHistoryTab === 'function') renderHistoryTab();
   }
 
   /* --- SECONDARY TABS RENDERING --- */
   function renderFleetGrid() {
     const container = document.getElementById('fleet-card-grid');
     if(!container) return;
-    const q = document.getElementById('fleet-search').value.toLowerCase();
+    const searchEl = document.getElementById('fleet-search');
+    const q = searchEl ? searchEl.value.toLowerCase() : '';
+    
     let html = '';
     globalState.vehicles.forEach(v => {
       if(v.status === 'Decommissioned') return;
@@ -96,9 +110,11 @@
   function renderTechGrid() {
     const container = document.getElementById('tech-card-grid');
     if(!container) return;
-    const q = document.getElementById('tech-search').value.toLowerCase();
+    const searchEl = document.getElementById('tech-search');
+    const q = searchEl ? searchEl.value.toLowerCase() : '';
+    
     let html = '';
-    globalState.config.techRoster.forEach(t => {
+    (globalState.config.techRoster || []).forEach(t => {
       if(q && !t.toLowerCase().includes(q)) return;
       
       const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
@@ -116,15 +132,18 @@
   function renderHistoryTab() {
     const container = document.getElementById('history-table-body');
     if(!container) return;
-    const dateVal = document.getElementById('hist-date').value;
-    const shiftVal = document.getElementById('hist-shift').value;
+    
+    const dateEl = document.getElementById('hist-date');
+    const shiftEl = document.getElementById('hist-shift');
+    const dateVal = dateEl ? dateEl.value : '';
+    const shiftVal = shiftEl ? shiftEl.value : '';
     
     let deps = globalState.deployments.filter(d => d.date === dateVal && d.shift === shiftVal);
     let html = '';
     if (deps.length === 0) {
       html = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">No deployment records found for this date and shift.</td></tr>';
     } else {
-      deps.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+      deps.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
       deps.forEach(d => {
         let techs = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:var(--text-muted);">+ ${d.coDriver}</span>` : d.tech;
         let isDone = d.status === 'Completed';
@@ -150,18 +169,47 @@
   }
 
   /* --- MODAL CONTROLLERS --- */
-  function openModal(id) { document.getElementById(id).classList.add('active'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-  function prefillDispatchVan(cleanName) { document.getElementById('dp_van').value = cleanName; openModal('dispatchModal'); }
-  function prefillDispatchTech(techName) { document.getElementById('dp_tech').value = techName; openModal('dispatchModal'); }
-  function prefillIncidentVan(cleanName) { document.getElementById('inc_van').value = cleanName; openModal('incidentModal'); }
-  function prefillCheckInVan(cleanName) { document.getElementById('ci_van').value = cleanName; openModal('checkInModal'); }
-  function prefillDecomVan(cleanName) { document.getElementById('dec_van').value = cleanName; openModal('decomModal'); }
+  function openModal(id) { 
+    const m = document.getElementById(id);
+    if(m) m.classList.add('active'); 
+  }
+  function closeModal(id) { 
+    const m = document.getElementById(id);
+    if(m) m.classList.remove('active'); 
+  }
+
+  function prefillDispatchVan(cleanName) { 
+    const sel = document.getElementById('dp_van');
+    if(sel) sel.value = cleanName.trim(); 
+    openModal('dispatchModal'); 
+  }
+  function prefillDispatchTech(techName) { 
+    const sel = document.getElementById('dp_tech');
+    if(sel) sel.value = techName.trim(); 
+    openModal('dispatchModal'); 
+  }
+  function prefillIncidentVan(cleanName) { 
+    const sel = document.getElementById('inc_van');
+    if(sel) sel.value = cleanName.trim(); 
+    openModal('incidentModal'); 
+  }
+  function prefillCheckInVan(cleanName) { 
+    const sel = document.getElementById('ci_van');
+    if(sel) sel.value = cleanName.trim(); 
+    openModal('checkInModal'); 
+  }
+  function prefillDecomVan(cleanName) { 
+    const sel = document.getElementById('dec_van');
+    if(sel) sel.value = cleanName.trim(); 
+    openModal('decomModal'); 
+  }
 
   function openVanActionModal(rentalId) {
     const v = globalState.vehicles.find(x => x.rentalId === rentalId);
     if(!v) return;
-    document.getElementById('va_title').innerText = `${v.cleanName} (${v.rentalId})`;
+    
+    const title = document.getElementById('va_title');
+    if(title) title.innerText = `${v.cleanName} (${v.rentalId})`;
     
     let html = `<div style="margin-bottom:20px; font-size:14px;">
       <div style="margin-bottom:6px;">Status: <strong>${v.status}</strong></div>
@@ -189,16 +237,20 @@
     html += `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillDecomVan('${v.cleanName}')">🗑️ Decommission Van</button>`;
     html += `</div>`;
     
-    document.getElementById('va_body').innerHTML = html;
+    const body = document.getElementById('va_body');
+    if(body) body.innerHTML = html;
+    
     openModal('vanActionModal');
   }
 
   function openTechActionModal(techName) {
     const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === techName || d.coDriver === techName));
     const allDeps = globalState.deployments.filter(d => d.tech === techName || d.coDriver === techName);
-    allDeps.sort((a,b) => a.date > b.date ? -1 : 1);
+    allDeps.sort((a,b) => (a.date || '').localeCompare(b.date || ''));
 
-    document.getElementById('ta_title').innerText = techName;
+    const title = document.getElementById('ta_title');
+    if(title) title.innerText = techName;
+    
     let html = `<div style="margin-bottom:20px; font-size:14px;">
       <div style="margin-bottom:6px;">Current Status: <strong>${activeDep ? '🟢 On Shift in ' + activeDep.vehicle : '⚪ Available'}</strong></div>
       <div>Total Lifetime Shifts: <strong style="color:var(--veo-cyan-dark);">${allDeps.length}</strong></div>
@@ -227,59 +279,91 @@
     }
     html += `</div></div>`;
 
-    document.getElementById('ta_body').innerHTML = html;
+    const body = document.getElementById('ta_body');
+    if(body) body.innerHTML = html;
+    
     openModal('techActionModal');
   }
 
   function populateModals() {
-    const cfg = globalState.config;
-    let rOpts = '<option value="">-- Select --</option>' + cfg.techRoster.map(r=>`<option value="${r}">${r}</option>`).join('');
-    document.getElementById('dp_tech').innerHTML = rOpts; document.getElementById('dp_codriver').innerHTML = rOpts;
+    const cfg = globalState.config || {};
+    const techRoster = cfg.techRoster || [];
     
-    let dlOpts = cfg.techRoster.map(r=>`<option value="${r}">`).join('');
-    document.getElementById('tech-dl').innerHTML = dlOpts;
+    // Tech Dropdowns
+    let rOpts = '<option value="">-- Select --</option>' + techRoster.map(r=>`<option value="${r}">${r}</option>`).join('');
+    if(document.getElementById('dp_tech')) document.getElementById('dp_tech').innerHTML = rOpts; 
+    if(document.getElementById('dp_codriver')) document.getElementById('dp_codriver').innerHTML = rOpts;
+    
+    let dlOpts = techRoster.map(r=>`<option value="${r}">`).join('');
+    if(document.getElementById('tech-dl')) document.getElementById('tech-dl').innerHTML = dlOpts;
 
-    let vOpts = '<option value="">-- Ready or In-Use Vans --</option>' + globalState.vehicles.filter(v=>v.status==='Warehouse (Ready)' || v.status==='Dispatched').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.status === 'Dispatched' ? 'In Use' : 'Ready'})</option>`).join('');
-    document.getElementById('dp_van').innerHTML = vOpts;
-    document.getElementById('inc_van').innerHTML = '<option value="">-- Vehicle --</option>' + globalState.vehicles.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    let oosOpts = '<option value="">-- Select OOS Van --</option>' + globalState.vehicles.filter(v=>v.status==='Out of Service').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    document.getElementById('ci_van').innerHTML = oosOpts;
-    let decOpts = '<option value="">-- Select Van --</option>' + globalState.vehicles.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    document.getElementById('dec_van').innerHTML = decOpts;
+    // Van Dropdowns
+    const vans = globalState.vehicles || [];
+    
+    let vOpts = '<option value="">-- Ready or In-Use Vans --</option>' + vans.filter(v=>v.status==='Warehouse (Ready)' || v.status==='Dispatched').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.status === 'Dispatched' ? 'In Use' : 'Ready'})</option>`).join('');
+    if(document.getElementById('dp_van')) document.getElementById('dp_van').innerHTML = vOpts;
+    
+    if(document.getElementById('inc_van')) document.getElementById('inc_van').innerHTML = '<option value="">-- Vehicle --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
+    
+    let oosOpts = '<option value="">-- Select OOS Van --</option>' + vans.filter(v=>v.status==='Out of Service').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
+    if(document.getElementById('ci_van')) document.getElementById('ci_van').innerHTML = oosOpts;
+    
+    let decOpts = '<option value="">-- Select Van --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
+    if(document.getElementById('dec_van')) document.getElementById('dec_van').innerHTML = decOpts;
 
-    let sOpts = cfg.shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
-    document.getElementById('dp_shift').innerHTML = sOpts;
-    document.getElementById('hist-shift').innerHTML = sOpts;
+    // Shift & Zone Dropdowns
+    const shifts = cfg.shifts || [];
+    let sOpts = shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
+    if(document.getElementById('dp_shift')) document.getElementById('dp_shift').innerHTML = sOpts;
+    if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
 
-    document.getElementById('dp_zone').innerHTML = '<option value="">-- Zone --</option>' + cfg.zones.map(z=>`<option value="${z}">${z}</option>`).join('');
-    document.getElementById('ed_zone').innerHTML = document.getElementById('dp_zone').innerHTML;
-    document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + cfg.focusOptions.map(f=>`<option value="${f}">${f}</option>`).join('');
-    document.getElementById('av_agency').innerHTML = cfg.rentalAgencies.map(a=>`<option value="${a}">${a}</option>`).join('');
-    document.getElementById('inc_cat').innerHTML = cfg.issueCategories.map(c=>`<option value="${c}">${c}</option>`).join('');
-    document.getElementById('inc_impact').innerHTML = cfg.statusImpacts.map(i=>`<option value="${i}">${i}</option>`).join('');
+    const zones = cfg.zones || [];
+    let zOpts = '<option value="">-- Zone --</option>' + zones.map(z=>`<option value="${z}">${z}</option>`).join('');
+    if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts;
+    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts;
+    
+    const focuses = cfg.focusOptions || [];
+    if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + focuses.map(f=>`<option value="${f}">${f}</option>`).join('');
+    
+    const agencies = cfg.rentalAgencies || [];
+    if(document.getElementById('av_agency')) document.getElementById('av_agency').innerHTML = agencies.map(a=>`<option value="${a}">${a}</option>`).join('');
+    
+    const cats = cfg.issueCategories || [];
+    if(document.getElementById('inc_cat')) document.getElementById('inc_cat').innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    
+    const impacts = cfg.statusImpacts || [];
+    if(document.getElementById('inc_impact')) document.getElementById('inc_impact').innerHTML = impacts.map(i=>`<option value="${i}">${i}</option>`).join('');
 
     renderRosterList();
   }
 
   function renderRosterList() {
-    document.getElementById('roster-list').innerHTML = globalState.config.techRoster.map(r => 
+    const listEl = document.getElementById('roster-list');
+    if(!listEl) return;
+    listEl.innerHTML = (globalState.config.techRoster || []).map(r => 
       `<span style="background:var(--bg-surface); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:700; border:1px solid var(--border-color); display:flex; align-items:center; gap:8px;">${r} <button style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;" onclick="removeRoster('${r}')">&times;</button></span>`
     ).join('');
     handleRosterInput();
   }
 
   function handleRosterInput() {
-    const val = document.getElementById('roster-input').value.trim().toLowerCase();
+    const inputEl = document.getElementById('roster-input');
     const btn = document.getElementById('roster-action-btn');
-    const isEx = globalState.config.techRoster.some(r => r.toLowerCase() === val);
+    if(!inputEl || !btn) return;
+    
+    const val = inputEl.value.trim().toLowerCase();
+    const isEx = (globalState.config.techRoster || []).some(r => r.toLowerCase() === val);
     btn.innerText = (val && isEx) ? 'Remove' : 'Add';
     btn.className = (val && isEx) ? 'btn btn-danger' : 'btn btn-dark';
   }
 
   function handleRosterAction() {
-    const val = document.getElementById('roster-input').value.trim();
+    const inputEl = document.getElementById('roster-input');
+    if(!inputEl) return;
+    const val = inputEl.value.trim();
     if(!val) return;
-    if(globalState.config.techRoster.some(r => r.toLowerCase() === val.toLowerCase())) removeRoster(val);
+    
+    if((globalState.config.techRoster || []).some(r => r.toLowerCase() === val.toLowerCase())) removeRoster(val);
     else addRoster(val);
   }
 
@@ -310,7 +394,9 @@
     closeModal('addVehicleModal');
     globalState.vehicles.push({ cleanName: p.vanName, rentalId: p.rentalId, status: 'Warehouse (Ready)', makeModel: p.makeModel, plate: p.licensePlate, pickupDate: new Date().toISOString().split('T')[0], samsaraSerial: p.samsaraSerial, addons: p.addons });
     populateModals(); refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processAddVehicle(p);
   }
 
@@ -338,7 +424,9 @@
       globalState.vehicles[vIdx].addons = p.addons;
     }
     refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).updateVehicleDetails(p);
   }
 
@@ -364,7 +452,9 @@
       
       populateModals(); refreshActiveViews();
     }
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
   }
 
@@ -374,17 +464,19 @@
     const p = { cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', resolutionNotes: document.getElementById('ci_notes').value };
     closeModal('checkInModal');
     
-    // Optimistic Wipe!
+    // Optimistic Wipe
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) { 
         globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; 
         globalState.vehicles[vIdx].notes = ''; 
-        globalState.vehicles[vIdx].driver = '—'; // INSTANT CLEAR
-        globalState.vehicles[vIdx].zone = '—';   // INSTANT CLEAR
+        globalState.vehicles[vIdx].driver = '—'; 
+        globalState.vehicles[vIdx].zone = '—';   
     }
     
     populateModals(); refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processCheckInVehicle(p);
   }
 
@@ -397,7 +489,9 @@
     if(vIdx > -1) globalState.vehicles[vIdx].status = 'Decommissioned';
     
     populateModals(); refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).decommissionVehicle(targetId, reason);
   }
 
@@ -448,7 +542,9 @@
     if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? `${p.assignedTech} & ${p.coDriver}` : p.assignedTech; }
 
     populateModals(); refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
   }
 
@@ -468,7 +564,9 @@
     if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
     
     refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).updateDeploymentRecord(p);
   }
 
@@ -480,16 +578,17 @@
         globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); 
     }
     
-    // Optimistic Wipe!
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===rentId);
     if(vIdx > -1) {
         globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
-        globalState.vehicles[vIdx].driver = '—'; // INSTANT CLEAR
-        globalState.vehicles[vIdx].zone = '—';   // INSTANT CLEAR
+        globalState.vehicles[vIdx].driver = '—'; 
+        globalState.vehicles[vIdx].zone = '—';   
     }
     
     populateModals(); refreshActiveViews();
-    document.getElementById('global-loader').style.display='block';
+    
+    const loader = document.getElementById('global-loader');
+    if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).endShift(depId, rentId);
   }
 
