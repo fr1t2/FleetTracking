@@ -1,7 +1,26 @@
+/**
+ * @fileoverview Web App Router & Dashboard State Compiler
+ */
+
+function doGet(e) {
+  return HtmlService.createTemplateFromFile('Dashboard_App')
+    .evaluate()
+    .setTitle('VEO Dispatch OS')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Helper function to include modular HTML files into the main Dashboard_App
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
 function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tz = Session.getScriptTimeZone();
-  const cfg = getSystemConfig(); 
+  const cfg = getSystemConfig(); // Found in Config.gs
 
   // 1. Vehicles
   const vSheet = ss.getSheetByName('Vehicles');
