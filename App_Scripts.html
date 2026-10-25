@@ -79,7 +79,7 @@
       html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>`;
       vans.forEach(v => {
         let bc = v.status === 'Warehouse' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
-        html += `<tr><td><strong>${v.cleanName}</strong></td><td>${v.rentalId}</td><td><span class="cls-badge" style="${bc}">${v.status}</span></td><td>${v.plate}</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Manage</button></td></tr>`;
+        html += `<tr><td><strong>${v.cleanName}</strong></td><td>${v.rentalId}</td><td><span class="cls-badge" style="${bc}">${v.status === 'Warehouse' ? 'Ready' : v.status}</span></td><td>${v.plate}</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Manage</button></td></tr>`;
       });
       html += `</tbody></table></div>`;
     } 
@@ -87,7 +87,7 @@
       html += `<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">`;
       vans.forEach(v => {
         let bc = v.status === 'Warehouse' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
-        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal('${v.rentalId}')"><div class="foc-card-top"><div><div class="foc-title">${v.cleanName}</div><div class="foc-sub">${v.rentalId} &bull; Plate: ${v.plate}</div></div></div><div style="font-weight:800; color:${bc}; font-size:11px; margin-top:8px;">${v.status.toUpperCase()}</div></div>`;
+        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal('${v.rentalId}')"><div class="foc-card-top"><div><div class="foc-title">${v.cleanName}</div><div class="foc-sub">${v.rentalId} &bull; Plate: ${v.plate}</div></div></div><div style="font-weight:800; color:${bc}; font-size:11px; margin-top:8px;">${v.status === 'Warehouse' ? 'READY' : v.status.toUpperCase()}</div></div>`;
       });
       html += `</div>`;
     } else {
@@ -95,7 +95,7 @@
       vans.forEach(v => {
         let bClass = v.status === 'Warehouse' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
         let color = v.status === 'Warehouse' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
-        html += `<div class="mod-sq-card ${bClass}" onclick="openVanActionModal('${v.rentalId}')"><div><div class="sq-title">${v.cleanName}</div><div class="sq-sub">${v.rentalId}<br>${v.plate}</div></div><div class="sq-footer" style="color:${color};">${v.status.toUpperCase()}</div></div>`;
+        html += `<div class="mod-sq-card ${bClass}" onclick="openVanActionModal('${v.rentalId}')"><div><div class="sq-title">${v.cleanName}</div><div class="sq-sub">${v.rentalId}<br>${v.plate}</div></div><div class="sq-footer" style="color:${color};">${v.status === 'Warehouse' ? 'READY' : v.status.toUpperCase()}</div></div>`;
       });
       html += `</div>`;
     }
@@ -254,7 +254,7 @@
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
     let bannerColor = v.status === 'Warehouse' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
-      <div style="font-size:18px; font-weight:900;">${v.status.toUpperCase()}</div>
+      <div style="font-size:18px; font-weight:900;">${v.status === 'Warehouse' ? 'READY' : v.status.toUpperCase()}</div>
       <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${v.makeModel} &bull; Plate: ${v.plate}</div>
       <div style="color:var(--danger); font-weight:600; font-size:13px; margin-top:6px;">${v.notes || ''}</div>
     </div>`;
