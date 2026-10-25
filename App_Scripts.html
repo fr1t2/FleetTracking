@@ -441,7 +441,28 @@
   function prefillDispatchVan(cleanName) { const sel = document.getElementById('dp_van'); if(sel) sel.value = cleanName.trim(); openModal('dispatchModal'); }
   function prefillDispatchTech(techName) { const sel = document.getElementById('dp_tech'); if(sel) sel.value = techName.trim(); openModal('dispatchModal'); }
   function prefillIncidentVan(cleanName) { const sel = document.getElementById('inc_van'); if(sel) sel.value = cleanName.trim(); openModal('incidentModal'); }
-  function prefillCheckInVan(cleanName) { const sel = document.getElementById('ci_van'); if(sel) sel.value = cleanName.trim(); openModal('checkInModal'); }
+
+
+function prefillCheckInVan(cleanName) { 
+    const sel = document.getElementById('ci_van');
+    if(sel) {
+      sel.value = cleanName.trim(); 
+      // Fallback: If it fails to auto-select, force it by matching text
+      if (sel.selectedIndex <= 0) {
+         for(let i = 0; i < sel.options.length; i++) {
+           if(sel.options[i].text.includes(cleanName.trim())) {
+             sel.selectedIndex = i;
+             break;
+           }
+         }
+      }
+    }
+    openModal('checkInModal'); 
+  }
+
+
+
+
   function prefillDecomVan(cleanName) { const sel = document.getElementById('dec_van'); if(sel) sel.value = cleanName.trim(); openModal('decomModal'); }
 
   /* --- DATA SUBMISSION FUNCTIONS --- */
@@ -516,15 +537,14 @@
     google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
   }
 
-function submitCheckIn(e) {
+  function submitCheckIn(e) {
     e.preventDefault();
     const sel = document.getElementById('ci_van');
-    const cleanName = sel.value;
     
-    // 1. Look up the van safely from the global state
-    const v = globalState.vehicles.find(x => x.cleanName === cleanName);
+    // Safely look up the exact van directly from the global state
+    const v = globalState.vehicles.find(x => x.cleanName === sel.value);
     if (!v) {
-      alert("Error: Could not locate vehicle data.");
+      alert("Error: Could not locate vehicle data. Please select the van from the dropdown.");
       return;
     }
 
@@ -534,15 +554,13 @@ function submitCheckIn(e) {
       resolutionNotes: document.getElementById('ci_notes').value 
     };
 
-    // 2. Automatically find the open incident ID to resolve it
+    // Auto-attach the open incident ID if one exists
     const inc = (globalState.incidents || []).find(i => i.rentalId === p.rentalId && !i.dateResolved);
-    if (inc) {
-      p.incidentId = inc.id;
-    }
+    if (inc) p.incidentId = inc.id;
 
     closeModal('checkInModal');
     
-    // 3. Optimistic Wipe (Instantly clears status and notes on screen)
+    // Optimistic Wipe
     v.status = 'Warehouse (Ready)'; 
     v.notes = ''; 
     v.driver = '—'; 
@@ -554,7 +572,11 @@ function submitCheckIn(e) {
     const loader = document.getElementById('global-loader'); 
     if(loader) loader.style.display='block';
     
-    google.script.run.withSuccessHandler(()=>loadPortalData()).processCheckInVehicle(p);
+    // Added Failure Handler to catch backend errors!
+    google.script.run
+      .withSuccessHandler(() => loadPortalData())
+      .withFailureHandler(err => { alert("Backend Error: " + err.message); loadPortalData(); })
+      .processCheckInVehicle(p);
   }
 
   function submitDecom(e) {
