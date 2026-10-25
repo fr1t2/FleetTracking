@@ -47,21 +47,54 @@ function getDashboardState() {
     });
   }
 
-  // Deployments (16 Columns)
+// Deployments (16 Columns)
   const dSheet = ss.getSheetByName('Deployments');
   const deployments = [];
   if (dSheet && dSheet.getLastRow() > 1) {
     const dRows = dSheet.getRange(2, 1, dSheet.getLastRow() - 1, 16).getValues();
     dRows.forEach(r => {
+      // 1. Force the Date to always be yyyy-MM-dd
+      let depDate = '';
+      if (r[1] instanceof Date) {
+        depDate = Utilities.formatDate(r[1], tz, 'yyyy-MM-dd');
+      } else if (r[1]) {
+        // If it's a raw number from Sheets, construct a Date object
+        const parsed = new Date(r[1]);
+        depDate = !isNaN(parsed) ? Utilities.formatDate(parsed, tz, 'yyyy-MM-dd') : String(r[1]).split(' ')[0]; // Fallback to grabbing just the date chunk
+      }
+
+      // 2. Force the Time to always be hh:mm a
+      let timeOut = '—';
+      if (r[10] instanceof Date) {
+        timeOut = Utilities.formatDate(r[10], tz, 'hh:mm a');
+      } else if (r[10]) {
+        const parsedOut = new Date(r[10]);
+        timeOut = !isNaN(parsedOut) ? Utilities.formatDate(parsedOut, tz, 'hh:mm a') : String(r[10]);
+      }
+      
+      let timeIn = '';
+      if (r[11] instanceof Date) {
+        timeIn = Utilities.formatDate(r[11], tz, 'hh:mm a');
+      } else if (r[11]) {
+        const parsedIn = new Date(r[11]);
+        timeIn = !isNaN(parsedIn) ? Utilities.formatDate(parsedIn, tz, 'hh:mm a') : String(r[11]);
+      }
+
       deployments.push({
         id: String(r[0] || ''),
-        date: (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1]),
-        shift: String(r[2] || '').trim(), vehicle: String(r[3] || ''), rentalId: String(r[4] || ''),
-        tech: String(r[5] || ''), zone: String(r[6] || ''), goals: String(r[7] || ''),
-        target: String(r[8] || ''), status: String(r[9] || 'Dispatched'),
-        departureTime: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'hh:mm a') : String(r[10]),
-        returnTime: (r[11] instanceof Date) ? Utilities.formatDate(r[11], tz, 'hh:mm a') : String(r[11] || ''),
-        coDriver: String(r[14] || ''), isTraining: String(r[15] || '') === 'Yes'
+        date: depDate,
+        shift: String(r[2] || '').trim(), 
+        vehicle: String(r[3] || ''), 
+        rentalId: String(r[4] || ''),
+        tech: String(r[5] || ''), 
+        zone: String(r[6] || ''), 
+        goals: String(r[7] || ''),
+        target: String(r[8] || ''), 
+        status: String(r[9] || 'Dispatched'),
+        departureTime: timeOut,
+        returnTime: timeIn,
+        coDriver: String(r[14] || ''), 
+        isTraining: String(r[15] || '') === 'Yes'
       });
     });
   }
