@@ -48,43 +48,59 @@ function updateVehicleDetails(formData) {
 }
 
 function processReportIncident(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const incSheet = ss.getSheetByName('Incidents_Service');
-  const vSheet = ss.getSheetByName('Vehicles');
-  const dSheet = ss.getSheetByName('Deployments');
-  const now = new Date();
-  const user = Session.getActiveUser().getEmail() || 'local-user';
-  const incId = 'INC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const incSheet = ss.getSheetByName('Incidents_Service');
+    const vSheet = ss.getSheetByName('Vehicles');
+    const dSheet = ss.getSheetByName('Deployments');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+    
+    if (!data.rentalId) throw new Error("No Vehicle/Rental ID was provided.");
+    
+    const incId = 'INC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
 
-  incSheet.appendRow([
-    incId, now, data.cleanName, data.rentalId, data.issueCategory, data.description,
-    data.triggerOos ? 'YES' : 'NO', data.statusImpact, '', '', '', user, now, data.driverInvolved || ''
-  ]);
+    // 1. Log the Incident
+    incSheet.appendRow([
+      incId, now, data.cleanName, data.rentalId, data.issueCategory, data.description,
+      data.triggerOos ? 'YES' : 'NO', data.statusImpact, '', '', '', user, now, data.driverInvolved || ''
+    ]);
 
-  if (data.triggerOos) {
-    const vData = vSheet.getDataRange().getValues();
-    for (let i = 1; i < vData.length; i++) {
-      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
-        const row = i + 1;
-        vSheet.getRange(row, 9).setValue('Out of Service');
-        vSheet.getRange(row, 12).clearContent();
-        vSheet.getRange(row, 13).clearContent();
-        vSheet.getRange(row, 16).setValue(user);
-        vSheet.getRange(row, 17).setValue(now);
-        break;
+    if (data.triggerOos) {
+      // 2. Update Vehicle Sheet (Clear Zone and Tech)
+      let vFound = false;
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+          const row = i + 1;
+          vSheet.getRange(row, 9).setValue('Out of Service'); // Set Status
+          vSheet.getRange(row, 12).clearContent(); // Clear Zone
+          vSheet.getRange(row, 13).clearContent(); // Clear Tech
+          vSheet.getRange(row, 16).setValue(user);
+          vSheet.getRange(row, 17).setValue(now);
+          vFound = true;
+          break;
+        }
+      }
+      if (!vFound) throw new Error("Vehicle not found in registry to update status.");
+      
+      // 3. Auto-End any Active Deployments for this Van
+      const dData = dSheet.getDataRange().getValues();
+      for (let j = 1; j < dData.length; j++) {
+        if (String(dData[j][4]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && String(dData[j][9]).trim() === 'Dispatched') {
+          const row = j + 1;
+          dSheet.getRange(row, 10).setValue('Completed'); // End shift
+          dSheet.getRange(row, 12).setValue(now); // Return time
+        }
       }
     }
     
-    const dData = dSheet.getDataRange().getValues();
-    for (let j = 1; j < dData.length; j++) {
-      if (String(dData[j][4]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && String(dData[j][9]).trim() === 'Dispatched') {
-        dSheet.getRange(j + 1, 10).setValue('Completed');
-        dSheet.getRange(j + 1, 12).setValue(now);
-      }
-    }
+    if (typeof logAudit === 'function') logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
+    return { success: true, message: 'Incident reported successfully.' };
+    
+  } catch (err) {
+    return { success: false, message: 'Failed to report incident: ' + err.toString() };
   }
-  if (typeof logAudit === 'function') logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
-  return { success: true, message: 'Incident reported.' };
 }
 
 function processCheckInVehicle(data) {
