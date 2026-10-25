@@ -563,12 +563,13 @@ function submitIncident(e) {
     if (!v) { alert("Error: Could not locate vehicle data."); return; }
 
     const incDriverEl = document.getElementById('inc_driver');
+    const triggerOosEl = document.getElementById('inc_oos');
     const p = {
       cleanName: v.cleanName, 
       rentalId: v.rentalId,
       issueCategory: document.getElementById('inc_cat').value, 
       statusImpact: document.getElementById('inc_impact').value,
-      triggerOos: document.getElementById('inc_oos').checked, 
+      triggerOos: triggerOosEl ? triggerOosEl.checked : true, 
       description: document.getElementById('inc_desc').value,
       driverInvolved: incDriverEl ? incDriverEl.value : ''
     };
@@ -580,7 +581,12 @@ function submitIncident(e) {
       v.status = 'Out of Service'; 
       v.zone = '—'; 
       v.driver = '—'; 
-      const dIdx = globalState.deployments.findIndex(d => d.rentalId === p.rentalId && d.status === 'Dispatched');
+      
+      // Fallback match on BOTH rentalId OR cleanName!
+      const dIdx = globalState.deployments.findIndex(d => 
+         (d.status === 'Dispatched' || d.status === 'Active') && 
+         (d.rentalId === p.rentalId || d.vehicle === p.cleanName)
+      );
       if (dIdx > -1) { 
           globalState.deployments[dIdx].status = 'Completed'; 
           globalState.deployments[dIdx].returnTime = timeString; 

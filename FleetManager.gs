@@ -56,7 +56,7 @@ function processReportIncident(data) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
     
-    if (!data.rentalId) throw new Error("No Vehicle/Rental ID was provided.");
+    if (!data.rentalId && !data.cleanName) throw new Error("No Vehicle identifier was provided.");
     
     const incId = 'INC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
 
@@ -67,15 +67,21 @@ function processReportIncident(data) {
     ]);
 
     if (data.triggerOos) {
-      // 2. Update Vehicle Sheet (Clear Zone and Tech)
+      // 2. Update Vehicle Sheet (Aggressively overwrite Zone and Tech)
       let vFound = false;
       const vData = vSheet.getDataRange().getValues();
       for (let i = 1; i < vData.length; i++) {
-        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        const rowRentalId = String(vData[i][1]).trim().toLowerCase();
+        const rowCleanName = String(vData[i][0]).trim().toLowerCase();
+        const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+        const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
+
+        // Match by ID first, fallback to Name if ID is blank
+        if ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName)) {
           const row = i + 1;
-          vSheet.getRange(row, 9).setValue('Out of Service'); // Set Status
-          vSheet.getRange(row, 12).clearContent(); // Clear Zone
-          vSheet.getRange(row, 13).clearContent(); // Clear Tech
+          vSheet.getRange(row, 9).setValue('Out of Service'); 
+          vSheet.getRange(row, 12).setValue('—'); // Force write empty dash for Zone
+          vSheet.getRange(row, 13).setValue('—'); // Force write empty dash for Tech
           vSheet.getRange(row, 16).setValue(user);
           vSheet.getRange(row, 17).setValue(now);
           vFound = true;
@@ -84,10 +90,17 @@ function processReportIncident(data) {
       }
       if (!vFound) throw new Error("Vehicle not found in registry to update status.");
       
-      // 3. Auto-End any Active Deployments for this Van
+      // 3. Auto-End Active Deployments (Safely catch ghost records with missing IDs)
       const dData = dSheet.getDataRange().getValues();
       for (let j = 1; j < dData.length; j++) {
-        if (String(dData[j][4]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && String(dData[j][9]).trim() === 'Dispatched') {
+        const depStatus = String(dData[j][9]).trim().toLowerCase();
+        const rowRentalId = String(dData[j][4]).trim().toLowerCase();
+        const rowCleanName = String(dData[j][3]).trim().toLowerCase();
+        const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+        const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
+
+        if ((depStatus === 'dispatched' || depStatus === 'active') && 
+           ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName))) {
           const row = j + 1;
           dSheet.getRange(row, 10).setValue('Completed'); // End shift
           dSheet.getRange(row, 12).setValue(now); // Return time
