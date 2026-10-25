@@ -524,7 +524,9 @@
       if(!globalState) return;
       const targetDate = document.getElementById('kb-date').value;
       const ready = globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)');
-      const activeDeps = globalState.deployments.filter(d => d.date === targetDate && d.status === 'Dispatched');
+      
+      // FIX: Show ALL currently dispatched vans on the board, even if they started their shift yesterday!
+      const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
       
       const onRoute = []; const returning = [];
       activeDeps.forEach(d => {
