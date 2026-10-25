@@ -63,7 +63,7 @@
     
     // 1. Route to Active Dispatch Layout
     const layoutType = document.getElementById('layout-selector').value;
-    if (layoutType === 'command' && typeof renderCommandCenter === 'function') renderCommandCenter(globalState);
+    if (layoutType === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
     if (layoutType === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
     if (layoutType === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
     

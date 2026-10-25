@@ -1,38 +1,33 @@
 <style>
-  .classic-container { padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; height: 100%; overflow-y: auto; background: var(--bg-main); }
-  .classic-panel { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow); }
-  .classic-header { font-size: 16px; font-weight: 800; color: var(--veo-cyan-dark); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+  .cls-wrap { padding: 24px; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; margin: 0 auto; height: 100%; overflow-y: auto; }
+  .cls-panel { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+  .cls-header { font-size: 16px; font-weight: 800; color: var(--veo-cyan-dark); margin-bottom: 20px; text-transform: uppercase; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
   
-  .classic-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-  .classic-table th { background: var(--bg-panel); color: var(--text-muted); font-weight: 700; padding: 12px; border-bottom: 2px solid var(--border-color); text-transform: uppercase; }
-  .classic-table td { padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
-  .classic-table tr:hover { background: var(--bg-panel); }
+  .cls-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+  .cls-table th { background: var(--bg-panel); color: var(--text-muted); font-weight: 700; padding: 14px; border-bottom: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.5px; }
+  .cls-table td { padding: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+  .cls-table tr:hover { background: var(--bg-panel); }
   
-  .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
-  .badge-ready { background: rgba(52, 199, 89, 0.1); color: var(--status-ready); border: 1px solid var(--status-ready); }
-  .badge-active { background: rgba(0, 229, 255, 0.1); color: var(--status-active); border: 1px solid var(--status-active); }
-  .badge-oos { background: rgba(255, 59, 48, 0.1); color: var(--status-oos); border: 1px solid var(--status-oos); }
+  .cls-badge { padding: 4px 8px; border-radius: 4px; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
 </style>
 
-<div class="classic-container">
-  <!-- Top Panel: Active Deployments -->
-  <div class="classic-panel">
-    <div class="classic-header">Active Deployments (On Route)</div>
-    <table class="classic-table">
-      <thead><tr><th>Vehicle</th><th>Technician(s)</th><th>Zone</th><th>Time Out</th><th>Goals</th><th>Actions</th></tr></thead>
-      <tbody id="classic-deployments-tbody"></tbody>
+<div class="cls-wrap">
+  <div class="cls-panel">
+    <div class="cls-header"><span>Active Deployments (Live Routes)</span></div>
+    <table class="cls-table">
+      <thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Time Out</th><th>Goals & Focus</th><th>Action</th></tr></thead>
+      <tbody id="cls-active-body"></tbody>
     </table>
   </div>
   
-  <!-- Bottom Panel: Fleet Roster -->
-  <div class="classic-panel">
-    <div class="classic-header" style="display:flex; justify-content:space-between; align-items:center;">
+  <div class="cls-panel">
+    <div class="cls-header">
       <span>Fleet Roster & Status</span>
-      <input type="text" id="classic-fleet-search" placeholder="Search Fleet..." style="padding:6px 12px; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-main); color:var(--text-main);" onkeyup="renderClassicTable()">
+      <input type="text" id="cls-search" placeholder="🔍 Search Fleet..." class="control-select" style="width: 250px;" onkeyup="renderClassicTable()">
     </div>
-    <table class="classic-table">
-      <thead><tr><th>Van Name</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Samsara ID</th><th>Actions</th></tr></thead>
-      <tbody id="classic-fleet-tbody"></tbody>
+    <table class="cls-table">
+      <thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Samsara ID</th><th>Action</th></tr></thead>
+      <tbody id="cls-fleet-body"></tbody>
     </table>
   </div>
 </div>
@@ -41,44 +36,33 @@
   function renderClassicTable() {
     if(!globalState) return;
     
-    // Render Active Deployments
-    const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
-    let depHtml = '';
-    if(activeDeps.length === 0) {
-      depHtml = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No active deployments.</td></tr>';
-    } else {
-      activeDeps.forEach(d => {
-        let tech = d.coDriver ? `${d.tech} + ${d.coDriver}` : d.tech;
-        depHtml += `<tr>
-          <td><strong>${d.vehicle}</strong> <br><span style="font-size:11px; color:var(--text-muted);">(${d.rentalId})</span></td>
-          <td>${tech}</td>
-          <td>${d.zone}</td>
-          <td>${d.departureTime}</td>
-          <td>${d.goals || '--'}</td>
-          <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${d.rentalId}')">Manage</button></td>
-        </tr>`;
-      });
-    }
-    document.getElementById('classic-deployments-tbody').innerHTML = depHtml;
+    const deps = globalState.deployments.filter(d => d.status === 'Dispatched');
+    document.getElementById('cls-active-body').innerHTML = deps.length ? deps.map(d => `<tr>
+      <td><strong>${d.vehicle}</strong> <br><span style="color:var(--text-muted); font-size:11px;">(${d.rentalId})</span></td>
+      <td style="font-weight:600;">${d.coDriver ? d.tech + ' <span style="color:var(--text-muted);">& '+d.coDriver+'</span>' : d.tech}</td>
+      <td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">${d.zone}</span></td>
+      <td>${d.departureTime}</td>
+      <td style="max-width:200px;">${d.goals || '--'}</td>
+      <td><button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openVanActionModal('${d.rentalId}')">Manage</button></td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted); font-weight:600;">No active deployments on route.</td></tr>';
 
-    // Render Fleet Roster
-    const q = document.getElementById('classic-fleet-search') ? document.getElementById('classic-fleet-search').value.toLowerCase() : '';
-    let fleetHtml = '';
+    const q = document.getElementById('cls-search').value.toLowerCase();
+    let fHtml = '';
     globalState.vehicles.forEach(v => {
       if(v.status === 'Decommissioned') return;
       if(q && !v.cleanName.toLowerCase().includes(q) && !v.plate.toLowerCase().includes(q) && !v.rentalId.toLowerCase().includes(q)) return;
       
-      let bClass = v.status==='Warehouse (Ready)' ? 'badge-ready' : (v.status==='Dispatched' ? 'badge-active' : 'badge-oos');
+      let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : 
+              (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 
+              'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
       
-      fleetHtml += `<tr>
-        <td><strong>${v.cleanName}</strong></td>
-        <td>${v.rentalId}</td>
-        <td><span class="status-badge ${bClass}">${v.status}</span></td>
-        <td>${v.plate}</td>
-        <td style="font-family:monospace; color:var(--text-muted);">${v.samsaraSerial}</td>
-        <td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Action</button></td>
+      fHtml += `<tr>
+        <td><strong>${v.cleanName}</strong></td><td style="color:var(--text-muted); font-size:12px;">${v.rentalId}</td>
+        <td><span class="cls-badge" style="${bc}">${v.status}</span></td>
+        <td>${v.plate}</td><td style="color:var(--text-muted); font-family:monospace;">${v.samsaraSerial}</td>
+        <td><button class="btn btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Action</button></td>
       </tr>`;
     });
-    document.getElementById('classic-fleet-tbody').innerHTML = fleetHtml;
+    document.getElementById('cls-fleet-body').innerHTML = fHtml;
   }
 </script>
