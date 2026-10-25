@@ -14,7 +14,6 @@
   };
 
   /* --- APP SHELL ROUTING --- */
-  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
   function toggleTheme() {
     const s = document.getElementById('theme-selector');
     s.value = s.value === 'dark' ? 'light' : 'dark';
@@ -27,23 +26,24 @@
   }
 
   function switchTab(t) {
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
     event.currentTarget.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById('tab-'+t).classList.add('active');
     
-    const titles = { 'dispatch':'Dispatch Board', 'fleet':'Fleet Registry', 'techs':'Tech Profiles', 'history':'Shift History' };
-    document.getElementById('page-title').innerText = titles[t];
     if(globalState) refreshActiveViews();
   }
 
   function changeLayout() {
-    document.getElementById('layout-command').style.display = 'none';
-    document.getElementById('layout-classic').style.display = 'none';
-    document.getElementById('layout-modern').style.display = 'none';
+    // Bulletproof layout hider - will not crash if a layout doesn't exist
+    ['classic', 'modern', 'focus'].forEach(id => {
+      const el = document.getElementById('layout-' + id);
+      if(el) el.style.display = 'none';
+    });
     
     const layoutType = document.getElementById('layout-selector').value;
-    document.getElementById(`layout-${layoutType}`).style.display = 'block';
+    const target = document.getElementById(`layout-${layoutType}`);
+    if(target) target.style.display = 'block';
     
     if(globalState) refreshActiveViews();
   }
@@ -61,13 +61,11 @@
   function refreshActiveViews() {
     if(!globalState) return;
     
-    // 1. Route to Active Dispatch Layout
     const layoutType = document.getElementById('layout-selector').value;
     if (layoutType === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
     if (layoutType === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
     if (layoutType === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
     
-    // 2. Render standard tabs
     renderFleetGrid();
     renderTechGrid();
     renderHistoryTab();
@@ -124,7 +122,7 @@
     let deps = globalState.deployments.filter(d => d.date === dateVal && d.shift === shiftVal);
     let html = '';
     if (deps.length === 0) {
-      html = '<tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">No deployment records found for this date and shift.</td></tr>';
+      html = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">No deployment records found for this date and shift.</td></tr>';
     } else {
       deps.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
       deps.forEach(d => {
@@ -141,7 +139,7 @@
           <td><span style="font-size:10px; background:var(--bg-panel); border:1px solid var(--border-color); padding:4px 8px; border-radius:4px;">${d.shift}</span></td>
           <td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td>
           <td>${techs}</td>
-          <td><span class="status-badge badge-active">${d.zone}</span></td>
+          <td><span class="zone-badge">${d.zone}</span></td>
           <td style="max-width:200px; white-space:normal;">${goalText}</td>
           <td>${d.departureTime}</td>
           <td style="${sClass}">${d.status}</td>
@@ -356,7 +354,11 @@
     if(p.triggerOos) {
       const timeString = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-      if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Out of Service'; globalState.vehicles[vIdx].zone = '—'; globalState.vehicles[vIdx].driver = '—'; }
+      if(vIdx > -1) { 
+          globalState.vehicles[vIdx].status = 'Out of Service'; 
+          globalState.vehicles[vIdx].zone = '—'; 
+          globalState.vehicles[vIdx].driver = '—'; 
+      }
       const dIdx = globalState.deployments.findIndex(d => d.rentalId === p.rentalId && d.status === 'Dispatched');
       if (dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = timeString; }
       
@@ -371,8 +373,15 @@
     const sel = document.getElementById('ci_van');
     const p = { cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', resolutionNotes: document.getElementById('ci_notes').value };
     closeModal('checkInModal');
+    
+    // Optimistic Wipe!
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-    if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; globalState.vehicles[vIdx].notes = ''; }
+    if(vIdx > -1) { 
+        globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; 
+        globalState.vehicles[vIdx].notes = ''; 
+        globalState.vehicles[vIdx].driver = '—'; // INSTANT CLEAR
+        globalState.vehicles[vIdx].zone = '—';   // INSTANT CLEAR
+    }
     
     populateModals(); refreshActiveViews();
     document.getElementById('global-loader').style.display='block';
@@ -466,9 +475,18 @@
   function endShift(depId, rentId) {
     if(!confirm("End shift?")) return;
     const dIdx = globalState.deployments.findIndex(d=>d.id===depId);
-    if(dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+    if(dIdx > -1) { 
+        globalState.deployments[dIdx].status = 'Completed'; 
+        globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); 
+    }
+    
+    // Optimistic Wipe!
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===rentId);
-    if(vIdx > -1) globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
+    if(vIdx > -1) {
+        globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
+        globalState.vehicles[vIdx].driver = '—'; // INSTANT CLEAR
+        globalState.vehicles[vIdx].zone = '—';   // INSTANT CLEAR
+    }
     
     populateModals(); refreshActiveViews();
     document.getElementById('global-loader').style.display='block';
