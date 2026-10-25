@@ -35,7 +35,7 @@ function getDashboardState() {
         cleanName: cleanName, rentalId: rentalId, agency: String(r[2] || ''), makeModel: String(r[3] || ''), 
         vin: String(r[4] || ''), plate: String(r[5] || ''), 
         plateExpDate: (r[6] instanceof Date) ? Utilities.formatDate(r[6], tz, 'yyyy-MM-dd') : String(r[6] || '—'),
-        samsaraSerial: String(r[7] || ''), status: String(r[8] || 'Warehouse').trim(),
+        samsaraSerial: String(r[7] || ''), status: String(r[8] || 'Warehouse (Ready)').trim(),
         pickupDate: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || '—'),
         zone: String(r[11] || '—'), driver: String(r[12] || '—'),
         lastService: (r[13] instanceof Date) ? Utilities.formatDate(r[13], tz, 'yyyy-MM-dd') : '—',

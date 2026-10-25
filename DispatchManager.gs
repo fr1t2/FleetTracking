@@ -40,7 +40,7 @@ function processDispatchCheckout(data) {
         if (depRental !== targetRental) {
           for (let k = 1; k < vData.length; k++) {
             if (String(vData[k][1]).trim().toLowerCase() === depRental) {
-              vehicleSheet.getRange(k + 1, 9).setValue('Warehouse');
+              vehicleSheet.getRange(k + 1, 9).setValue('Warehouse (Ready)');
               vehicleSheet.getRange(k + 1, 12).clearContent();
               vehicleSheet.getRange(k + 1, 13).clearContent();
               break;
@@ -110,7 +110,7 @@ function endShift(deploymentId, rentalId) {
   const vRows = vSheet.getDataRange().getValues();
   for (let j = 1; j < vRows.length; j++) {
     if (String(vRows[j][1]).trim().toLowerCase() === String(rentalId).trim().toLowerCase()) {
-      vSheet.getRange(j + 1, 9).setValue('Warehouse');
+      vSheet.getRange(j + 1, 9).setValue('Warehouse (Ready)');
       vSheet.getRange(j + 1, 12).clearContent(); // CLEAR ZONE
       vSheet.getRange(j + 1, 13).clearContent(); // CLEAR TECH
       break;
