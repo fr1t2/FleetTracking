@@ -73,7 +73,7 @@ function processCheckInVehicle(data) {
     if (String(vData[i][1]).trim() === String(data.rentalId).trim() ||
         String(vData[i][0]).trim() === String(data.cleanName).trim()) {
       const row = i + 1;
-      vSheet.getRange(row, 9).setValue('Active');  // Col I: back to Active
+      vSheet.getRange(row, 9).setValue('Warehouse (Ready)');  // Col I: back to Active
       vSheet.getRange(row, 14).setValue(now);     // Col N: Last Service Date
       const curNotes = vSheet.getRange(row, 15).getValue();
       vSheet.getRange(row, 15).setValue((curNotes ? curNotes + ' | ' : '') + `[Returned to Service: ${data.resolutionNotes}]`); vSheet.getRange(row, 16).setValue(user); vSheet.getRange(row, 17).setValue(now); vehicleFound = true; break; } }  if (!vehicleFound) throw new Error(`Vehicle ${data.cleanName} not found.`);
