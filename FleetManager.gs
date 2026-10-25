@@ -97,27 +97,33 @@ function processCheckInVehicle(data) {
   const vData = vSheet.getDataRange().getValues();
   for (let i = 1; i < vData.length; i++) {
     if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
-      vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)');
+      vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)'); // Set Status to Ready
       vSheet.getRange(i + 1, 12).clearContent(); // CLEAR ZONE
       vSheet.getRange(i + 1, 13).clearContent(); // CLEAR TECH
+      vSheet.getRange(i + 1, 15).clearContent(); // CLEAR OOS NOTES
       vSheet.getRange(i + 1, 16).setValue(user);
       vSheet.getRange(i + 1, 17).setValue(now);
       break;
     }
   }
 
+  // If an open incident ticket was found, resolve it!
   if (data.incidentId) {
     const iSheet = ss.getSheetByName('Incidents_Service');
     const iData = iSheet.getDataRange().getValues();
     for (let j = 1; j < iData.length; j++) {
       if (String(iData[j][0]).trim() === data.incidentId) {
         iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes);
-        iSheet.getRange(j + 1, 10).setValue(now);
-        iSheet.getRange(j + 1, 11).setValue(user);
+        iSheet.getRange(j + 1, 10).setValue(now); // Set Date Resolved
+        iSheet.getRange(j + 1, 11).setValue(user); // Set Resolved By
         break;
       }
     }
   }
+  
+  // Log it to the audit trail
+  logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId, 'Repaired and returned to Warehouse');
+  
   return { success: true, message: 'Van is back in the Warehouse.' };
 }
 
