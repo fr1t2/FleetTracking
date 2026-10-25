@@ -1,0 +1,113 @@
+<style>
+  .modern-container { padding: 24px; max-width: 1600px; margin: 0 auto; width: 100%; height: 100%; overflow-y: auto; background: var(--bg-main); }
+  .modern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+  
+  .modern-widget { background: var(--bg-surface); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 16px; border: 1px solid var(--border-color); }
+  .modern-widget-header { display: flex; justify-content: space-between; align-items: center; }
+  .modern-widget-title { font-size: 18px; font-weight: 800; color: var(--text-main); }
+  .modern-stat { font-size: 42px; font-weight: 900; color: var(--veo-cyan); line-height: 1; margin: 10px 0; }
+  
+  .modern-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 500px; padding-right: 8px; }
+  .modern-item { background: var(--bg-panel); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); cursor: pointer; transition: 0.2s; }
+  .modern-item:hover { border-color: var(--veo-cyan); transform: translateY(-2px); box-shadow: var(--shadow); }
+  
+  .modern-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--veo-cyan-dark); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0; }
+</style>
+
+<div class="modern-container">
+  
+  <!-- KPI Widgets (Top Row) -->
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:24px; margin-bottom:24px;">
+    <div class="modern-widget" style="align-items:center; justify-content:center; text-align:center;">
+      <div class="modern-widget-title" style="color:var(--status-ready);">Ready to Deploy</div>
+      <div class="modern-stat" id="mod-stat-ready" style="color:var(--status-ready);">0</div>
+    </div>
+    <div class="modern-widget" style="align-items:center; justify-content:center; text-align:center;">
+      <div class="modern-widget-title" style="color:var(--status-active);">Active on Route</div>
+      <div class="modern-stat" id="mod-stat-active" style="color:var(--status-active);">0</div>
+    </div>
+    <div class="modern-widget" style="align-items:center; justify-content:center; text-align:center;">
+      <div class="modern-widget-title" style="color:var(--status-oos);">Out of Service</div>
+      <div class="modern-stat" id="mod-stat-oos" style="color:var(--status-oos);">0</div>
+    </div>
+  </div>
+
+  <!-- Masonry Widget Grid (Bottom Row) -->
+  <div class="modern-grid">
+    <!-- Live Tracking Widget -->
+    <div class="modern-widget">
+      <div class="modern-widget-header">
+        <div class="modern-widget-title">Live Tracking</div>
+      </div>
+      <div class="modern-list" id="mod-live-list"></div>
+    </div>
+
+    <!-- Quick Dispatch Widget -->
+    <div class="modern-widget" style="border-color:var(--status-ready);">
+      <div class="modern-widget-header">
+        <div class="modern-widget-title" style="color:var(--status-ready);">Available Fleet</div>
+      </div>
+      <div class="modern-list" id="mod-ready-list"></div>
+    </div>
+
+    <!-- Alerts / OOS Widget -->
+    <div class="modern-widget" style="border-color:var(--status-oos);">
+      <div class="modern-widget-header">
+        <div class="modern-widget-title" style="color:var(--status-oos);">Attention Required</div>
+      </div>
+      <div class="modern-list" id="mod-oos-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function renderModernWidgets() {
+    if(!globalState) return;
+    
+    const ready = globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)');
+    const active = globalState.deployments.filter(d => d.status === 'Dispatched');
+    const oos = globalState.vehicles.filter(v => v.status === 'Out of Service');
+    
+    document.getElementById('mod-stat-ready').innerText = ready.length;
+    document.getElementById('mod-stat-active').innerText = active.length;
+    document.getElementById('mod-stat-oos').innerText = oos.length;
+    
+    // Live Tracking List
+    let liveHtml = '';
+    if(active.length === 0) liveHtml = '<div style="color:var(--text-muted); text-align:center; padding:20px;">No active routes.</div>';
+    active.forEach(d => {
+      let init = d.tech.charAt(0).toUpperCase();
+      let tech = d.coDriver ? `${d.tech} & ${d.coDriver}` : d.tech;
+      liveHtml += `<div class="modern-item" onclick="openVanActionModal('${d.rentalId}')">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div class="modern-avatar">${init}</div>
+          <div><div style="font-weight:800;">${tech}</div><div style="font-size:12px; color:var(--text-muted);">${d.vehicle} &bull; ${d.zone}</div></div>
+        </div>
+        <div style="font-weight:700; color:var(--veo-cyan-dark); font-size:13px; text-align:right;">Out:<br>${d.departureTime}</div>
+      </div>`;
+    });
+    document.getElementById('mod-live-list').innerHTML = liveHtml;
+
+    // Ready List
+    let readyHtml = '';
+    if(ready.length === 0) readyHtml = '<div style="color:var(--text-muted); text-align:center; padding:20px;">No vehicles available.</div>';
+    ready.forEach(v => {
+      readyHtml += `<div class="modern-item" style="border-left:4px solid var(--status-ready);" onclick="openVanActionModal('${v.rentalId}')">
+        <div><div style="font-weight:800;">${v.cleanName}</div><div style="font-size:12px; color:var(--text-muted);">${v.plate}</div></div>
+        <button class="btn btn-primary" style="font-size:10px; padding:6px 10px;" onclick="event.stopPropagation(); prefillDispatchVan('${v.cleanName}')">DEPLOY</button>
+      </div>`;
+    });
+    document.getElementById('mod-ready-list').innerHTML = readyHtml;
+    
+    // OOS List
+    let oosHtml = '';
+    if(oos.length === 0) oosHtml = '<div style="color:var(--status-ready); text-align:center; padding:20px; font-weight:700;">No vehicles out of service!</div>';
+    oos.forEach(v => {
+      oosHtml += `<div class="modern-item" style="border-left:4px solid var(--status-oos);" onclick="openVanActionModal('${v.rentalId}')">
+        <div><div style="font-weight:800;">${v.cleanName}</div><div style="font-size:12px; color:var(--status-oos); font-weight:600;">${v.notes || 'Awaiting Repair'}</div></div>
+        <button class="btn btn-outline" style="font-size:10px; padding:6px 10px;" onclick="event.stopPropagation(); prefillCheckInVan('${v.cleanName}')">FIX</button>
+      </div>`;
+    });
+    document.getElementById('mod-oos-list').innerHTML = oosHtml;
+  }
+</script>
