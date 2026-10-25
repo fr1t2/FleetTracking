@@ -123,3 +123,10 @@ function getDashboardState() {
 
   return { config: cfg, counts: counts, vehicles: vehicles, deployments: deployments };
 }
+
+/**
+ * Helper function to include modular HTML files into the main Dashboard_App
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
