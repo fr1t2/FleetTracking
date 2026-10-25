@@ -73,36 +73,67 @@
     const selector = document.getElementById('layout-selector');
     const layoutType = selector ? selector.value : 'modern';
     
+    // Route main dispatch board
     if (layoutType === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
     if (layoutType === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
     if (layoutType === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
     
-    if(typeof renderFleetGrid === 'function') renderFleetGrid();
-    if(typeof renderTechGrid === 'function') renderTechGrid();
-    if(typeof renderHistoryTab === 'function') renderHistoryTab();
+    // Render tabs using the layout-aware functions below
+    renderFleetGrid();
+    renderTechGrid();
+    renderHistoryTab();
   }
 
-  /* --- SECONDARY TABS RENDERING --- */
+  /* --- SECONDARY TABS RENDERING (LAYOUT AWARE) --- */
+  
   function renderFleetGrid() {
     const container = document.getElementById('fleet-card-grid');
     if(!container) return;
     const searchEl = document.getElementById('fleet-search');
     const q = searchEl ? searchEl.value.toLowerCase() : '';
+    const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     
+    let vans = globalState.vehicles.filter(v => v.status !== 'Decommissioned' && (!q || v.cleanName.toLowerCase().includes(q) || v.plate.toLowerCase().includes(q)));
     let html = '';
-    globalState.vehicles.forEach(v => {
-      if(v.status === 'Decommissioned') return;
-      if(q && !v.cleanName.toLowerCase().includes(q) && !v.plate.toLowerCase().includes(q)) return;
-      
-      let sClass = v.status==='Warehouse (Ready)' ? 'ready' : (v.status==='Dispatched' ? 'active' : 'oos');
-      let icon = v.status==='Warehouse (Ready)' ? '🟢 Ready' : (v.status==='Dispatched' ? '🚙 Dispatched' : '🚨 OOS');
 
-      html += `<div class="k-card ${sClass}" onclick="openVanActionModal('${v.rentalId}')">
-        <div class="k-title">${v.cleanName} <span class="zone-badge" style="background:transparent; color:inherit; border:1px solid currentColor;">${icon}</span></div>
-        <div class="k-sub">${v.rentalId} &bull; ${v.makeModel}</div>
-        <div class="k-detail" style="color:var(--text-muted); font-size:11px;">Plate: ${v.plate} | Samsara: ${v.samsaraSerial}</div>
-      </div>`;
-    });
+    if (layout === 'classic') {
+      html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>`;
+      vans.forEach(v => {
+        let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
+        html += `<tr>
+          <td><strong>${v.cleanName}</strong></td><td>${v.rentalId}</td>
+          <td><span class="cls-badge" style="${bc}">${v.status}</span></td>
+          <td>${v.plate}</td>
+          <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Manage</button></td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    } 
+    else if (layout === 'focus') {
+      html += `<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">`;
+      vans.forEach(v => {
+        let bc = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
+        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal('${v.rentalId}')">
+          <div class="foc-card-top">
+            <div><div class="foc-title">${v.cleanName}</div><div class="foc-sub">${v.rentalId} &bull; Plate: ${v.plate}</div></div>
+          </div>
+          <div style="font-weight:800; color:${bc}; font-size:11px; margin-top:8px;">${v.status.toUpperCase()}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    } 
+    else { // modern
+      html += `<div class="mod-sq-grid">`;
+      vans.forEach(v => {
+        let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
+        let color = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
+        html += `<div class="mod-sq-card ${bClass}" onclick="openVanActionModal('${v.rentalId}')">
+          <div><div class="sq-title">${v.cleanName}</div><div class="sq-sub">${v.rentalId}<br>${v.plate}</div></div>
+          <div class="sq-footer" style="color:${color};">${v.status.toUpperCase()}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
     container.innerHTML = html;
   }
 
@@ -111,58 +142,132 @@
     if(!container) return;
     const searchEl = document.getElementById('tech-search');
     const q = searchEl ? searchEl.value.toLowerCase() : '';
+    const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     
+    let techs = (globalState.config.techRoster || []).filter(t => !q || t.toLowerCase().includes(q));
     let html = '';
-    (globalState.config.techRoster || []).forEach(t => {
-      if(q && !t.toLowerCase().includes(q)) return;
-      
-      const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
-      const statusStr = activeDep ? `🚙 On Route in ${activeDep.vehicle}` : `⚪ Available in Warehouse`;
-      const sClass = activeDep ? 'active' : 'ready';
 
-      html += `<div class="k-card ${sClass}" onclick="openTechActionModal('${t}')">
-        <div class="k-title">${t}</div>
-        <div class="k-sub">${statusStr}</div>
-      </div>`;
-    });
+    if (layout === 'classic') {
+      html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Current Status</th><th>Assignment</th><th>Actions</th></tr></thead><tbody>`;
+      techs.forEach(t => {
+        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
+        const statusStr = activeDep ? `Dispatched` : `Available`;
+        const bc = activeDep ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);';
+        html += `<tr>
+          <td><strong>${t}</strong></td>
+          <td><span class="cls-badge" style="${bc}">${statusStr}</span></td>
+          <td>${activeDep ? activeDep.vehicle + ' (' + activeDep.zone + ')' : '--'}</td>
+          <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal('${t}')">Profile</button></td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    } 
+    else if (layout === 'focus') {
+      html += `<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">`;
+      techs.forEach(t => {
+        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
+        let bc = activeDep ? 'var(--veo-cyan)' : 'var(--success)';
+        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openTechActionModal('${t}')">
+          <div class="foc-card-top">
+            <div><div class="foc-title">${t}</div><div class="foc-sub">${activeDep ? 'On Route' : 'Ready'}</div></div>
+          </div>
+          <div style="font-weight:700; color:var(--text-muted); font-size:12px; margin-top:8px;">${activeDep ? '📍 ' + activeDep.zone : 'Warehouse'}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    } 
+    else { // modern
+      html += `<div class="mod-sq-grid">`;
+      techs.forEach(t => {
+        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
+        let bClass = activeDep ? 'st-active' : 'st-ready';
+        let color = activeDep ? 'var(--veo-cyan-dark)' : 'var(--success)';
+        let splitName = t.split(' ');
+        html += `<div class="mod-sq-card ${bClass}" onclick="openTechActionModal('${t}')">
+          <div><div class="sq-title">${splitName[0]}</div><div class="sq-sub">${splitName.slice(1).join(' ')}</div></div>
+          <div class="sq-footer" style="color:${color};">${activeDep ? 'DISPATCHED' : 'AVAILABLE'}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
     container.innerHTML = html;
   }
 
   function renderHistoryTab() {
     const container = document.getElementById('history-table-body');
     if(!container) return;
-    
-    const dateEl = document.getElementById('hist-date');
-    const shiftEl = document.getElementById('hist-shift');
-    const dateVal = dateEl ? dateEl.value : '';
-    const shiftVal = shiftEl ? shiftEl.value : '';
+    const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
+    const dateVal = document.getElementById('hist-date').value;
+    const shiftVal = document.getElementById('hist-shift').value;
     
     let deps = globalState.deployments.filter(d => d.date === dateVal && d.shift === shiftVal);
+    deps.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
     let html = '';
+
     if (deps.length === 0) {
-      html = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">No deployment records found for this date and shift.</td></tr>';
-    } else {
-      deps.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
+      html = '<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600; width:100%;">No deployment records found for this date and shift.</div>';
+    } 
+    else if (layout === 'classic') {
+      html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Goals</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead><tbody>`;
       deps.forEach(d => {
         let techs = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:var(--text-muted);">+ ${d.coDriver}</span>` : d.tech;
         let isDone = d.status === 'Completed';
         let sClass = isDone ? 'color:var(--success); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;';
-        
-        let goalText = '';
-        if (d.goals) goalText += `<div style="font-weight:600;">${d.goals}</div>`;
-        if (d.target) goalText += `<div style="font-size:11px; color:var(--text-muted);">Target: ${d.target}</div>`;
-        if (!goalText) goalText = '—';
-
         html += `<tr>
-          <td><span style="font-size:10px; background:var(--bg-panel); border:1px solid var(--border-color); padding:4px 8px; border-radius:4px;">${d.shift}</span></td>
           <td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td>
           <td>${techs}</td>
-          <td><span class="zone-badge">${d.zone}</span></td>
-          <td style="max-width:200px; white-space:normal;">${goalText}</td>
+          <td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">${d.zone}</span></td>
+          <td style="max-width:200px; white-space:normal;">${d.goals || '--'}</td>
           <td>${d.departureTime}</td>
+          <td>${d.returnTime || '--'}</td>
           <td style="${sClass}">${d.status}</td>
         </tr>`;
       });
+      html += `</tbody></table></div>`;
+    } 
+    else if (layout === 'focus') {
+      html += `<div style="display:flex; flex-direction:column; gap:12px; width:100%;">`;
+      deps.forEach(d => {
+        let bc = d.status === 'Completed' ? 'var(--success)' : 'var(--veo-cyan)';
+        html += `<div class="foc-card" style="border-left-color:${bc}; flex-direction:row; align-items:center; justify-content:space-between; padding:16px 24px;">
+          <div style="flex:1;">
+            <div class="foc-title">${d.vehicle}</div>
+            <div class="foc-sub">${d.coDriver ? d.tech + ' & ' + d.coDriver : d.tech}</div>
+          </div>
+          <div style="flex:1; text-align:center;">
+            <div style="font-weight:900; font-size:14px; color:var(--text-main);">${d.zone}</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${d.goals || 'No Goals'}</div>
+          </div>
+          <div style="flex:1; text-align:right;">
+            <div style="font-size:12px; font-weight:800; color:${bc};">${d.status.toUpperCase()}</div>
+            <div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-top:4px;">Out: ${d.departureTime} ${d.returnTime ? '| In: ' + d.returnTime : ''}</div>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    } 
+    else { // modern
+      html += `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px;">`;
+      deps.forEach(d => {
+        let color = d.status === 'Completed' ? 'var(--success)' : 'var(--veo-cyan-dark)';
+        html += `<div class="mod-widget" style="border-top:4px solid ${color}; padding:20px; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div style="font-weight:900; font-size:18px;">${d.vehicle}</div>
+              <div style="font-size:13px; color:var(--text-muted); font-weight:600; margin-top:2px;">👤 ${d.coDriver ? d.tech + ' & ' + d.coDriver : d.tech}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; font-weight:800; color:${color};">${d.status.toUpperCase()}</div>
+              <div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-top:4px;">Out: ${d.departureTime}</div>
+            </div>
+          </div>
+          <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color); margin-top:8px;">
+             <div style="font-size:12px; font-weight:800; color:var(--veo-cyan-dark); text-transform:uppercase;">${d.zone}</div>
+             <div style="font-size:13px; color:var(--text-main); margin-top:4px;">${d.goals || 'No goals specified.'}</div>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
     }
     container.innerHTML = html;
   }
@@ -211,21 +316,17 @@
     const title = document.getElementById('va_title');
     if(title) title.innerText = `${v.cleanName} Profile`;
 
-    // Calculate dynamic telemetry
     const pastDeps = (globalState.deployments || []).filter(d => d.rentalId === rentalId && d.status === 'Completed');
     const lastDep = pastDeps.length > 0 ? pastDeps[0] : null; 
     const lastDriver = lastDep ? lastDep.tech : 'None';
     const lastZone = lastDep ? lastDep.zone : 'None';
-    
     const vIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
     
-    // Mock Coast integration check based on addons string
     let coastEnabled = 'Yes';
     if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
     
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
     
-    // Status Banner
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
       <div style="font-size:18px; font-weight:900;">${v.status.toUpperCase()}</div>
@@ -233,7 +334,6 @@
       <div style="color:var(--danger); font-weight:600; font-size:13px; margin-top:6px;">${v.notes || ''}</div>
     </div>`;
     
-    // Quick Stats Grid
     html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
       <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
         <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Driver</div>
@@ -253,7 +353,6 @@
       </div>
     </div>`;
     
-    // Primary Actions
     html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
     html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
     if (v.status === 'Warehouse (Ready)') {
@@ -271,13 +370,11 @@
     }
     html += `</div>`;
 
-    // Secondary Actions / Detail Modals
     html += `<div style="display:flex; gap:10px; margin-top:8px;">
       <button class="btn btn-outline" style="flex:1; font-size:11px;" onclick="closeModal('vanActionModal'); openEditVehicleModal('${v.rentalId}')">⚙️ Edit Specs / Addons</button>
       <button class="btn btn-outline" style="flex:1; font-size:11px; color:var(--text-muted);" onclick="const e = document.getElementById('van-service-history'); e.style.display = e.style.display==='none' ? 'block' : 'none';">🛠️ Toggle Service Log</button>
     </div>`;
 
-    // Collapsible Service History
     html += `<div id="van-service-history" style="display:none; margin-top:12px; background:var(--bg-main); border-radius:8px; padding:12px; border:1px solid var(--border-color); max-height:200px; overflow-y:auto;">
       <div style="font-size:12px; text-transform:uppercase; font-weight:800; margin-bottom:12px;">Recorded Service History</div>`;
     
@@ -308,7 +405,7 @@
   function openTechActionModal(techName) {
     const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === techName || d.coDriver === techName));
     const allDeps = globalState.deployments.filter(d => d.tech === techName || d.coDriver === techName);
-    allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || '')); // Newest first
+    allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
 
     const title = document.getElementById('ta_title');
     if(title) title.innerText = techName;
@@ -351,7 +448,6 @@
     const cfg = globalState.config || {};
     const techRoster = cfg.techRoster || [];
     
-    // Tech Dropdowns
     let rOpts = '<option value="">-- Select --</option>' + techRoster.map(r=>`<option value="${r}">${r}</option>`).join('');
     if(document.getElementById('dp_tech')) document.getElementById('dp_tech').innerHTML = rOpts; 
     if(document.getElementById('dp_codriver')) document.getElementById('dp_codriver').innerHTML = rOpts;
@@ -359,7 +455,6 @@
     let dlOpts = techRoster.map(r=>`<option value="${r}">`).join('');
     if(document.getElementById('tech-dl')) document.getElementById('tech-dl').innerHTML = dlOpts;
 
-    // Van Dropdowns
     const vans = globalState.vehicles || [];
     
     let vOpts = '<option value="">-- Ready or In-Use Vans --</option>' + vans.filter(v=>v.status==='Warehouse (Ready)' || v.status==='Dispatched').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.status === 'Dispatched' ? 'In Use' : 'Ready'})</option>`).join('');
@@ -373,7 +468,6 @@
     let decOpts = '<option value="">-- Select Van --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
     if(document.getElementById('dec_van')) document.getElementById('dec_van').innerHTML = decOpts;
 
-    // Shift & Zone Dropdowns
     const shifts = cfg.shifts || [];
     let sOpts = shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
     if(document.getElementById('dp_shift')) document.getElementById('dp_shift').innerHTML = sOpts;
@@ -412,7 +506,6 @@
     const inputEl = document.getElementById('roster-input');
     const btn = document.getElementById('roster-action-btn');
     if(!inputEl || !btn) return;
-    
     const val = inputEl.value.trim().toLowerCase();
     const isEx = (globalState.config.techRoster || []).some(r => r.toLowerCase() === val);
     btn.innerText = (val && isEx) ? 'Remove' : 'Add';
@@ -424,7 +517,6 @@
     if(!inputEl) return;
     const val = inputEl.value.trim();
     if(!val) return;
-    
     if((globalState.config.techRoster || []).some(r => r.toLowerCase() === val.toLowerCase())) removeRoster(val);
     else addRoster(val);
   }
@@ -456,7 +548,6 @@
     closeModal('addVehicleModal');
     globalState.vehicles.push({ cleanName: p.vanName, rentalId: p.rentalId, status: 'Warehouse (Ready)', makeModel: p.makeModel, plate: p.licensePlate, pickupDate: new Date().toISOString().split('T')[0], samsaraSerial: p.samsaraSerial, addons: p.addons });
     populateModals(); refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processAddVehicle(p);
@@ -486,7 +577,6 @@
       globalState.vehicles[vIdx].addons = p.addons;
     }
     refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).updateVehicleDetails(p);
@@ -511,10 +601,8 @@
       }
       const dIdx = globalState.deployments.findIndex(d => d.rentalId === p.rentalId && d.status === 'Dispatched');
       if (dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = timeString; }
-      
       populateModals(); refreshActiveViews();
     }
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
@@ -525,7 +613,6 @@
     const sel = document.getElementById('ci_van');
     const p = { cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', resolutionNotes: document.getElementById('ci_notes').value };
     closeModal('checkInModal');
-    
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) { 
         globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; 
@@ -533,9 +620,7 @@
         globalState.vehicles[vIdx].driver = '—'; 
         globalState.vehicles[vIdx].zone = '—';   
     }
-    
     populateModals(); refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processCheckInVehicle(p);
@@ -548,9 +633,7 @@
     closeModal('decomModal');
     const vIdx = globalState.vehicles.findIndex(v=>v.cleanName===targetId);
     if(vIdx > -1) globalState.vehicles[vIdx].status = 'Decommissioned';
-    
     populateModals(); refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).decommissionVehicle(targetId, reason);
@@ -603,7 +686,6 @@
     if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? `${p.assignedTech} & ${p.coDriver}` : p.assignedTech; }
 
     populateModals(); refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
@@ -625,7 +707,6 @@
     if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
     
     refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).updateDeploymentRecord(p);
@@ -638,16 +719,13 @@
         globalState.deployments[dIdx].status = 'Completed'; 
         globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); 
     }
-    
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===rentId);
     if(vIdx > -1) {
         globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
         globalState.vehicles[vIdx].driver = '—'; 
         globalState.vehicles[vIdx].zone = '—';   
     }
-    
     populateModals(); refreshActiveViews();
-    
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).endShift(depId, rentId);
