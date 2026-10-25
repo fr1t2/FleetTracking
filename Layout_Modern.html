@@ -1,35 +1,101 @@
 <style>
   .mod-wrap { padding: 24px; height: 100%; overflow-y: auto; background: var(--bg-main); }
-  .mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; max-width: 1600px; margin: 0 auto; }
   
-  .mod-widget { background: var(--bg-surface); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border-color); display:flex; flex-direction:column; gap:16px;}
-  .mod-head { font-size: 18px; font-weight: 800; color: var(--text-main); display:flex; justify-content:space-between; align-items:center; }
-  .mod-kpi { font-size: 52px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+  /* KPI Row */
+  .mod-kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px; max-width: 1600px; margin-left: auto; margin-right: auto; }
+  .mod-kpi-card { background: var(--bg-surface); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); text-align: center; }
+  .mod-kpi-val { font-size: 36px; font-weight: 900; line-height: 1; margin-top: 8px; }
+
+  /* 2-Block Layout Grid */
+  .mod-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1600px; margin: 0 auto; }
+  .mod-panel { background: var(--bg-surface); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 16px; }
+  .mod-panel-full { grid-column: 1 / -1; }
   
-  .mod-list { display:flex; flex-direction:column; gap:12px; max-height:450px; overflow-y:auto; padding-right:8px; }
-  .mod-item { background: var(--bg-panel); border-radius: 12px; padding: 16px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border-color); cursor:pointer; transition:0.15s; }
-  .mod-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--veo-cyan); }
+  .mod-head { font-size: 18px; font-weight: 800; color: var(--text-main); display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; }
+  
+  /* Drag and Drop Zones */
+  .mod-drop-zone { flex: 1; min-height: 200px; padding: 10px; border: 2px dashed transparent; border-radius: 12px; transition: 0.2s; align-content: flex-start; }
+  .mod-drop-zone.drag-over { border-color: var(--veo-cyan); background: rgba(0, 229, 255, 0.05); }
+
+  /* Square Card Grid */
+  .mod-sq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+  
+  /* Square Draggable Cards */
+  .mod-sq-card { aspect-ratio: 1; background: var(--bg-panel); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border-color); cursor: grab; transition: 0.15s; border-top: 4px solid transparent; }
+  .mod-sq-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--veo-cyan); }
+  .mod-sq-card:active { cursor: grabbing; opacity: 0.8; transform: scale(0.95); }
+
+  .mod-sq-card.st-ready { border-top-color: var(--success); }
+  .mod-sq-card.st-active { border-top-color: var(--veo-cyan); }
+  .mod-sq-card.st-oos { border-top-color: var(--danger); }
+
+  .sq-title { font-weight: 900; font-size: 15px; text-align: center; color: var(--text-main); }
+  .sq-sub { font-size: 11px; color: var(--text-muted); text-align: center; font-weight: 600; line-height: 1.3; margin-top: 4px;}
+  .sq-footer { font-size: 10px; font-weight: 800; text-align: center; padding-top: 8px; border-top: 1px solid var(--border-color); letter-spacing: 0.5px;}
 </style>
 
 <div class="mod-wrap">
-  <div class="mod-grid">
-    <!-- Active Route Widget -->
-    <div class="mod-widget" style="border-top: 4px solid var(--veo-cyan);">
-      <div class="mod-head"><span>Live Routes</span><span class="mod-kpi" id="mod-kpi-act" style="color:var(--veo-cyan);">0</span></div>
-      <div class="mod-list" id="mod-list-act"></div>
+  
+  <!-- KPI Banners -->
+  <div class="mod-kpi-row">
+    <div class="mod-kpi-card" style="border-bottom: 4px solid var(--success);">
+      <div style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Ready to Deploy</div>
+      <div class="mod-kpi-val" id="mod-kpi-rdy" style="color:var(--success);">0</div>
     </div>
+    <div class="mod-kpi-card" style="border-bottom: 4px solid var(--veo-cyan);">
+      <div style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Active on Route</div>
+      <div class="mod-kpi-val" id="mod-kpi-act" style="color:var(--veo-cyan-dark);">0</div>
+    </div>
+    <div class="mod-kpi-card" style="border-bottom: 4px solid var(--danger);">
+      <div style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Out of Service</div>
+      <div class="mod-kpi-val" id="mod-kpi-oos" style="color:var(--danger);">0</div>
+    </div>
+  </div>
+
+  <div class="mod-layout">
     
-    <!-- Ready Fleet Widget -->
-    <div class="mod-widget" style="border-top: 4px solid var(--success);">
-      <div class="mod-head"><span>Ready Fleet</span><span class="mod-kpi" id="mod-kpi-rdy" style="color:var(--success);">0</span></div>
-      <div class="mod-list" id="mod-list-rdy"></div>
+    <!-- Available Fleet (Left Block) -->
+    <div class="mod-panel">
+      <div class="mod-head">
+        <span style="color:var(--success);">Available Fleet</span>
+        <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Drop OOS/Active here to Check In</span>
+      </div>
+      <div class="mod-drop-zone mod-sq-grid" id="zone-ready" 
+           ondragover="modAllowDrop(event)" 
+           ondrop="modDrop(event, 'ready')"
+           ondragenter="modDragEnter(event)" 
+           ondragleave="modDragLeave(event)">
+      </div>
     </div>
-    
-    <!-- OOS Widget -->
-    <div class="mod-widget" style="border-top: 4px solid var(--danger);">
-      <div class="mod-head"><span>Needs Attention</span><span class="mod-kpi" id="mod-kpi-oos" style="color:var(--danger);">0</span></div>
-      <div class="mod-list" id="mod-list-oos"></div>
+
+    <!-- Live Routes (Right Block) -->
+    <div class="mod-panel">
+      <div class="mod-head">
+        <span style="color:var(--veo-cyan-dark);">Live Routes</span>
+        <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Drop Ready vans here to Dispatch</span>
+      </div>
+      <div class="mod-drop-zone mod-sq-grid" id="zone-active" 
+           ondragover="modAllowDrop(event)" 
+           ondrop="modDrop(event, 'active')" 
+           ondragenter="modDragEnter(event)" 
+           ondragleave="modDragLeave(event)">
+      </div>
     </div>
+
+    <!-- Needs Attention (OOS) - Full Width Bottom -->
+    <div class="mod-panel mod-panel-full">
+      <div class="mod-head">
+        <span style="color:var(--danger);">Needs Attention</span>
+        <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Drop any van here to Report OOS</span>
+      </div>
+      <div class="mod-drop-zone mod-sq-grid" id="zone-oos" 
+           ondragover="modAllowDrop(event)" 
+           ondrop="modDrop(event, 'oos')"
+           ondragenter="modDragEnter(event)" 
+           ondragleave="modDragLeave(event)">
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -44,19 +110,105 @@
     document.getElementById('mod-kpi-act').innerText = act.length;
     document.getElementById('mod-kpi-oos').innerText = oos.length;
 
-    document.getElementById('mod-list-act').innerHTML = act.length ? act.map(d=>`<div class="mod-item" onclick="openVanActionModal('${d.rentalId}')">
-      <div><div style="font-weight:800; font-size:15px;">${d.coDriver ? d.tech+' & '+d.coDriver : d.tech}</div><div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${d.vehicle} &bull; ${d.zone}</div></div>
-      <div style="text-align:right;"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Time Out</div><div style="font-weight:800; color:var(--veo-cyan-dark);">${d.departureTime}</div></div>
-    </div>`).join('') : '<div style="color:var(--text-muted); text-align:center; padding:30px; font-weight:600;">No active routes.</div>';
+    // 1. Render Ready
+    let rdyHtml = '';
+    rdy.forEach(v => {
+      rdyHtml += `<div class="mod-sq-card st-ready" draggable="true" ondragstart="modDragStart(event, '${v.rentalId}', 'Warehouse (Ready)', '${v.cleanName}', '')" onclick="openVanActionModal('${v.rentalId}')">
+        <div>
+          <div class="sq-title">${v.cleanName}</div>
+          <div class="sq-sub">${v.rentalId}<br>${v.plate}</div>
+        </div>
+        <div class="sq-footer" style="color:var(--success);">READY</div>
+      </div>`;
+    });
+    document.getElementById('zone-ready').innerHTML = rdyHtml || '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); font-weight:600; padding:20px;">No available vans.</div>';
 
-    document.getElementById('mod-list-rdy').innerHTML = rdy.length ? rdy.map(v=>`<div class="mod-item" onclick="openVanActionModal('${v.rentalId}')">
-      <div><div style="font-weight:800; font-size:15px;">${v.cleanName}</div><div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Plate: ${v.plate}</div></div>
-      <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="event.stopPropagation(); prefillDispatchVan('${v.cleanName}')">Deploy</button>
-    </div>`).join('') : '<div style="color:var(--text-muted); text-align:center; padding:30px; font-weight:600;">No available vans.</div>';
+    // 2. Render Active
+    let actHtml = '';
+    act.forEach(d => {
+      // Split names to first name only if it gets too long for a square card
+      let tech = d.coDriver ? d.tech.split(' ')[0] + ' & ' + d.coDriver.split(' ')[0] : d.tech.split(' ')[0];
+      actHtml += `<div class="mod-sq-card st-active" draggable="true" ondragstart="modDragStart(event, '${d.rentalId}', 'Dispatched', '${d.vehicle}', '${d.id}')" onclick="openVanActionModal('${d.rentalId}')">
+        <div>
+          <div class="sq-title">${d.vehicle}</div>
+          <div class="sq-sub">👤 ${tech}<br>📍 ${d.zone}</div>
+        </div>
+        <div class="sq-footer" style="color:var(--veo-cyan-dark);">OUT: ${d.departureTime}</div>
+      </div>`;
+    });
+    document.getElementById('zone-active').innerHTML = actHtml || '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); font-weight:600; padding:20px;">No active routes.</div>';
 
-    document.getElementById('mod-list-oos').innerHTML = oos.length ? oos.map(v=>`<div class="mod-item" onclick="openVanActionModal('${v.rentalId}')">
-      <div><div style="font-weight:800; font-size:15px;">${v.cleanName}</div><div style="font-size:12px; color:var(--danger); font-weight:600; margin-top:4px;">${v.notes||'Repair Needed'}</div></div>
-      <button class="btn btn-outline" style="padding:6px 12px; font-size:11px; border-color:var(--danger); color:var(--danger);" onclick="event.stopPropagation(); prefillCheckInVan('${v.cleanName}')">Fix</button>
-    </div>`).join('') : '<div style="color:var(--success); text-align:center; padding:30px; font-weight:800;">Fleet is 100% healthy!</div>';
+    // 3. Render OOS
+    let oosHtml = '';
+    oos.forEach(v => {
+      let notes = v.notes ? (v.notes.length > 35 ? v.notes.substring(0,35)+'...' : v.notes) : 'Repair Needed';
+      oosHtml += `<div class="mod-sq-card st-oos" draggable="true" ondragstart="modDragStart(event, '${v.rentalId}', 'Out of Service', '${v.cleanName}', '')" onclick="openVanActionModal('${v.rentalId}')">
+        <div>
+          <div class="sq-title">${v.cleanName}</div>
+          <div class="sq-sub" style="color:var(--danger);">${notes}</div>
+        </div>
+        <div class="sq-footer" style="color:var(--danger);">DOWN FOR REPAIR</div>
+      </div>`;
+    });
+    document.getElementById('zone-oos').innerHTML = oosHtml || '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); font-weight:600; padding:20px;">Fleet is 100% healthy!</div>';
+  }
+
+  /* ================= DRAG AND DROP LOGIC ================= */
+  
+  function modDragStart(ev, rentalId, status, cleanName, depId) {
+    ev.dataTransfer.setData("rentalId", rentalId);
+    ev.dataTransfer.setData("status", status);
+    ev.dataTransfer.setData("cleanName", cleanName);
+    ev.dataTransfer.setData("depId", depId);
+    ev.dataTransfer.effectAllowed = "move";
+  }
+
+  function modAllowDrop(ev) {
+    ev.preventDefault();
+  }
+  
+  function modDragEnter(ev) {
+    ev.currentTarget.classList.add('drag-over');
+  }
+  
+  function modDragLeave(ev) {
+    ev.currentTarget.classList.remove('drag-over');
+  }
+
+  function modDrop(ev, targetZone) {
+    ev.preventDefault();
+    ev.currentTarget.classList.remove('drag-over');
+    
+    // Retrieve data off the dragged card
+    const rentalId = ev.dataTransfer.getData("rentalId");
+    const status = ev.dataTransfer.getData("status");
+    const cleanName = ev.dataTransfer.getData("cleanName");
+    const depId = ev.dataTransfer.getData("depId");
+
+    // Prevent doing anything if dropped back into its own lane
+    if ((targetZone === 'active' && status === 'Dispatched') || 
+        (targetZone === 'ready' && status === 'Warehouse (Ready)') || 
+        (targetZone === 'oos' && status === 'Out of Service')) {
+      return;
+    }
+
+    // Logic based on where the card was dropped
+    if (targetZone === 'active') {
+      // Picked up a Ready/OOS van and dragged it to Active -> Trigger Dispatch Checkout!
+      prefillDispatchVan(cleanName);
+    } 
+    else if (targetZone === 'ready') {
+      if (status === 'Dispatched') {
+        // Dragged from Active to Ready -> End Shift!
+        endShift(depId, rentalId); 
+      } else if (status === 'Out of Service') {
+        // Dragged from OOS to Ready -> Fixed! Trigger Check In Notes.
+        prefillCheckInVan(cleanName);
+      }
+    } 
+    else if (targetZone === 'oos') {
+      // Picked up a Ready/Active van and dragged it to OOS -> Broken! Trigger Incident Report.
+      prefillIncidentVan(cleanName);
+    }
   }
 </script>
