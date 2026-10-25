@@ -120,3 +120,28 @@ function logTechAttendance(data) {
 
   return { success: true };
 }
+
+/**
+ * Clears an attendance exception and sets the tech back to Available
+ */
+function clearTechException(techName) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const tSheet = ss.getSheetByName('Tech_Profiles');
+    
+    if (tSheet) {
+      const tData = tSheet.getDataRange().getValues();
+      for (let i = 1; i < tData.length; i++) {
+        if (String(tData[i][0]).trim().toLowerCase() === techName.trim().toLowerCase()) {
+          tSheet.getRange(i + 1, 10).setValue('Available'); // Col J is Status
+          break;
+        }
+      }
+    }
+    
+    if (typeof logAudit === 'function') logAudit('TECH_RETURNED_TO_DUTY', 'Tech_Profiles', techName, 'Exception cleared');
+    return { success: true };
+  } catch (err) {
+    return { success: false, message: 'Failed to clear exception: ' + err.toString() };
+  }
+}

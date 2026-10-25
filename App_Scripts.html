@@ -151,6 +151,7 @@
         techs.forEach(t => {
           let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
           if(t.status==='Sick' || t.status==='NCNS') bc = 'color:var(--danger); background:rgba(255,59,48,0.1); border:1px solid var(--danger);';
+          if(t.status==='PTO') bc = 'color:#007aff; background:rgba(0,122,255,0.1); border:1px solid #007aff;';
           let attr = '';
           if(t.restricted) attr += `<span class="cls-badge" style="background:var(--danger); color:#fff; font-size:9px; margin-right:4px;">RESTRICTED</span>`;
           if(t.goFast) attr += `⚡ `;
@@ -178,7 +179,7 @@
     let isMuted = (t.status === 'Off-Duty' && !t._isDispatched);
     let styleMod = isMuted ? 'opacity:0.5; filter:grayscale(0.8);' : '';
     let rBadge = t.restricted ? `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">RESTRICTED</div>` : '';
-    let color = t._isDispatched ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (t.status==='Off-Duty' ? 'var(--text-muted)' : 'var(--danger)'));
+    let color = t._isDispatched ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
 
     if (layout === 'focus') {
       return `<div class="foc-card" style="border-left-color:${color}; width:280px; margin-bottom:8px; cursor:pointer; ${styleMod}" onclick="openTechActionModal('${t.name}')">
@@ -319,7 +320,7 @@
     openModal('vanActionModal');
   }
 
-function openTechActionModal(techName) {
+  function openTechActionModal(techName) {
     const t = globalState.techs.find(x => x.name === techName); if(!t) return;
     const title = document.getElementById('ta_title'); if(title) title.innerText = `${t.name} Profile`;
     
@@ -328,8 +329,7 @@ function openTechActionModal(techName) {
     allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
     
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
-    let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (t.status==='Off-Duty' ? 'var(--text-muted)' : 'var(--danger)'));
-    if(t.status === 'PTO') bannerColor = '#007aff';
+    let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
     
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
       <div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;">
@@ -349,14 +349,17 @@ function openTechActionModal(techName) {
       </div>
     </div>`;
     
-    // --> THIS IS THE NEW 7-DAY 24HR TIMELINE WIDGET <--
     html += buildTechTimelineGraphic(t.workDays, t.startTime, t.endTime);
 
     html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
     html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
+    
     if (activeDep) {
       html += `<button class="btn btn-outline" onclick="closeModal('techActionModal'); document.getElementById('ed_id').value='${activeDep.id}'; document.getElementById('ed_zone').value='${activeDep.zone}'; openModal('editDispatchModal');">✏️ Edit Route</button>`;
       html += `<button class="btn btn-dark" onclick="closeModal('techActionModal'); endShift('${activeDep.id}', '${activeDep.rentalId}')">🛑 End Shift</button>`;
+    } else if (['Sick', 'NCNS', 'PTO'].includes(t.status)) {
+      // HIDE DISPATCH BUTTONS - SHOW "CLEAR EXCEPTION" INSTEAD
+      html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--success); border-color:var(--success);" onclick="closeModal('techActionModal'); clearTechException('${t.name}')">✅ Clear Exception (Return to Available)</button>`;
     } else {
       if(!t.restricted) html += `<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal('techActionModal'); document.getElementById('dp_tech').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Lead Driver</button>`;
       else html += `<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal('techActionModal'); document.getElementById('dp_codriver').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Co-Driver</button>`;
@@ -368,8 +371,7 @@ function openTechActionModal(techName) {
     const body = document.getElementById('ta_body'); if(body) body.innerHTML = html;
     openModal('techActionModal');
   }
-  
-  // ADD THIS TIMELINE GENERATOR FUNCTION RIGHT BELOW IT
+
   function buildTechTimelineGraphic(workDaysStr, startStr, endStr) {
     let s = 0, e = 0;
     if (startStr && endStr) { 
@@ -381,7 +383,6 @@ function openTechActionModal(techName) {
     const str = (workDaysStr||'').toLowerCase();
     let wDays = [];
     
-    // Parse "Mon-Fri" ranges
     const match = str.match(/(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)/);
     if (match) {
        const dayNames = ['mon','tue','wed','thu','fri','sat','sun'];
@@ -576,54 +577,23 @@ function openTechActionModal(techName) {
     google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
   }
 
-  // >>> THIS IS THE BULLETPROOF CHECK IN SUBMISSION LOGIC <<<
   function submitCheckIn(e) {
     e.preventDefault();
     const sel = document.getElementById('ci_van');
     const cleanName = sel.value.trim();
-    
-    // Safely look up the exact van directly from the global state
     const v = globalState.vehicles.find(x => x.cleanName.trim().toLowerCase() === cleanName.toLowerCase());
-    if (!v) {
-      alert("Error: Could not locate vehicle data. Please select the van from the dropdown manually.");
-      return;
-    }
+    if (!v) { alert("Error: Could not locate vehicle data. Please select the van from the dropdown manually."); return; }
 
-    const p = { 
-      cleanName: v.cleanName, 
-      rentalId: v.rentalId, 
-      resolutionNotes: document.getElementById('ci_notes').value 
-    };
-
-    // Auto-attach the open incident ID if one exists
+    const p = { cleanName: v.cleanName, rentalId: v.rentalId, resolutionNotes: document.getElementById('ci_notes').value };
     const inc = (globalState.incidents || []).find(i => i.rentalId === p.rentalId && !i.dateResolved);
     if (inc) p.incidentId = inc.id;
 
     closeModal('checkInModal');
+    v.status = 'Warehouse (Ready)'; v.notes = ''; v.driver = '—'; v.zone = '—';   
+    populateModals(); refreshActiveViews();
     
-    // Optimistic Wipe (Instantly clears status and notes on screen)
-    v.status = 'Warehouse (Ready)'; 
-    v.notes = ''; 
-    v.driver = '—'; 
-    v.zone = '—';   
-    
-    populateModals(); 
-    refreshActiveViews();
-    
-    const loader = document.getElementById('global-loader'); 
-    if(loader) loader.style.display='block';
-    
-    // Pass to backend with loud error reporting
-    google.script.run
-      .withSuccessHandler((res) => {
-         if(res && !res.success) alert("Backend Warning: " + res.message);
-         loadPortalData();
-      })
-      .withFailureHandler(err => { 
-         alert("Critical Backend Error: " + err.message); 
-         loadPortalData(); 
-      })
-      .processCheckInVehicle(p);
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
+    google.script.run.withSuccessHandler((res) => { if(res && !res.success) alert("Backend Warning: " + res.message); loadPortalData(); }).withFailureHandler(err => { alert("Critical Backend Error: " + err.message); loadPortalData(); }).processCheckInVehicle(p);
   }
 
   function submitDecom(e) {
@@ -716,7 +686,8 @@ function openTechActionModal(techName) {
     }).withFailureHandler(function(err) { alert('Failed to generate PDF: ' + err.message); }).getPrintableShiftManifestHtml(dateVal, shiftName);
   }
 
-function uiDeleteTech() {
+  /* --- NEW TECH MANAGEMENT FUNCTIONS --- */
+  function uiDeleteTech() {
     const techName = document.getElementById('te_orig_name').value;
     if(!techName || !confirm(`⚠️ Are you absolutely sure you want to terminate/remove ${techName}? This cannot be undone.`)) return;
     
@@ -738,7 +709,6 @@ function uiDeleteTech() {
     };
     closeModal('attendanceModal');
     
-    // Optimistic Update
     const tIdx = globalState.techs.findIndex(t => t.name === p.techName);
     if(tIdx > -1) globalState.techs[tIdx].status = p.type;
     refreshActiveViews();
@@ -747,4 +717,14 @@ function uiDeleteTech() {
     google.script.run.withSuccessHandler(()=>loadPortalData()).logTechAttendance(p);
   }
 
+  function clearTechException(techName) {
+    if(!confirm(`Are you sure you want to clear the exception for ${techName} and return them to Available?`)) return;
+    
+    const tIdx = globalState.techs.findIndex(t => t.name === techName);
+    if(tIdx > -1) globalState.techs[tIdx].status = 'Available';
+    refreshActiveViews();
+    
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
+    google.script.run.withSuccessHandler(()=>loadPortalData()).clearTechException(techName);
+  }
 </script>
