@@ -2,15 +2,10 @@
   let globalState = null;
 
   window.onload = function() {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.getElementById('theme-selector').value = 'dark';
-    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.getElementById('theme-selector').value = 'dark';
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('hist-date')) document.getElementById('hist-date').value = today;
-    
-    changeTheme(); 
-    changeLayout(); 
-    loadPortalData();
+    changeTheme(); changeLayout(); loadPortalData();
   };
 
   /* --- APP SHELL ROUTING --- */
@@ -21,78 +16,64 @@
       changeTheme();
     }
   }
-  function changeTheme() {
-    const selector = document.getElementById('theme-selector');
-    const theme = selector ? selector.value : 'dark';
-    if (theme === 'light') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', theme);
+
+  function changeTheme() { 
+    const s = document.getElementById('theme-selector'); 
+    if(s) { 
+      const t = s.value; 
+      if (t === 'light') document.documentElement.removeAttribute('data-theme'); 
+      else document.documentElement.setAttribute('data-theme', t); 
+    } 
   }
 
-  function switchTab(t) {
-    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-    if(event && event.currentTarget) event.currentTarget.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
-    const tabEl = document.getElementById('tab-'+t);
-    if(tabEl) tabEl.classList.add('active');
-    
-    if(globalState) refreshActiveViews();
+  function switchTab(t) { 
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active')); 
+    if(event && event.currentTarget) event.currentTarget.classList.add('active'); 
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); 
+    const tabEl = document.getElementById('tab-'+t); 
+    if(tabEl) tabEl.classList.add('active'); 
+    if(globalState) refreshActiveViews(); 
   }
 
-  function changeLayout() {
-    ['classic', 'modern', 'focus'].forEach(id => {
-      const el = document.getElementById('layout-' + id);
-      if(el) el.style.display = 'none';
-    });
-    
-    const selector = document.getElementById('layout-selector');
-    if(selector) {
-      const layoutType = selector.value;
-      const target = document.getElementById(`layout-${layoutType}`);
-      if(target) target.style.display = 'block';
-    }
-    
-    if(globalState) refreshActiveViews();
+  function changeLayout() { 
+    ['classic', 'modern', 'focus'].forEach(id => { 
+      const el = document.getElementById('layout-' + id); 
+      if(el) el.style.display = 'none'; 
+    }); 
+    const sel = document.getElementById('layout-selector'); 
+    if(sel) { 
+      const target = document.getElementById(`layout-${sel.value}`); 
+      if(target) target.style.display = 'block'; 
+    } 
+    if(globalState) refreshActiveViews(); 
   }
 
   function loadPortalData() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
-    
-    google.script.run.withSuccessHandler(function(st) {
-      globalState = st;
-      if(loader) loader.style.display='none';
-      populateModals();
-      refreshActiveViews();
+    document.getElementById('global-loader').style.display='block';
+    google.script.run.withSuccessHandler(function(st) { 
+      globalState = st; 
+      document.getElementById('global-loader').style.display='none'; 
+      populateModals(); 
+      refreshActiveViews(); 
     }).getDashboardState();
   }
 
   function refreshActiveViews() {
     if(!globalState) return;
-    
-    const selector = document.getElementById('layout-selector');
-    const layoutType = selector ? selector.value : 'modern';
-    
-    // Route main dispatch board
-    if (layoutType === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
-    if (layoutType === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
-    if (layoutType === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
-    
-    // Render tabs using the layout-aware functions below
-    renderFleetGrid();
-    renderTechGrid();
-    renderHistoryTab();
+    const l = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
+    if (l === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
+    if (l === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
+    if (l === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
+    if(typeof renderFleetGrid === 'function') renderFleetGrid();
+    if(typeof renderTechGrid === 'function') renderTechGrid();
+    if(typeof renderHistoryTab === 'function') renderHistoryTab();
   }
 
-  /* --- SECONDARY TABS RENDERING (LAYOUT AWARE) --- */
-  
+  /* --- SECONDARY TABS RENDERING --- */
   function renderFleetGrid() {
-    const container = document.getElementById('fleet-card-grid');
-    if(!container) return;
-    const searchEl = document.getElementById('fleet-search');
-    const q = searchEl ? searchEl.value.toLowerCase() : '';
+    const container = document.getElementById('fleet-card-grid'); if(!container) return;
+    const q = document.getElementById('fleet-search') ? document.getElementById('fleet-search').value.toLowerCase() : '';
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
-    
     let vans = globalState.vehicles.filter(v => v.status !== 'Decommissioned' && (!q || v.cleanName.toLowerCase().includes(q) || v.plate.toLowerCase().includes(q)));
     let html = '';
 
@@ -100,12 +81,7 @@
       html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>`;
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
-        html += `<tr>
-          <td><strong>${v.cleanName}</strong></td><td>${v.rentalId}</td>
-          <td><span class="cls-badge" style="${bc}">${v.status}</span></td>
-          <td>${v.plate}</td>
-          <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Manage</button></td>
-        </tr>`;
+        html += `<tr><td><strong>${v.cleanName}</strong></td><td>${v.rentalId}</td><td><span class="cls-badge" style="${bc}">${v.status}</span></td><td>${v.plate}</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Manage</button></td></tr>`;
       });
       html += `</tbody></table></div>`;
     } 
@@ -113,24 +89,15 @@
       html += `<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">`;
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
-        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal('${v.rentalId}')">
-          <div class="foc-card-top">
-            <div><div class="foc-title">${v.cleanName}</div><div class="foc-sub">${v.rentalId} &bull; Plate: ${v.plate}</div></div>
-          </div>
-          <div style="font-weight:800; color:${bc}; font-size:11px; margin-top:8px;">${v.status.toUpperCase()}</div>
-        </div>`;
+        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal('${v.rentalId}')"><div class="foc-card-top"><div><div class="foc-title">${v.cleanName}</div><div class="foc-sub">${v.rentalId} &bull; Plate: ${v.plate}</div></div></div><div style="font-weight:800; color:${bc}; font-size:11px; margin-top:8px;">${v.status.toUpperCase()}</div></div>`;
       });
       html += `</div>`;
-    } 
-    else { // modern
+    } else {
       html += `<div class="mod-sq-grid">`;
       vans.forEach(v => {
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
         let color = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
-        html += `<div class="mod-sq-card ${bClass}" onclick="openVanActionModal('${v.rentalId}')">
-          <div><div class="sq-title">${v.cleanName}</div><div class="sq-sub">${v.rentalId}<br>${v.plate}</div></div>
-          <div class="sq-footer" style="color:${color};">${v.status.toUpperCase()}</div>
-        </div>`;
+        html += `<div class="mod-sq-card ${bClass}" onclick="openVanActionModal('${v.rentalId}')"><div><div class="sq-title">${v.cleanName}</div><div class="sq-sub">${v.rentalId}<br>${v.plate}</div></div><div class="sq-footer" style="color:${color};">${v.status.toUpperCase()}</div></div>`;
       });
       html += `</div>`;
     }
@@ -138,195 +105,146 @@
   }
 
   function renderTechGrid() {
-    const container = document.getElementById('tech-card-grid');
-    if(!container) return;
-    const searchEl = document.getElementById('tech-search');
-    const q = searchEl ? searchEl.value.toLowerCase() : '';
+    const container = document.getElementById('tech-card-grid'); if(!container) return;
+    const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
+    const sortBy = document.getElementById('tech-sort') ? document.getElementById('tech-sort').value : 'status';
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     
-    let techs = (globalState.config.techRoster || []).filter(t => !q || t.toLowerCase().includes(q));
-    let html = '';
+    let techs = [...(globalState.techs || [])];
+    if(q) techs = techs.filter(t => t.name.toLowerCase().includes(q));
+    
+    // Inject Live State
+    techs.forEach(t => {
+      const dep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
+      t._isDispatched = !!dep;
+      t._liveDep = dep;
+      if(dep) t._displayStatus = `🚙 Route: ${dep.vehicle}`;
+      else t._displayStatus = t.status; // Available, Off-Duty, Sick, NCNS
+    });
 
-    if (layout === 'classic') {
-      html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Current Status</th><th>Assignment</th><th>Actions</th></tr></thead><tbody>`;
-      techs.forEach(t => {
-        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
-        const statusStr = activeDep ? `Dispatched` : `Available`;
-        const bc = activeDep ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);';
-        html += `<tr>
-          <td><strong>${t}</strong></td>
-          <td><span class="cls-badge" style="${bc}">${statusStr}</span></td>
-          <td>${activeDep ? activeDep.vehicle + ' (' + activeDep.zone + ')' : '--'}</td>
-          <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal('${t}')">Profile</button></td>
-        </tr>`;
+    // Sort Logic
+    if (sortBy === 'alpha') {
+      techs.sort((a,b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'shift') {
+      techs.sort((a,b) => {
+        if(a.shift !== b.shift) return a.shift.localeCompare(b.shift);
+        if(a.startTime !== b.startTime) return (a.startTime||'').localeCompare(b.startTime||'');
+        return a.name.localeCompare(b.name);
       });
-      html += `</tbody></table></div>`;
-    } 
-    else if (layout === 'focus') {
-      html += `<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">`;
+    } else {
+      // Status Priority: Dispatched > Available > Sick/NCNS > Off-Duty
+      const w = t => t._isDispatched ? 1 : (t.status === 'Available' ? 2 : (t.status==='Off-Duty'? 4 : 3));
+      techs.sort((a,b) => w(a) - w(b) || a.name.localeCompare(b.name));
+    }
+
+    let html = '';
+    
+    // Grouping by Shift logic (only if sorted by shift)
+    if (sortBy === 'shift' && layout !== 'classic') {
+      let currentShift = '';
+      html += `<div style="display:flex; flex-direction:column; gap:32px;">`;
       techs.forEach(t => {
-        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
-        let bc = activeDep ? 'var(--veo-cyan)' : 'var(--success)';
-        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openTechActionModal('${t}')">
-          <div class="foc-card-top">
-            <div><div class="foc-title">${t}</div><div class="foc-sub">${activeDep ? 'On Route' : 'Ready'}</div></div>
-          </div>
-          <div style="font-weight:700; color:var(--text-muted); font-size:12px; margin-top:8px;">${activeDep ? '📍 ' + activeDep.zone : 'Warehouse'}</div>
-        </div>`;
+        if (t.shift !== currentShift) {
+          if(currentShift !== '') html += `</div></div>`;
+          currentShift = t.shift;
+          html += `<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">${currentShift}</h3><div class="${layout==='focus'?'foc-lanes':'mod-sq-grid'}" style="${layout==='focus'?'flex-wrap:wrap; align-items:flex-start;':''}">`;
+        }
+        html += buildTechCardHTML(t, layout);
       });
-      html += `</div>`;
-    } 
-    else { // modern
-      html += `<div class="mod-sq-grid">`;
-      techs.forEach(t => {
-        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t || d.coDriver === t));
-        let bClass = activeDep ? 'st-active' : 'st-ready';
-        let color = activeDep ? 'var(--veo-cyan-dark)' : 'var(--success)';
-        let splitName = t.split(' ');
-        html += `<div class="mod-sq-card ${bClass}" onclick="openTechActionModal('${t}')">
-          <div><div class="sq-title">${splitName[0]}</div><div class="sq-sub">${splitName.slice(1).join(' ')}</div></div>
-          <div class="sq-footer" style="color:${color};">${activeDep ? 'DISPATCHED' : 'AVAILABLE'}</div>
-        </div>`;
-      });
-      html += `</div>`;
+      if(techs.length > 0) html += `</div></div></div>`;
+    } else {
+      if (layout === 'classic') {
+        html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Status</th><th>Shift & Hours</th><th>Attributes</th><th>Actions</th></tr></thead><tbody>`;
+        techs.forEach(t => {
+          let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
+          if(t.status==='Sick' || t.status==='NCNS') bc = 'color:var(--danger); background:rgba(255,59,48,0.1); border:1px solid var(--danger);';
+          
+          let attr = '';
+          if(t.restricted) attr += `<span class="cls-badge" style="background:var(--danger); color:#fff; font-size:9px; margin-right:4px;">RESTRICTED</span>`;
+          if(t.goFast) attr += `⚡ `;
+          
+          let muted = (t.status === 'Off-Duty' && !t._isDispatched) ? 'opacity:0.6;' : '';
+          
+          html += `<tr style="${muted}">
+            <td><strong>${t.name}</strong><br><span style="font-size:11px; color:var(--text-muted);">${t.phone || 'No Phone'}</span></td>
+            <td><span class="cls-badge" style="${bc}">${t._displayStatus}</span></td>
+            <td>${t.shift}<br><span style="font-size:11px; color:var(--text-muted);">${t.startTime} - ${t.endTime} | ${t.workDays}</span></td>
+            <td>${attr}</td>
+            <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal('${t.name}')">Profile</button></td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+      } else {
+        html += `<div class="${layout==='focus'?'foc-lanes':'mod-sq-grid'}" style="${layout==='focus'?'flex-wrap:wrap; align-items:flex-start;':''}">`;
+        techs.forEach(t => { html += buildTechCardHTML(t, layout); });
+        html += `</div>`;
+      }
     }
     container.innerHTML = html;
   }
 
-  function renderHistoryTab() {
-    const container = document.getElementById('history-table-body');
-    if(!container) return;
-    const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
-    const dateVal = document.getElementById('hist-date').value;
-    const shiftVal = document.getElementById('hist-shift').value;
+  function buildTechCardHTML(t, layout) {
+    let isMuted = (t.status === 'Off-Duty' && !t._isDispatched);
+    let styleMod = isMuted ? 'opacity:0.5; filter:grayscale(0.8);' : '';
+    let rBadge = t.restricted ? `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">RESTRICTED</div>` : '';
     
+    let color = t._isDispatched ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (t.status==='Off-Duty' ? 'var(--text-muted)' : 'var(--danger)'));
+
+    if (layout === 'focus') {
+      return `<div class="foc-card" style="border-left-color:${color}; width:280px; margin-bottom:8px; cursor:pointer; ${styleMod}" onclick="openTechActionModal('${t.name}')">
+        ${rBadge}
+        <div class="foc-card-top"><div><div class="foc-title">${t.name} ${t.goFast?'⚡':''}</div><div class="foc-sub">${t.shift} | ${t.startTime}</div></div></div>
+        <div style="font-weight:700; color:${color}; font-size:12px; margin-top:8px;">${t._displayStatus.toUpperCase()}</div>
+      </div>`;
+    } else {
+      let splitName = t.name.split(' ');
+      return `<div class="mod-sq-card" style="border-top-color:${color}; ${styleMod}" onclick="openTechActionModal('${t.name}')">
+        <div>${rBadge}<div class="sq-title">${splitName[0]} ${t.goFast?'⚡':''}</div><div class="sq-sub">${splitName.slice(1).join(' ')}<br>${t.startTime}</div></div>
+        <div class="sq-footer" style="color:${color};">${t._displayStatus.toUpperCase()}</div>
+      </div>`;
+    }
+  }
+
+  function renderHistoryTab() {
+    const container = document.getElementById('history-table-body'); if(!container) return;
+    const dateVal = document.getElementById('hist-date') ? document.getElementById('hist-date').value : '';
+    const shiftVal = document.getElementById('hist-shift') ? document.getElementById('hist-shift').value : '';
     let deps = globalState.deployments.filter(d => d.date === dateVal && d.shift === shiftVal);
     deps.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
     let html = '';
 
-    if (deps.length === 0) {
-      html = '<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600; width:100%;">No deployment records found for this date and shift.</div>';
-    } 
-    else if (layout === 'classic') {
+    if (deps.length === 0) { html = '<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600; width:100%;">No deployment records found.</div>'; } 
+    else {
       html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Goals</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead><tbody>`;
       deps.forEach(d => {
         let techs = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:var(--text-muted);">+ ${d.coDriver}</span>` : d.tech;
-        let isDone = d.status === 'Completed';
-        let sClass = isDone ? 'color:var(--success); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;';
-        html += `<tr>
-          <td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td>
-          <td>${techs}</td>
-          <td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">${d.zone}</span></td>
-          <td style="max-width:200px; white-space:normal;">${d.goals || '--'}</td>
-          <td>${d.departureTime}</td>
-          <td>${d.returnTime || '--'}</td>
-          <td style="${sClass}">${d.status}</td>
-        </tr>`;
+        let sClass = d.status === 'Completed' ? 'color:var(--success); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;';
+        html += `<tr><td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td><td>${techs}</td><td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">${d.zone}</span></td><td style="max-width:200px; white-space:normal;">${d.goals || '--'}</td><td>${d.departureTime}</td><td>${d.returnTime || '--'}</td><td style="${sClass}">${d.status}</td></tr>`;
       });
       html += `</tbody></table></div>`;
-    } 
-    else if (layout === 'focus') {
-      html += `<div style="display:flex; flex-direction:column; gap:12px; width:100%;">`;
-      deps.forEach(d => {
-        let bc = d.status === 'Completed' ? 'var(--success)' : 'var(--veo-cyan)';
-        html += `<div class="foc-card" style="border-left-color:${bc}; flex-direction:row; align-items:center; justify-content:space-between; padding:16px 24px;">
-          <div style="flex:1;">
-            <div class="foc-title">${d.vehicle}</div>
-            <div class="foc-sub">${d.coDriver ? d.tech + ' & ' + d.coDriver : d.tech}</div>
-          </div>
-          <div style="flex:1; text-align:center;">
-            <div style="font-weight:900; font-size:14px; color:var(--text-main);">${d.zone}</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${d.goals || 'No Goals'}</div>
-          </div>
-          <div style="flex:1; text-align:right;">
-            <div style="font-size:12px; font-weight:800; color:${bc};">${d.status.toUpperCase()}</div>
-            <div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-top:4px;">Out: ${d.departureTime} ${d.returnTime ? '| In: ' + d.returnTime : ''}</div>
-          </div>
-        </div>`;
-      });
-      html += `</div>`;
-    } 
-    else { // modern
-      html += `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px;">`;
-      deps.forEach(d => {
-        let color = d.status === 'Completed' ? 'var(--success)' : 'var(--veo-cyan-dark)';
-        html += `<div class="mod-widget" style="border-top:4px solid ${color}; padding:20px; gap:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <div style="font-weight:900; font-size:18px;">${d.vehicle}</div>
-              <div style="font-size:13px; color:var(--text-muted); font-weight:600; margin-top:2px;">👤 ${d.coDriver ? d.tech + ' & ' + d.coDriver : d.tech}</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:11px; font-weight:800; color:${color};">${d.status.toUpperCase()}</div>
-              <div style="font-size:12px; color:var(--text-muted); font-weight:600; margin-top:4px;">Out: ${d.departureTime}</div>
-            </div>
-          </div>
-          <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color); margin-top:8px;">
-             <div style="font-size:12px; font-weight:800; color:var(--veo-cyan-dark); text-transform:uppercase;">${d.zone}</div>
-             <div style="font-size:13px; color:var(--text-main); margin-top:4px;">${d.goals || 'No goals specified.'}</div>
-          </div>
-        </div>`;
-      });
-      html += `</div>`;
     }
     container.innerHTML = html;
   }
 
   /* --- MODAL CONTROLLERS --- */
-  function openModal(id) { 
-    const m = document.getElementById(id);
-    if(m) m.classList.add('active'); 
-  }
-  function closeModal(id) { 
-    const m = document.getElementById(id);
-    if(m) m.classList.remove('active'); 
-  }
+  function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('active'); }
+  function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 
-  function prefillDispatchVan(cleanName) { 
-    const sel = document.getElementById('dp_van');
-    if(sel) sel.value = cleanName.trim(); 
-    openModal('dispatchModal'); 
-  }
-  function prefillDispatchTech(techName) { 
-    const sel = document.getElementById('dp_tech');
-    if(sel) sel.value = techName.trim(); 
-    openModal('dispatchModal'); 
-  }
-  function prefillIncidentVan(cleanName) { 
-    const sel = document.getElementById('inc_van');
-    if(sel) sel.value = cleanName.trim(); 
-    openModal('incidentModal'); 
-  }
-  function prefillCheckInVan(cleanName) { 
-    const sel = document.getElementById('ci_van');
-    if(sel) sel.value = cleanName.trim(); 
-    openModal('checkInModal'); 
-  }
-  function prefillDecomVan(cleanName) { 
-    const sel = document.getElementById('dec_van');
-    if(sel) sel.value = cleanName.trim(); 
-    openModal('decomModal'); 
-  }
-
-  /* --- THE NEW VAN ENTITY PROFILE (HOME ASSISTANT STYLE) --- */
   function openVanActionModal(rentalId) {
-    const v = globalState.vehicles.find(x => x.rentalId === rentalId);
-    if(!v) return;
-    
-    const title = document.getElementById('va_title');
-    if(title) title.innerText = `${v.cleanName} Profile`;
+    const v = globalState.vehicles.find(x => x.rentalId === rentalId); if(!v) return;
+    const title = document.getElementById('va_title'); if(title) title.innerText = `${v.cleanName} Profile`;
 
     const pastDeps = (globalState.deployments || []).filter(d => d.rentalId === rentalId && d.status === 'Completed');
     const lastDep = pastDeps.length > 0 ? pastDeps[0] : null; 
     const lastDriver = lastDep ? lastDep.tech : 'None';
     const lastZone = lastDep ? lastDep.zone : 'None';
+    
     const vIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
     
     let coastEnabled = 'Yes';
     if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
     
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
-    
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
       <div style="font-size:18px; font-weight:900;">${v.status.toUpperCase()}</div>
@@ -396,215 +314,205 @@
     }
     html += `</div></div>`;
     
-    const body = document.getElementById('va_body');
-    if(body) body.innerHTML = html;
-    
+    const body = document.getElementById('va_body'); if(body) body.innerHTML = html;
     openModal('vanActionModal');
   }
 
   function openTechActionModal(techName) {
-    const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === techName || d.coDriver === techName));
-    const allDeps = globalState.deployments.filter(d => d.tech === techName || d.coDriver === techName);
-    allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-
-    const title = document.getElementById('ta_title');
-    if(title) title.innerText = techName;
+    const t = globalState.techs.find(x => x.name === techName); if(!t) return;
+    const title = document.getElementById('ta_title'); if(title) title.innerText = `${t.name} Profile`;
     
-    let html = `<div style="margin-bottom:20px; font-size:14px;">
-      <div style="margin-bottom:6px;">Current Status: <strong>${activeDep ? '🟢 On Shift in ' + activeDep.vehicle : '⚪ Available'}</strong></div>
-      <div>Total Lifetime Shifts: <strong style="color:var(--veo-cyan-dark);">${allDeps.length}</strong></div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:10px;">`;
+    const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
+    const allDeps = globalState.deployments.filter(d => d.tech === t.name || d.coDriver === t.name);
+    allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+    const accidents = (globalState.incidents || []).filter(i => i.driverInvolved === t.name);
 
+    let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+    let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (t.status==='Off-Duty' ? 'var(--text-muted)' : 'var(--danger)'));
+    
+    html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="font-size:18px; font-weight:900;">${activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()}</div>
+      <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${t.shift} &bull; ${t.startTime} - ${t.endTime} &bull; ${t.workDays}</div>
+      ${t.restricted ? `<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 DRIVING RESTRICTED</div>` : ''}
+    </div>`;
+
+    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div>
+        <div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">${allDeps.length}</div>
+      </div>
+      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Passed Test</div>
+        <div style="font-weight:900; font-size:14px; margin-top:4px; color:${t.passedTest?'var(--success)':'var(--danger)'}">${t.passedTest?'YES':'NO'}</div>
+      </div>
+    </div>`;
+
+    html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
+    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
     if (activeDep) {
-      html += `<button class="btn btn-outline" onclick="closeModal('techActionModal'); openEditDispatchModal('${activeDep.id}')">✏️ Edit Current Shift Info</button>`;
-      html += `<button class="btn btn-dark" onclick="closeModal('techActionModal'); endShift('${activeDep.id}', '${activeDep.rentalId}')">🛑 End Shift for ${activeDep.vehicle}</button>`;
+      html += `<button class="btn btn-outline" onclick="closeModal('techActionModal'); document.getElementById('ed_id').value='${activeDep.id}'; document.getElementById('ed_zone').value='${activeDep.zone}'; openModal('editDispatchModal');">✏️ Edit Route</button>`;
+      html += `<button class="btn btn-dark" onclick="closeModal('techActionModal'); endShift('${activeDep.id}', '${activeDep.rentalId}')">🛑 End Shift</button>`;
     } else {
-      html += `<button class="btn btn-primary" onclick="closeModal('techActionModal'); prefillDispatchTech('${techName}')">📋 Dispatch Tech</button>`;
+      if(!t.restricted) html += `<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal('techActionModal'); document.getElementById('dp_tech').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Lead Driver</button>`;
+      else html += `<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal('techActionModal'); document.getElementById('dp_codriver').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Co-Driver</button>`;
     }
     html += `</div>`;
-    
-    html += `<div style="margin-top:24px; border-top:1px solid var(--border-color); padding-top:16px;">
-      <h4 style="margin-bottom:12px; font-size:13px; color:var(--text-muted); text-transform:uppercase;">Recent Shift History</h4>
-      <div style="max-height:160px; overflow-y:auto; font-size:12px;">`;
-    if(allDeps.length === 0) {
-      html += `<div style="color:var(--text-muted);">No recorded shifts.</div>`;
-    } else {
-      allDeps.slice(0, 8).forEach(d => {
-         html += `<div style="padding:6px 0; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between;">
-           <span><strong>${d.vehicle}</strong> &bull; ${d.zone}</span><span style="color:var(--text-muted);">${d.date}</span>
-         </div>`;
+
+    html += `<div style="display:flex; gap:10px; margin-top:8px;">
+      <button class="btn btn-outline" style="flex:1; font-size:11px;" onclick="closeModal('techActionModal'); openTechEditModal('${t.name}')">⚙️ Edit Profile Stats</button>
+      <button class="btn btn-outline" style="flex:1; font-size:11px; color:var(--text-muted);" onclick="const e = document.getElementById('tech-hist-drawer'); e.style.display = e.style.display==='none' ? 'block' : 'none';">🕰️ View History</button>
+    </div>`;
+
+    html += `<div id="tech-hist-drawer" style="display:none; margin-top:12px; background:var(--bg-main); border-radius:8px; padding:12px; border:1px solid var(--border-color); max-height:200px; overflow-y:auto;">`;
+    if(accidents.length > 0) {
+      html += `<div style="font-size:11px; color:var(--danger); font-weight:900; text-transform:uppercase; margin-bottom:8px;">Accident / Incident Records</div>`;
+      accidents.forEach(a => {
+        html += `<div style="border-left:2px solid var(--danger); padding-left:8px; margin-bottom:12px; font-size:12px;"><strong>${a.dateReported}</strong> - ${a.vehicle} <br><span style="color:var(--text-muted);">${a.category}</span></div>`;
+      });
+      html += `<div style="border-bottom:1px solid var(--border-color); margin-bottom:12px;"></div>`;
+    }
+    html += `<div style="font-size:11px; text-transform:uppercase; font-weight:800; margin-bottom:8px; color:var(--text-muted);">Recent Shifts</div>`;
+    if(allDeps.length === 0) html += `<div style="font-size:12px; color:var(--text-muted);">No recorded shifts.</div>`;
+    else {
+      allDeps.slice(0, 5).forEach(d => {
+        html += `<div style="padding:4px 0; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; font-size:12px;"><span><strong>${d.vehicle}</strong> &bull; ${d.zone}</span><span style="color:var(--text-muted);">${d.date}</span></div>`;
       });
     }
     html += `</div></div>`;
 
-    const body = document.getElementById('ta_body');
-    if(body) body.innerHTML = html;
-    
+    const body = document.getElementById('ta_body'); if(body) body.innerHTML = html;
     openModal('techActionModal');
   }
 
+  function openTechEditModal(techName) {
+    const t = globalState.techs.find(x => x.name === techName); if(!t) return;
+    document.getElementById('te_orig_name').value = t.name;
+    document.getElementById('te_name').value = t.name;
+    document.getElementById('te_phone').value = t.phone || '';
+    document.getElementById('te_shift').value = t.shift || '';
+    document.getElementById('te_status').value = t.status || 'Available';
+    document.getElementById('te_start').value = t.startTime || '';
+    document.getElementById('te_end').value = t.endTime || '';
+    document.getElementById('te_days').value = t.workDays || '';
+    document.getElementById('te_test').checked = t.passedTest;
+    document.getElementById('te_gofast').checked = t.goFast;
+    document.getElementById('te_restricted').checked = t.restricted;
+    openModal('techEditModal');
+  }
+
+  /* --- MODAL POPULATOR --- */
   function populateModals() {
     const cfg = globalState.config || {};
-    const techRoster = cfg.techRoster || [];
+    const techs = globalState.techs || [];
     
-    let rOpts = '<option value="">-- Select --</option>' + techRoster.map(r=>`<option value="${r}">${r}</option>`).join('');
-    if(document.getElementById('dp_tech')) document.getElementById('dp_tech').innerHTML = rOpts; 
-    if(document.getElementById('dp_codriver')) document.getElementById('dp_codriver').innerHTML = rOpts;
+    // Tech Dropdowns
+    let leadOpts = '<option value="">-- Select Lead Tech --</option>' + techs.filter(t => !t.restricted).map(t => `<option value="${t.name}">${t.name} ${t.status!=='Available'?'('+t.status+')':''}</option>`).join('');
+    if(document.getElementById('dp_tech')) document.getElementById('dp_tech').innerHTML = leadOpts; 
+    let allTechOpts = '<option value="">-- Select --</option>' + techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    if(document.getElementById('dp_codriver')) document.getElementById('dp_codriver').innerHTML = allTechOpts;
+    if(document.getElementById('inc_driver')) document.getElementById('inc_driver').innerHTML = allTechOpts;
     
-    let dlOpts = techRoster.map(r=>`<option value="${r}">`).join('');
-    if(document.getElementById('tech-dl')) document.getElementById('tech-dl').innerHTML = dlOpts;
-
+    // Van Dropdowns
     const vans = globalState.vehicles || [];
-    
     let vOpts = '<option value="">-- Ready or In-Use Vans --</option>' + vans.filter(v=>v.status==='Warehouse (Ready)' || v.status==='Dispatched').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.status === 'Dispatched' ? 'In Use' : 'Ready'})</option>`).join('');
     if(document.getElementById('dp_van')) document.getElementById('dp_van').innerHTML = vOpts;
-    
     if(document.getElementById('inc_van')) document.getElementById('inc_van').innerHTML = '<option value="">-- Vehicle --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    
-    let oosOpts = '<option value="">-- Select OOS Van --</option>' + vans.filter(v=>v.status==='Out of Service').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    if(document.getElementById('ci_van')) document.getElementById('ci_van').innerHTML = oosOpts;
-    
-    let decOpts = '<option value="">-- Select Van --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    if(document.getElementById('dec_van')) document.getElementById('dec_van').innerHTML = decOpts;
+    if(document.getElementById('ci_van')) document.getElementById('ci_van').innerHTML = '<option value="">-- Select OOS Van --</option>' + vans.filter(v=>v.status==='Out of Service').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
+    if(document.getElementById('dec_van')) document.getElementById('dec_van').innerHTML = '<option value="">-- Select Van --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
 
+    // Config Dropdowns
     const shifts = cfg.shifts || [];
     let sOpts = shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
     if(document.getElementById('dp_shift')) document.getElementById('dp_shift').innerHTML = sOpts;
     if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
+    if(document.getElementById('te_shift')) document.getElementById('te_shift').innerHTML = sOpts;
 
     const zones = cfg.zones || [];
     let zOpts = '<option value="">-- Zone --</option>' + zones.map(z=>`<option value="${z}">${z}</option>`).join('');
     if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts;
     if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts;
     
-    const focuses = cfg.focusOptions || [];
-    if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + focuses.map(f=>`<option value="${f}">${f}</option>`).join('');
-    
-    const agencies = cfg.rentalAgencies || [];
-    if(document.getElementById('av_agency')) document.getElementById('av_agency').innerHTML = agencies.map(a=>`<option value="${a}">${a}</option>`).join('');
-    
-    const cats = cfg.issueCategories || [];
-    if(document.getElementById('inc_cat')) document.getElementById('inc_cat').innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-    
-    const impacts = cfg.statusImpacts || [];
-    if(document.getElementById('inc_impact')) document.getElementById('inc_impact').innerHTML = impacts.map(i=>`<option value="${i}">${i}</option>`).join('');
-
-    renderRosterList();
+    if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>`<option value="${f}">${f}</option>`).join('');
+    if(document.getElementById('av_agency')) document.getElementById('av_agency').innerHTML = (cfg.rentalAgencies || []).map(a=>`<option value="${a}">${a}</option>`).join('');
+    if(document.getElementById('inc_cat')) document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(document.getElementById('inc_impact')) document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i=>`<option value="${i}">${i}</option>`).join('');
   }
 
-  function renderRosterList() {
-    const listEl = document.getElementById('roster-list');
-    if(!listEl) return;
-    listEl.innerHTML = (globalState.config.techRoster || []).map(r => 
-      `<span style="background:var(--bg-surface); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:700; border:1px solid var(--border-color); display:flex; align-items:center; gap:8px;">${r} <button style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;" onclick="removeRoster('${r}')">&times;</button></span>`
-    ).join('');
-    handleRosterInput();
-  }
+  function prefillDispatchVan(cleanName) { const sel = document.getElementById('dp_van'); if(sel) sel.value = cleanName.trim(); openModal('dispatchModal'); }
+  function prefillDispatchTech(techName) { const sel = document.getElementById('dp_tech'); if(sel) sel.value = techName.trim(); openModal('dispatchModal'); }
+  function prefillIncidentVan(cleanName) { const sel = document.getElementById('inc_van'); if(sel) sel.value = cleanName.trim(); openModal('incidentModal'); }
+  function prefillCheckInVan(cleanName) { const sel = document.getElementById('ci_van'); if(sel) sel.value = cleanName.trim(); openModal('checkInModal'); }
+  function prefillDecomVan(cleanName) { const sel = document.getElementById('dec_van'); if(sel) sel.value = cleanName.trim(); openModal('decomModal'); }
 
-  function handleRosterInput() {
-    const inputEl = document.getElementById('roster-input');
-    const btn = document.getElementById('roster-action-btn');
-    if(!inputEl || !btn) return;
-    const val = inputEl.value.trim().toLowerCase();
-    const isEx = (globalState.config.techRoster || []).some(r => r.toLowerCase() === val);
-    btn.innerText = (val && isEx) ? 'Remove' : 'Add';
-    btn.className = (val && isEx) ? 'btn btn-danger' : 'btn btn-dark';
-  }
-
-  function handleRosterAction() {
-    const inputEl = document.getElementById('roster-input');
-    if(!inputEl) return;
-    const val = inputEl.value.trim();
-    if(!val) return;
-    if((globalState.config.techRoster || []).some(r => r.toLowerCase() === val.toLowerCase())) removeRoster(val);
-    else addRoster(val);
-  }
-
-  /* --- DATA SUBMISSION --- */
-  function addRoster(name) {
-    document.getElementById('roster-input').value = '';
-    globalState.config.techRoster.push(name.trim());
+  /* --- DATA SUBMISSION FUNCTIONS --- */
+  
+  function submitTechEdit(e) {
+    e.preventDefault();
+    const p = {
+      origName: document.getElementById('te_orig_name').value, name: document.getElementById('te_name').value, phone: document.getElementById('te_phone').value,
+      shift: document.getElementById('te_shift').value, status: document.getElementById('te_status').value, startTime: document.getElementById('te_start').value,
+      endTime: document.getElementById('te_end').value, workDays: document.getElementById('te_days').value,
+      passedTest: document.getElementById('te_test').checked, goFast: document.getElementById('te_gofast').checked, restricted: document.getElementById('te_restricted').checked
+    };
+    closeModal('techEditModal');
+    let tIdx = globalState.techs.findIndex(t => t.name === p.origName);
+    if (tIdx > -1) { globalState.techs[tIdx] = p; } else { globalState.techs.push(p); }
     populateModals(); refreshActiveViews();
-    google.script.run.addTechToRoster(name.trim());
-  }
-
-  function removeRoster(name) {
-    if(!confirm("Remove "+name+"?")) return;
-    document.getElementById('roster-input').value = '';
-    globalState.config.techRoster = globalState.config.techRoster.filter(r => r.toLowerCase() !== name.toLowerCase());
-    populateModals(); refreshActiveViews();
-    google.script.run.removeTechFromRoster(name);
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
+    google.script.run.withSuccessHandler(()=>loadPortalData()).updateTechProfile(p);
   }
 
   function submitAddVehicle(e) {
     e.preventDefault();
     const p = {
-      vanName: document.getElementById('av_name').value, rentalId: document.getElementById('av_rental').value,
-      rentalAgency: document.getElementById('av_agency').value, makeModel: document.getElementById('av_model').value,
-      vin: document.getElementById('av_vin').value, licensePlate: document.getElementById('av_plate').value,
+      vanName: document.getElementById('av_name').value, rentalId: document.getElementById('av_rental').value, rentalAgency: document.getElementById('av_agency').value, 
+      makeModel: document.getElementById('av_model').value, vin: document.getElementById('av_vin').value, licensePlate: document.getElementById('av_plate').value,
       plateExpDate: document.getElementById('av_plate_exp').value, samsaraSerial: document.getElementById('av_samsara').value, addons: document.getElementById('av_addons').value
     };
     closeModal('addVehicleModal');
     globalState.vehicles.push({ cleanName: p.vanName, rentalId: p.rentalId, status: 'Warehouse (Ready)', makeModel: p.makeModel, plate: p.licensePlate, pickupDate: new Date().toISOString().split('T')[0], samsaraSerial: p.samsaraSerial, addons: p.addons });
     populateModals(); refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processAddVehicle(p);
-  }
-
-  function openEditVehicleModal(rentalId) {
-    const v = globalState.vehicles.find(x => x.rentalId === rentalId);
-    if(!v) return;
-    document.getElementById('ev_rental').value = v.rentalId; document.getElementById('ev_name').value = v.cleanName;
-    document.getElementById('ev_plate').value = v.plate || ''; document.getElementById('ev_plate_exp').value = v.plateExpDate && v.plateExpDate !== '—' ? v.plateExpDate : '';
-    document.getElementById('ev_samsara').value = v.samsaraSerial || ''; document.getElementById('ev_addons').value = v.addons || '';
-    openModal('editVehicleModal');
   }
 
   function submitEditVehicle(e) {
     e.preventDefault();
     const p = {
-      rentalId: document.getElementById('ev_rental').value, vanName: document.getElementById('ev_name').value,
-      licensePlate: document.getElementById('ev_plate').value, plateExpDate: document.getElementById('ev_plate_exp').value,
-      samsaraSerial: document.getElementById('ev_samsara').value, addons: document.getElementById('ev_addons').value
+      rentalId: document.getElementById('ev_rental').value, vanName: document.getElementById('ev_name').value, licensePlate: document.getElementById('ev_plate').value, 
+      plateExpDate: document.getElementById('ev_plate_exp').value, samsaraSerial: document.getElementById('ev_samsara').value, addons: document.getElementById('ev_addons').value
     };
     closeModal('editVehicleModal');
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) {
       globalState.vehicles[vIdx].cleanName = p.vanName; globalState.vehicles[vIdx].plate = p.licensePlate; 
-      globalState.vehicles[vIdx].plateExpDate = p.plateExpDate || '—'; globalState.vehicles[vIdx].samsaraSerial = p.samsaraSerial || '—'; 
-      globalState.vehicles[vIdx].addons = p.addons;
+      globalState.vehicles[vIdx].plateExpDate = p.plateExpDate || '—'; globalState.vehicles[vIdx].samsaraSerial = p.samsaraSerial || '—'; globalState.vehicles[vIdx].addons = p.addons;
     }
     refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).updateVehicleDetails(p);
   }
 
   function submitIncident(e) {
     e.preventDefault();
     const sel = document.getElementById('inc_van');
+    const incDriverEl = document.getElementById('inc_driver');
     const p = {
       cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental'),
       issueCategory: document.getElementById('inc_cat').value, statusImpact: document.getElementById('inc_impact').value,
-      triggerOos: document.getElementById('inc_oos').checked, description: document.getElementById('inc_desc').value
+      triggerOos: document.getElementById('inc_oos').checked, description: document.getElementById('inc_desc').value,
+      driverInvolved: incDriverEl ? incDriverEl.value : ''
     };
     closeModal('incidentModal');
     if(p.triggerOos) {
       const timeString = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-      if(vIdx > -1) { 
-          globalState.vehicles[vIdx].status = 'Out of Service'; 
-          globalState.vehicles[vIdx].zone = '—'; 
-          globalState.vehicles[vIdx].driver = '—'; 
-      }
+      if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Out of Service'; globalState.vehicles[vIdx].zone = '—'; globalState.vehicles[vIdx].driver = '—'; }
       const dIdx = globalState.deployments.findIndex(d => d.rentalId === p.rentalId && d.status === 'Dispatched');
       if (dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = timeString; }
       populateModals(); refreshActiveViews();
     }
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processReportIncident(p);
   }
 
@@ -614,15 +522,9 @@
     const p = { cleanName: sel.value, rentalId: sel.options[sel.selectedIndex].getAttribute('data-rental') || '', resolutionNotes: document.getElementById('ci_notes').value };
     closeModal('checkInModal');
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-    if(vIdx > -1) { 
-        globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; 
-        globalState.vehicles[vIdx].notes = ''; 
-        globalState.vehicles[vIdx].driver = '—'; 
-        globalState.vehicles[vIdx].zone = '—';   
-    }
+    if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; globalState.vehicles[vIdx].notes = ''; globalState.vehicles[vIdx].driver = '—'; globalState.vehicles[vIdx].zone = '—'; }
     populateModals(); refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processCheckInVehicle(p);
   }
 
@@ -634,22 +536,17 @@
     const vIdx = globalState.vehicles.findIndex(v=>v.cleanName===targetId);
     if(vIdx > -1) globalState.vehicles[vIdx].status = 'Decommissioned';
     populateModals(); refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).decommissionVehicle(targetId, reason);
   }
 
   function submitDispatch(e) {
     e.preventDefault();
-    const sel = document.getElementById('dp_van');
-    const opt = sel.options[sel.selectedIndex];
-    const rentalId = opt.getAttribute('data-rental');
-    const cleanName = sel.value;
-    const assignedTech = document.getElementById('dp_tech').value;
-    const coDriver = document.getElementById('dp_codriver').value;
-
+    const sel = document.getElementById('dp_van'); const opt = sel.options[sel.selectedIndex];
+    const rentalId = opt.getAttribute('data-rental'); const cleanName = sel.value;
+    const assignedTech = document.getElementById('dp_tech').value; const coDriver = document.getElementById('dp_codriver').value;
     if (assignedTech === coDriver && assignedTech !== '') { alert("Lead tech and co-driver cannot be the same person."); return; }
-
+    
     const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
     let conflicts = [], warnings = [];
     activeDeps.forEach(d => {
@@ -663,40 +560,24 @@
     if (warnings.length > 0) { if (!confirm("CONFLICTS DETECTED:\n\n" + warnings.join("\n") + "\n\nEnd active shifts and re-deploy?")) return; }
 
     const p = {
-      cleanName: cleanName, rentalId: rentalId, assignedTech: assignedTech, coDriver: coDriver,
-      isTraining: document.getElementById('dp_training').checked, shift: document.getElementById('dp_shift').value,
-      workZone: document.getElementById('dp_zone').value, batteryTarget: document.getElementById('dp_target').value,
+      cleanName: cleanName, rentalId: rentalId, assignedTech: assignedTech, coDriver: coDriver, isTraining: document.getElementById('dp_training').checked, 
+      shift: document.getElementById('dp_shift').value, workZone: document.getElementById('dp_zone').value, batteryTarget: document.getElementById('dp_target').value,
       focusCategory: document.getElementById('dp_focus').value, goals: document.getElementById('dp_goals').value
     };
     closeModal('dispatchModal');
 
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
+    const now = new Date(); const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     conflicts.forEach(c => {
       c.status = 'Completed'; c.returnTime = timeString;
       if (c.rentalId !== rentalId) { const oldV = globalState.vehicles.find(v => v.rentalId === c.rentalId); if (oldV) { oldV.status = 'Warehouse (Ready)'; oldV.zone = '—'; oldV.driver = '—'; } }
     });
 
-    globalState.deployments.unshift({
-      id:'...', date: now.toISOString().split('T')[0], shift: p.shift, vehicle: p.cleanName, rentalId: p.rentalId,
-      tech: p.assignedTech, zone: p.workZone, status: 'Dispatched', departureTime: timeString, coDriver: p.coDriver, isTraining: p.isTraining
-    });
+    globalState.deployments.unshift({ id:'...', date: now.toISOString().split('T')[0], shift: p.shift, vehicle: p.cleanName, rentalId: p.rentalId, tech: p.assignedTech, zone: p.workZone, status: 'Dispatched', departureTime: timeString, coDriver: p.coDriver, isTraining: p.isTraining });
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? `${p.assignedTech} & ${p.coDriver}` : p.assignedTech; }
-
     populateModals(); refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
-  }
-
-  function openEditDispatchModal(id) {
-    const d = globalState.deployments.find(x=>x.id===id);
-    if(!d) return;
-    document.getElementById('ed_id').value = d.id; document.getElementById('ed_vehicle').value = d.vehicle; document.getElementById('ed_rental').value = d.rentalId;
-    document.getElementById('ed_zone').value = d.zone; document.getElementById('ed_target').value = d.target||''; document.getElementById('ed_goals').value = d.goals||'';
-    openModal('editDispatchModal');
   }
 
   function submitEditDispatch(e) {
@@ -705,36 +586,24 @@
     closeModal('editDispatchModal');
     const dIdx = globalState.deployments.findIndex(d=>d.id===p.id);
     if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
-    
     refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).updateDeploymentRecord(p);
   }
 
   function endShift(depId, rentId) {
     if(!confirm("End shift?")) return;
     const dIdx = globalState.deployments.findIndex(d=>d.id===depId);
-    if(dIdx > -1) { 
-        globalState.deployments[dIdx].status = 'Completed'; 
-        globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); 
-    }
+    if(dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===rentId);
-    if(vIdx > -1) {
-        globalState.vehicles[vIdx].status = 'Warehouse (Ready)';
-        globalState.vehicles[vIdx].driver = '—'; 
-        globalState.vehicles[vIdx].zone = '—';   
-    }
+    if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; globalState.vehicles[vIdx].driver = '—'; globalState.vehicles[vIdx].zone = '—'; }
     populateModals(); refreshActiveViews();
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display='block';
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).endShift(depId, rentId);
   }
 
   function triggerCsvExport() {
-    const dateVal = document.getElementById('hist-date').value;
-    const shiftSelect = document.getElementById('hist-shift');
-    const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
+    const dateVal = document.getElementById('hist-date').value; const shiftSelect = document.getElementById('hist-shift'); const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
     google.script.run.withSuccessHandler(function(res) {
       if (!res.success) { alert(res.message); return; }
       const blob = new Blob([res.csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -743,9 +612,7 @@
   }
 
   function triggerPdfPrint() {
-    const dateVal = document.getElementById('hist-date').value;
-    const shiftSelect = document.getElementById('hist-shift');
-    const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
+    const dateVal = document.getElementById('hist-date').value; const shiftSelect = document.getElementById('hist-shift'); const shiftName = shiftSelect && shiftSelect.value ? shiftSelect.value : 'First Shift';
     google.script.run.withSuccessHandler(function(htmlString) {
       const printWindow = window.open('', '_blank'); printWindow.document.open(); printWindow.document.write(htmlString); printWindow.document.close();
     }).withFailureHandler(function(err) { alert('Failed to generate PDF: ' + err.message); }).getPrintableShiftManifestHtml(dateVal, shiftName);

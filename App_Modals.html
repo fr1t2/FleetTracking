@@ -102,6 +102,7 @@
       <div class="modal-body">
         <div class="form-group"><label>Select Vehicle *</label><select id="inc_van" required></select></div>
         <div class="form-row"><div class="form-group"><label>Issue Category *</label><select id="inc_cat" required></select></div><div class="form-group"><label>Status Impact *</label><select id="inc_impact" required></select></div></div>
+        <div class="form-group"><label>Driver Involved (Accidents)</label><select id="inc_driver"></select></div>
         <div class="form-group"><label style="display:flex; align-items:center; gap:8px; color:var(--danger);"><input type="checkbox" id="inc_oos" checked style="width:auto;" /> 🚨 Set vehicle to "Out of Service"</label></div>
         <div class="form-group"><label>Event Description *</label><textarea id="inc_desc" rows="3" required></textarea></div>
       </div>
@@ -134,6 +135,34 @@
         <div class="form-group"><label>Reason *</label><textarea id="dec_reason" rows="3" required></textarea></div>
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('decomModal')">Cancel</button><button type="submit" class="btn btn-danger">Decommission</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT TECH PROFILE MODAL -->
+<div id="techEditModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header"><div>⚙️ Edit Tech Profile</div><button class="modal-close" onclick="closeModal('techEditModal')">&times;</button></div>
+    <form onsubmit="submitTechEdit(event)">
+      <div class="modal-body">
+        <input type="hidden" id="te_orig_name" />
+        <div class="form-row"><div class="form-group"><label>Name *</label><input type="text" id="te_name" required></div><div class="form-group"><label>Phone</label><input type="text" id="te_phone"></div></div>
+        <div class="form-row">
+          <div class="form-group"><label>Assigned Shift</label><select id="te_shift"></select></div>
+          <div class="form-group"><label>Current Status</label><select id="te_status">
+            <option value="Available">🟢 Available</option><option value="Off-Duty">⚪ Off-Duty</option><option value="Sick">🤢 Sick (OOS)</option><option value="NCNS">🚨 NCNS (OOS)</option>
+          </select></div>
+        </div>
+        <div class="form-row"><div class="form-group"><label>Start Time</label><input type="time" id="te_start"></div><div class="form-group"><label>End Time</label><input type="time" id="te_end"></div></div>
+        <div class="form-group"><label>Normal Work Days</label><input type="text" id="te_days" placeholder="e.g. Mon-Fri, or Tues-Sat"></div>
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px; background:var(--bg-panel); padding:16px; border-radius:8px; border:1px solid var(--border-color);">
+          <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="te_test" style="width:auto;"> ✅ Passed Driving Test</label>
+          <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="te_gofast" style="width:auto;"> ⚡ Is Go-Fast Driver</label>
+          <label style="display:flex; align-items:center; gap:8px; color:var(--danger); font-weight:bold;"><input type="checkbox" id="te_restricted" style="width:auto;"> 🛑 DRIVING RESTRICTED (Co-Driver Only)</label>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('techEditModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Profile</button></div>
     </form>
   </div>
 </div>

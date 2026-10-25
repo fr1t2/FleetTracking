@@ -61,15 +61,22 @@
        <div id="fleet-card-grid"></div>
     </div>
 
-    <!-- TAB 3: TECH PROFILES -->
+  <!-- TAB 3: TECH PROFILES -->
     <div id="tab-techs" class="tab-content">
-       <div style="display:flex; justify-content:space-between; margin-bottom:24px; background:var(--bg-surface); padding:16px 24px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow);">
-          <input type="text" id="tech-search" placeholder="🔍 Search employee..." class="control-select" style="width:300px;" onkeyup="renderTechGrid()" />
-          <button class="btn btn-outline" onclick="openModal('rosterModal')">👥 Manage Roster</button>
+       <div style="display:flex; justify-content:space-between; margin-bottom:24px; background:var(--bg-surface); padding:16px 24px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow); flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; gap:12px; align-items:center; flex:1;">
+            <input type="text" id="tech-search" placeholder="🔍 Search tech..." class="control-select" style="max-width:250px; width:100%;" onkeyup="renderTechGrid()" />
+            <select id="tech-sort" class="control-select" onchange="renderTechGrid()">
+              <option value="status">Sort: Priority (Active ➔ Off-Duty)</option>
+              <option value="shift">Sort: Shift ➔ Start Time</option>
+              <option value="alpha">Sort: Alphabetical</option>
+            </select>
+          </div>
+          <button class="btn btn-outline" onclick="openModal('techEditModal'); document.getElementById('te_orig_name').value=''; document.getElementById('te_name').value='';">➕ Add New Tech</button>
        </div>
        <div id="tech-card-grid"></div>
     </div>
-
+    
     <!-- TAB 4: SHIFT HISTORY -->
     <div id="tab-history" class="tab-content">
        <div style="display:flex; justify-content:space-between; margin-bottom:24px; background:var(--bg-surface); padding:16px 24px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow); flex-wrap:wrap; gap:16px;">
