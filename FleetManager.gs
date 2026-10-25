@@ -94,33 +94,31 @@ function processCheckInVehicle(data) {
   const now = new Date();
   const user = Session.getActiveUser().getEmail() || 'local-user';
 
-  // 1. Update Vehicle Status back to Ready
   const vData = vSheet.getDataRange().getValues();
   for (let i = 1; i < vData.length; i++) {
     if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
       vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)');
+      vSheet.getRange(i + 1, 12).clearContent(); // CLEAR ZONE
+      vSheet.getRange(i + 1, 13).clearContent(); // CLEAR TECH
       vSheet.getRange(i + 1, 16).setValue(user);
       vSheet.getRange(i + 1, 17).setValue(now);
       break;
     }
   }
 
-  // 2. Auto-Resolve ANY Open Incidents for this Van
-  const iSheet = ss.getSheetByName('Incidents_Service');
-  if (iSheet) {
+  if (data.incidentId) {
+    const iSheet = ss.getSheetByName('Incidents_Service');
     const iData = iSheet.getDataRange().getValues();
     for (let j = 1; j < iData.length; j++) {
-      // If the Rental ID matches AND the "Date Resolved" (Col J / Index 9) is blank
-      if (String(iData[j][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && !iData[j][9]) {
-        iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes); // Resolution Notes
-        iSheet.getRange(j + 1, 10).setValue(now);                 // Date Resolved
-        iSheet.getRange(j + 1, 11).setValue(user);                // Resolved By
+      if (String(iData[j][0]).trim() === data.incidentId) {
+        iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes);
+        iSheet.getRange(j + 1, 10).setValue(now);
+        iSheet.getRange(j + 1, 11).setValue(user);
+        break;
       }
     }
   }
-
-  logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId, 'Returned to service & incident resolved');
-  return { success: true, message: 'Van is back in service.' };
+  return { success: true, message: 'Van is back in the Warehouse.' };
 }
 
 function decommissionVehicle(targetId, reason) {

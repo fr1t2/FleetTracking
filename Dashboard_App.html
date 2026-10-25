@@ -5,114 +5,99 @@
   <title>VEO Dispatch OS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- LOAD CORE CSS -->
   <?!= include('CSS_Global'); ?>
 </head>
 <body>
   <div id="global-loader" class="loader-bar"></div>
 
-  <!-- RESTORED SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <span class="brand-text">VEO Fleet</span>
-      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+  <!-- TOP NAVIGATION BAR -->
+  <header class="top-nav">
+    <div class="brand">VEO OS <span style="font-size:11px; background:rgba(0,229,255,0.2); padding:4px 8px; border-radius:12px; color:var(--veo-cyan);">v3.0</span></div>
+    
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="switchTab('dispatch')">📋 Dispatch Control</div>
+      <div class="nav-tab" onclick="switchTab('fleet')">🚚 Fleet Registry</div>
+      <div class="nav-tab" onclick="switchTab('techs')">👤 Tech Profiles</div>
+      <div class="nav-tab" onclick="switchTab('history')">🕰️ Shift History</div>
     </div>
-    <div class="nav-menu">
-      <div class="nav-item active" onclick="switchTab('dispatch')"><span style="font-size:18px;">📋</span><span class="nav-text">Dispatch Board</span></div>
-      <div class="nav-item" onclick="switchTab('fleet')"><span style="font-size:18px;">🚚</span><span class="nav-text">Fleet Registry</span></div>
-      <div class="nav-item" onclick="switchTab('techs')"><span style="font-size:18px;">👤</span><span class="nav-text">Tech Profiles</span></div>
-      <div class="nav-item" onclick="switchTab('history')"><span style="font-size:18px;">🕰️</span><span class="nav-text">Shift History</span></div>
-    </div>
-    <div class="sidebar-footer">
-      <button class="theme-toggle" onclick="toggleTheme()">🌓 <span class="theme-text">Toggle Theme</span></button>
-    </div>
-  </aside>
 
-  <!-- MAIN APP AREA -->
+    <div class="system-controls">
+      <select id="theme-selector" class="control-select" onchange="changeTheme()">
+        <option value="light">Light Theme</option>
+        <option value="dark" selected>Dark Theme</option>
+        <option value="veo-dynamic">VEO Dynamic</option>
+      </select>
+      
+      <select id="layout-selector" class="control-select" onchange="changeLayout()" style="border-color:var(--veo-cyan); color:var(--veo-cyan);">
+        <option value="classic">Classic Professional</option>
+        <option value="modern">Home Assistant Widgets</option>
+        <option value="focus">New: Focus Operations</option>
+      </select>
+      
+      <button class="btn btn-outline" onclick="openModal('incidentModal')" style="color:var(--danger); border-color:var(--danger);">⚠️ Report OOS</button>
+      <button class="btn btn-primary" onclick="loadPortalData()">🔄 Refresh</button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
   <main class="main-content">
-    <header class="topbar">
-      <div style="display:flex; align-items:center; gap:12px;">
-         <h2 id="page-title" style="font-size:18px; font-weight:800;">Dispatch Board</h2>
-      </div>
-      <div class="system-controls">
-        <select id="theme-selector" class="control-select" onchange="changeTheme()">
-          <option value="light">Light Theme</option>
-          <option value="dark" selected>Dark Theme</option>
-          <option value="veo-dynamic">VEO Dynamic</option>
-        </select>
-        
-        <select id="layout-selector" class="control-select" onchange="changeLayout()">
-          <option value="command">Command Center</option>
-          <option value="classic">Classic Professional</option>
-          <option value="modern">Home Assistant (Widgets)</option>
-        </select>
-        
-        <button class="btn btn-outline" onclick="openModal('incidentModal')">⚠️ Report OOS</button>
-        <button class="btn btn-primary" onclick="loadPortalData()">🔄 Refresh</button>
-      </div>
-    </header>
+    
+    <!-- TAB 1: DISPATCH (Injects chosen layout) -->
+    <div id="tab-dispatch" class="tab-content active" style="padding:0;">
+      <div id="layout-classic" style="display:none; height:100%;"><?!= include('Layout_Classic'); ?></div>
+      <div id="layout-modern" style="display:none; height:100%;"><?!= include('Layout_Modern'); ?></div>
+      <div id="layout-focus" style="display:none; height:100%;"><?!= include('Layout_Focus'); ?></div>
+    </div>
 
-    <div class="content-area">
-      <!-- DISPATCH TAB (Injects the 3 Modular Layouts) -->
-      <div id="tab-dispatch" class="tab-content active">
-        <div id="layout-command" style="display:none; height:100%;"><?!= include('Layout_Command'); ?></div>
-        <div id="layout-classic" style="display:none; height:100%;"><?!= include('Layout_Classic'); ?></div>
-        <div id="layout-modern" style="display:none; height:100%;"><?!= include('Layout_Modern'); ?></div>
-      </div>
+    <!-- TAB 2: FLEET REGISTRY -->
+    <div id="tab-fleet" class="tab-content">
+       <div class="panel">
+          <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <input type="text" id="fleet-search" placeholder="🔍 Search van or plate..." class="control-select" style="width:300px;" onkeyup="renderFleetGrid()" />
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-outline" onclick="openModal('decomModal')">🛑 Decommission</button>
+              <button class="btn btn-dark" onclick="openModal('addVehicleModal')">+ Add Van</button>
+            </div>
+          </div>
+          <div id="fleet-card-grid" class="card-grid"></div>
+       </div>
+    </div>
 
-      <!-- FLEET TAB (Restored) -->
-      <div id="tab-fleet" class="tab-content">
-         <div class="panel">
-            <div class="panel-header">
-              <input type="text" id="fleet-search" placeholder="🔍 Search van or plate..." class="control-select" style="width:300px;" onkeyup="renderFleetGrid()" />
-              <div style="display:flex; gap:10px;">
-                <button class="btn btn-outline" onclick="openModal('decomModal')">🛑 Decommission</button>
-                <button class="btn btn-dark" onclick="openModal('addVehicleModal')">+ Add Van</button>
-              </div>
-            </div>
-            <div id="fleet-card-grid" class="card-grid"></div>
-         </div>
-      </div>
+    <!-- TAB 3: TECH PROFILES -->
+    <div id="tab-techs" class="tab-content">
+       <div class="panel">
+          <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <input type="text" id="tech-search" placeholder="🔍 Search employee..." class="control-select" style="width:300px;" onkeyup="renderTechGrid()" />
+            <button class="btn btn-outline" onclick="openModal('rosterModal')">👥 Manage Roster</button>
+          </div>
+          <div id="tech-card-grid" class="card-grid"></div>
+       </div>
+    </div>
 
-      <!-- TECHS TAB (Restored) -->
-      <div id="tab-techs" class="tab-content">
-         <div class="panel">
-            <div class="panel-header">
-              <div style="display:flex; gap:10px; width:100%; max-width:400px;">
-                <input type="text" id="tech-search" placeholder="🔍 Search employee..." class="control-select" style="flex:1;" onkeyup="renderTechGrid()" />
-              </div>
-              <button class="btn btn-outline" onclick="openModal('rosterModal')">👥 Manage Roster</button>
+    <!-- TAB 4: SHIFT HISTORY -->
+    <div id="tab-history" class="tab-content">
+       <div class="panel">
+          <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <div style="display:flex; gap:10px;">
+              <input type="date" id="hist-date" class="control-select" onchange="renderHistoryTab()" />
+              <select id="hist-shift" class="control-select" onchange="renderHistoryTab()"></select>
             </div>
-            <div id="tech-card-grid" class="card-grid"></div>
-         </div>
-      </div>
-
-      <!-- HISTORY TAB (Restored) -->
-      <div id="tab-history" class="tab-content">
-         <div class="panel">
-            <div class="panel-header">
-              <div style="display:flex; gap:10px;">
-                <input type="date" id="hist-date" class="control-select" onchange="renderHistoryTab()" />
-                <select id="hist-shift" class="control-select" onchange="renderHistoryTab()"></select>
-              </div>
-              <div style="display:flex; gap:10px;">
-                <button class="btn btn-outline" onclick="triggerCsvExport()">📥 Export CSV</button>
-                <button class="btn btn-outline" onclick="triggerPdfPrint()">🖨️ Print PDF</button>
-              </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-outline" onclick="triggerCsvExport()">📥 Export CSV</button>
+              <button class="btn btn-outline" onclick="triggerPdfPrint()">🖨️ Print PDF</button>
             </div>
-            <div style="overflow-x:auto;">
-              <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
-                <thead><tr style="border-bottom:2px solid var(--border-color);">
-                  <th style="padding:12px; color:var(--text-muted);">Shift</th><th style="padding:12px; color:var(--text-muted);">Van</th><th style="padding:12px; color:var(--text-muted);">Techs</th>
-                  <th style="padding:12px; color:var(--text-muted);">Zone</th><th style="padding:12px; color:var(--text-muted);">Goals</th><th style="padding:12px; color:var(--text-muted);">Time Out</th>
-                  <th style="padding:12px; color:var(--text-muted);">Status</th>
-                </tr></thead>
-                <tbody id="history-table-body"></tbody>
-              </table>
-            </div>
-         </div>
-      </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
+              <thead><tr style="border-bottom:2px solid var(--border-color);">
+                <th style="padding:12px; color:var(--text-muted);">Shift</th><th style="padding:12px; color:var(--text-muted);">Van</th><th style="padding:12px; color:var(--text-muted);">Techs</th>
+                <th style="padding:12px; color:var(--text-muted);">Zone</th><th style="padding:12px; color:var(--text-muted);">Goals</th><th style="padding:12px; color:var(--text-muted);">Time Out</th>
+                <th style="padding:12px; color:var(--text-muted);">Status</th>
+              </tr></thead>
+              <tbody id="history-table-body"></tbody>
+            </table>
+          </div>
+       </div>
     </div>
   </main>
 

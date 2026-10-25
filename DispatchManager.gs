@@ -96,25 +96,27 @@ function endShift(deploymentId, rentalId) {
   const vSheet = ss.getSheetByName('Vehicles');
   const now = new Date();
 
+  // 1. End the Deployment
   const dRows = dSheet.getDataRange().getValues();
   for (let i = 1; i < dRows.length; i++) {
     if (String(dRows[i][0]).trim() === String(deploymentId).trim()) {
       dSheet.getRange(i + 1, 10).setValue('Completed');
-      dSheet.getRange(i + 1, 12).setValue(now);
+      dSheet.getRange(i + 1, 12).setValue(now); // Set Return Time
       break;
     }
   }
 
+  // 2. Wipe the Driver and Zone from the Vehicle
   const vRows = vSheet.getDataRange().getValues();
   for (let j = 1; j < vRows.length; j++) {
-    if (String(vRows[j][1]).trim() === String(rentalId).trim()) {
+    if (String(vRows[j][1]).trim().toLowerCase() === String(rentalId).trim().toLowerCase()) {
       vSheet.getRange(j + 1, 9).setValue('Warehouse (Ready)');
-      vSheet.getRange(j + 1, 12).clearContent();
-      vSheet.getRange(j + 1, 13).clearContent();
+      vSheet.getRange(j + 1, 12).clearContent(); // CLEAR ZONE
+      vSheet.getRange(j + 1, 13).clearContent(); // CLEAR TECH
       break;
     }
   }
-  logAudit('END_SHIFT', 'Deployments', deploymentId, 'Shift completed');
+  logAudit('END_SHIFT', 'Deployments', deploymentId, 'Shift completed, tech cleared');
   return { success: true };
 }
 
