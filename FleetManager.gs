@@ -11,7 +11,7 @@ function processAddVehicle(formData) {
   sheet.appendRow([
     formData.vanName || '', formData.rentalId || '', formData.rentalAgency || 'Enterprise',
     formData.makeModel || 'Cargo Van', formData.vin || '', formData.licensePlate || '',
-    formData.plateExpDate || '', formData.samsaraSerial || '', 'Warehouse', // <--- FIXED HERE
+    formData.plateExpDate || '', formData.samsaraSerial || '', 'Warehouse (Ready)', // <--- Reverted to exact match
     now, '', '', '', now, '', user, now, formData.addons || ''
   ]);
   
@@ -58,7 +58,7 @@ function processReportIncident(data) {
 
   incSheet.appendRow([
     incId, now, data.cleanName, data.rentalId, data.issueCategory, data.description,
-    data.triggerOos ? 'YES' : 'NO', data.statusImpact, '', '', '', user, now
+    data.triggerOos ? 'YES' : 'NO', data.statusImpact, '', '', '', user, now, data.driverInvolved || ''
   ]);
 
   if (data.triggerOos) {
@@ -108,7 +108,7 @@ function processCheckInVehicle(data) {
       const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
       
       if ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName)) {
-        vSheet.getRange(i + 1, 9).setValue('Warehouse'); // <--- FIXED HERE! No more "Warehouse (Ready)"
+        vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)'); // <--- Reverted to exact match!
         vSheet.getRange(i + 1, 12).clearContent(); 
         vSheet.getRange(i + 1, 13).clearContent(); 
         vSheet.getRange(i + 1, 15).clearContent(); 
