@@ -3,83 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <title>VEO Dispatch OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- 1. INJECT GLOBAL CSS -->
+  <!-- LOAD CORE CSS -->
   <?!= include('CSS_Global'); ?>
 </head>
 <body>
   <div id="global-loader" class="loader-bar"></div>
 
-  <!-- TOP NAVIGATION & CONTROLS -->
-  <header class="top-nav">
-    <div class="brand">
-      <span>VEO OS</span>
-      <span style="font-size:12px; font-weight:600; color:var(--text-muted); background:var(--bg-panel); padding:4px 8px; border-radius:12px;">v2.0</span>
+  <!-- RESTORED SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="brand-text">VEO Fleet</span>
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
     </div>
-    
-    <div class="system-controls">
-      <select id="theme-selector" class="control-select" onchange="changeTheme()">
-        <option value="light">Light Theme</option>
-        <option value="dark" selected>Dark Theme</option>
-        <option value="veo-dynamic">VEO Dynamic</option>
-      </select>
-
-      <select id="layout-selector" class="control-select" onchange="changeLayout()">
-        <option value="command">Command Center (Dispatch Desk)</option>
-        <option value="classic">Classic Professional (Tables)</option>
-        <option value="modern">Home Assistant (Widgets)</option>
-      </select>
-      
-      <button class="btn btn-primary" onclick="loadPortalData()">🔄 Refresh</button>
+    <div class="nav-menu">
+      <div class="nav-item active" onclick="switchTab('dispatch')"><span style="font-size:18px;">📋</span><span class="nav-text">Dispatch Board</span></div>
+      <div class="nav-item" onclick="switchTab('fleet')"><span style="font-size:18px;">🚚</span><span class="nav-text">Fleet Registry</span></div>
+      <div class="nav-item" onclick="switchTab('techs')"><span style="font-size:18px;">👤</span><span class="nav-text">Tech Profiles</span></div>
+      <div class="nav-item" onclick="switchTab('history')"><span style="font-size:18px;">🕰️</span><span class="nav-text">Shift History</span></div>
     </div>
-  </header>
+    <div class="sidebar-footer">
+      <button class="theme-toggle" onclick="toggleTheme()">🌓 <span class="theme-text">Toggle Theme</span></button>
+    </div>
+  </aside>
 
-  <!-- DYNAMIC LAYOUT CONTAINER -->
-  <div id="layout-container">
-    <!-- Layouts will be injected here via JavaScript -->
-  </div>
+  <!-- MAIN APP AREA -->
+  <main class="main-content">
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:12px;">
+         <h2 id="page-title" style="font-size:18px; font-weight:800;">Dispatch Board</h2>
+      </div>
+      <div class="system-controls">
+        <select id="theme-selector" class="control-select" onchange="changeTheme()">
+          <option value="light">Light Theme</option>
+          <option value="dark" selected>Dark Theme</option>
+          <option value="veo-dynamic">VEO Dynamic</option>
+        </select>
+        
+        <select id="layout-selector" class="control-select" onchange="changeLayout()">
+          <option value="command">Command Center</option>
+          <option value="classic">Classic Professional</option>
+          <option value="modern">Home Assistant (Widgets)</option>
+        </select>
+        
+        <button class="btn btn-outline" onclick="openModal('incidentModal')">⚠️ Report OOS</button>
+        <button class="btn btn-primary" onclick="loadPortalData()">🔄 Refresh</button>
+      </div>
+    </header>
 
-<!-- DYNAMIC LAYOUT CONTAINER -->
-  <div id="layout-container" style="flex:1; display:flex; overflow:hidden;">
-    <div id="layout-command" style="display:none; width:100%; height:100%;"><?!= include('Layout_Command'); ?></div>
-    <div id="layout-classic" style="display:none; width:100%; height:100%;"><?!= include('Layout_Classic'); ?></div>
-    <div id="layout-modern" style="display:none; width:100%; height:100%;"><?!= include('Layout_Modern'); ?></div>
-  </div>
+    <div class="content-area">
+      <!-- DISPATCH TAB (Injects the 3 Modular Layouts) -->
+      <div id="tab-dispatch" class="tab-content active">
+        <div id="layout-command" style="display:none; height:100%;"><?!= include('Layout_Command'); ?></div>
+        <div id="layout-classic" style="display:none; height:100%;"><?!= include('Layout_Classic'); ?></div>
+        <div id="layout-modern" style="display:none; height:100%;"><?!= include('Layout_Modern'); ?></div>
+      </div>
 
-  <script>
-    let globalState = null;
+      <!-- FLEET TAB (Restored) -->
+      <div id="tab-fleet" class="tab-content">
+         <div class="panel">
+            <div class="panel-header">
+              <input type="text" id="fleet-search" placeholder="🔍 Search van or plate..." class="control-select" style="width:300px;" onkeyup="renderFleetGrid()" />
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="openModal('decomModal')">🛑 Decommission</button>
+                <button class="btn btn-dark" onclick="openModal('addVehicleModal')">+ Add Van</button>
+              </div>
+            </div>
+            <div id="fleet-card-grid" class="card-grid"></div>
+         </div>
+      </div>
 
-    window.onload = function() { changeTheme(); changeLayout(); loadPortalData(); };
+      <!-- TECHS TAB (Restored) -->
+      <div id="tab-techs" class="tab-content">
+         <div class="panel">
+            <div class="panel-header">
+              <div style="display:flex; gap:10px; width:100%; max-width:400px;">
+                <input type="text" id="tech-search" placeholder="🔍 Search employee..." class="control-select" style="flex:1;" onkeyup="renderTechGrid()" />
+              </div>
+              <button class="btn btn-outline" onclick="openModal('rosterModal')">👥 Manage Roster</button>
+            </div>
+            <div id="tech-card-grid" class="card-grid"></div>
+         </div>
+      </div>
 
-    function changeTheme() {
-      const theme = document.getElementById('theme-selector').value;
-      if (theme === 'light') document.documentElement.removeAttribute('data-theme');
-      else document.documentElement.setAttribute('data-theme', theme);
-    }
+      <!-- HISTORY TAB (Restored) -->
+      <div id="tab-history" class="tab-content">
+         <div class="panel">
+            <div class="panel-header">
+              <div style="display:flex; gap:10px;">
+                <input type="date" id="hist-date" class="control-select" onchange="renderHistoryTab()" />
+                <select id="hist-shift" class="control-select" onchange="renderHistoryTab()"></select>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="triggerCsvExport()">📥 Export CSV</button>
+                <button class="btn btn-outline" onclick="triggerPdfPrint()">🖨️ Print PDF</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
+                <thead><tr style="border-bottom:2px solid var(--border-color);">
+                  <th style="padding:12px; color:var(--text-muted);">Shift</th><th style="padding:12px; color:var(--text-muted);">Van</th><th style="padding:12px; color:var(--text-muted);">Techs</th>
+                  <th style="padding:12px; color:var(--text-muted);">Zone</th><th style="padding:12px; color:var(--text-muted);">Goals</th><th style="padding:12px; color:var(--text-muted);">Time Out</th>
+                  <th style="padding:12px; color:var(--text-muted);">Status</th>
+                </tr></thead>
+                <tbody id="history-table-body"></tbody>
+              </table>
+            </div>
+         </div>
+      </div>
+    </div>
+  </main>
 
-    function changeLayout() {
-      document.getElementById('layout-command').style.display = 'none';
-      document.getElementById('layout-classic').style.display = 'none';
-      document.getElementById('layout-modern').style.display = 'none';
-      
-      const layoutType = document.getElementById('layout-selector').value;
-      document.getElementById(`layout-${layoutType}`).style.display = 'block';
-      routeDataToLayout(layoutType);
-    }
-
-    function loadPortalData() {
-      document.getElementById('global-loader').style.display='block';
-      google.script.run.withSuccessHandler(function(st) {
-        globalState = st;
-        document.getElementById('global-loader').style.display='none';
-        routeDataToLayout(document.getElementById('layout-selector').value);
-      }).getDashboardState();
-    }
-
-    function routeDataToLayout(layoutType) {
-      if (!globalState) return;
-      if (layoutType === 'command' && typeof renderCommandCenter === 'function') renderCommandCenter(globalState);
-    }
-  </script>
+  <!-- INJECT MODALS AND SCRIPTS -->
+  <?!= include('App_Modals'); ?>
+  <?!= include('App_Scripts'); ?>
 </body>
 </html>
