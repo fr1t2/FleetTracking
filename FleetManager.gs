@@ -11,11 +11,11 @@ function processAddVehicle(formData) {
   sheet.appendRow([
     formData.vanName || '', formData.rentalId || '', formData.rentalAgency || 'Enterprise',
     formData.makeModel || 'Cargo Van', formData.vin || '', formData.licensePlate || '',
-    formData.plateExpDate || '', formData.samsaraSerial || '', 'Warehouse (Ready)',
+    formData.plateExpDate || '', formData.samsaraSerial || '', 'Warehouse', // <--- FIXED HERE
     now, '', '', '', now, '', user, now, formData.addons || ''
   ]);
   
-  logAudit('VEHICLE_ADDED', 'Vehicles', formData.rentalId, 'Added to fleet');
+  if (typeof logAudit === 'function') logAudit('VEHICLE_ADDED', 'Vehicles', formData.rentalId, 'Added to fleet');
   return { success: true, message: `Vehicle added!` };
 }
 
@@ -43,7 +43,7 @@ function updateVehicleDetails(formData) {
   sheet.getRange(rowIndex, 16).setValue(user); 
   sheet.getRange(rowIndex, 17).setValue(now);  
 
-  logAudit('VEHICLE_UPDATED', 'Vehicles', formData.rentalId, 'Specs updated');
+  if (typeof logAudit === 'function') logAudit('VEHICLE_UPDATED', 'Vehicles', formData.rentalId, 'Specs updated');
   return { success: true, message: `Vehicle updated.` };
 }
 
@@ -75,7 +75,6 @@ function processReportIncident(data) {
       }
     }
     
-    // Auto-end the active deployment
     const dData = dSheet.getDataRange().getValues();
     for (let j = 1; j < dData.length; j++) {
       if (String(dData[j][4]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && String(dData[j][9]).trim() === 'Dispatched') {
@@ -84,7 +83,7 @@ function processReportIncident(data) {
       }
     }
   }
-  logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
+  if (typeof logAudit === 'function') logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
   return { success: true, message: 'Incident reported.' };
 }
 
@@ -102,7 +101,6 @@ function processCheckInVehicle(data) {
     const vData = vSheet.getDataRange().getValues();
     let found = false;
     
-    // 1. Locate the Van and clear its status/notes
     for (let i = 1; i < vData.length; i++) {
       const rowRentalId = String(vData[i][1]).trim().toLowerCase();
       const rowCleanName = String(vData[i][0]).trim().toLowerCase();
@@ -110,10 +108,10 @@ function processCheckInVehicle(data) {
       const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
       
       if ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName)) {
-        vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)');
-        vSheet.getRange(i + 1, 12).clearContent(); // CLEAR ZONE
-        vSheet.getRange(i + 1, 13).clearContent(); // CLEAR TECH
-        vSheet.getRange(i + 1, 15).clearContent(); // CLEAR OOS NOTES
+        vSheet.getRange(i + 1, 9).setValue('Warehouse'); // <--- FIXED HERE! No more "Warehouse (Ready)"
+        vSheet.getRange(i + 1, 12).clearContent(); 
+        vSheet.getRange(i + 1, 13).clearContent(); 
+        vSheet.getRange(i + 1, 15).clearContent(); 
         vSheet.getRange(i + 1, 16).setValue(user);
         vSheet.getRange(i + 1, 17).setValue(now);
         found = true;
@@ -121,17 +119,13 @@ function processCheckInVehicle(data) {
       }
     }
 
-    if (!found) {
-      return { success: false, message: `Vehicle ${data.cleanName || data.rentalId} could not be found in the database.` };
-    }
+    if (!found) return { success: false, message: `Vehicle ${data.cleanName || data.rentalId} could not be found in the database.` };
 
-    // 2. Resolve the open incident ticket
     const iSheet = ss.getSheetByName('Incidents_Service');
     if (iSheet) {
       const iData = iSheet.getDataRange().getValues();
       let targetIncId = data.incidentId;
       
-      // Fallback: If frontend didn't pass the ID, find the open ticket manually
       if (!targetIncId) {
          for (let j = iData.length - 1; j >= 1; j--) {
            if (String(iData[j][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && !iData[j][9]) {
@@ -145,23 +139,21 @@ function processCheckInVehicle(data) {
         for (let j = 1; j < iData.length; j++) {
           if (String(iData[j][0]).trim() === targetIncId) {
             iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes || 'Checked in via dashboard');
-            iSheet.getRange(j + 1, 10).setValue(now); // Set Date Resolved
-            iSheet.getRange(j + 1, 11).setValue(user); // Set Resolved By
+            iSheet.getRange(j + 1, 10).setValue(now);
+            iSheet.getRange(j + 1, 11).setValue(user);
             break;
           }
         }
       }
     }
     
-    if (typeof logAudit === 'function') {
-      logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId || data.cleanName, 'Repaired and returned to Warehouse');
-    }
-
+    if (typeof logAudit === 'function') logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId || data.cleanName, 'Repaired and returned to Warehouse');
     return { success: true, message: 'Van is back in the Warehouse.' };
   } catch (err) {
     return { success: false, message: 'Check-in script failed: ' + err.toString() };
   }
 }
+
 function decommissionVehicle(targetId, reason) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Vehicles');
@@ -181,6 +173,6 @@ function decommissionVehicle(targetId, reason) {
   const curNotes = sheet.getRange(rowIndex, 15).getValue();
   sheet.getRange(rowIndex, 15).setValue((curNotes ? curNotes + ' | ' : '') + 'Decom: ' + reason);
 
-  logAudit('VEHICLE_DECOMMISSIONED', 'Vehicles', targetId, reason);
+  if (typeof logAudit === 'function') logAudit('VEHICLE_DECOMMISSIONED', 'Vehicles', targetId, reason);
   return { success: true, message: `Vehicle Decommissioned.` };
 }
