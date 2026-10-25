@@ -89,65 +89,79 @@ function processReportIncident(data) {
 }
 
 function processCheckInVehicle(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const vSheet = ss.getSheetByName('Vehicles');
-  const now = new Date();
-  const user = Session.getActiveUser().getEmail() || 'local-user';
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
 
-  if (!data.rentalId) {
-    throw new Error('No Rental ID was provided to the database.');
-  }
-
-  const vData = vSheet.getDataRange().getValues();
-  let found = false;
-  
-  for (let i = 1; i < vData.length; i++) {
-    if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
-      vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)');
-      vSheet.getRange(i + 1, 12).clearContent(); // CLEAR ZONE
-      vSheet.getRange(i + 1, 13).clearContent(); // CLEAR TECH
-      vSheet.getRange(i + 1, 15).clearContent(); // CLEAR OOS NOTES
-      vSheet.getRange(i + 1, 16).setValue(user);
-      vSheet.getRange(i + 1, 17).setValue(now);
-      found = true;
-      break;
+    if (!data.rentalId && !data.cleanName) {
+      return { success: false, message: 'No vehicle identifier was provided to the database.' };
     }
-  }
 
-  if (!found) {
-    throw new Error('Vehicle ' + data.rentalId + ' could not be found in the database.');
-  }
-
-  // 2. Automatically find and resolve any open incidents for this van
-  let targetIncId = data.incidentId;
-  const iSheet = ss.getSheetByName('Incidents_Service');
-  const iData = iSheet.getDataRange().getValues();
-  
-  // Fallback: If frontend didn't pass the ID, find the open ticket manually
-  if (!targetIncId) {
-     for (let j = iData.length - 1; j >= 1; j--) {
-       if (String(iData[j][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && !iData[j][9]) {
-         targetIncId = String(iData[j][0]).trim();
-         break;
-       }
-     }
-  }
-  
-  if (targetIncId) {
-    for (let j = 1; j < iData.length; j++) {
-      if (String(iData[j][0]).trim() === targetIncId) {
-        iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes || 'Checked in via dashboard');
-        iSheet.getRange(j + 1, 10).setValue(now);
-        iSheet.getRange(j + 1, 11).setValue(user);
+    const vData = vSheet.getDataRange().getValues();
+    let found = false;
+    
+    // 1. Locate the Van and clear its status/notes
+    for (let i = 1; i < vData.length; i++) {
+      const rowRentalId = String(vData[i][1]).trim().toLowerCase();
+      const rowCleanName = String(vData[i][0]).trim().toLowerCase();
+      const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+      const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
+      
+      if ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName)) {
+        vSheet.getRange(i + 1, 9).setValue('Warehouse (Ready)');
+        vSheet.getRange(i + 1, 12).clearContent(); // CLEAR ZONE
+        vSheet.getRange(i + 1, 13).clearContent(); // CLEAR TECH
+        vSheet.getRange(i + 1, 15).clearContent(); // CLEAR OOS NOTES
+        vSheet.getRange(i + 1, 16).setValue(user);
+        vSheet.getRange(i + 1, 17).setValue(now);
+        found = true;
         break;
       }
     }
-  }
-  
-  logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId, 'Repaired and returned to Warehouse');
-  return { success: true, message: 'Van is back in the Warehouse.' };
-}
 
+    if (!found) {
+      return { success: false, message: `Vehicle ${data.cleanName || data.rentalId} could not be found in the database.` };
+    }
+
+    // 2. Resolve the open incident ticket
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    if (iSheet) {
+      const iData = iSheet.getDataRange().getValues();
+      let targetIncId = data.incidentId;
+      
+      // Fallback: If frontend didn't pass the ID, find the open ticket manually
+      if (!targetIncId) {
+         for (let j = iData.length - 1; j >= 1; j--) {
+           if (String(iData[j][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && !iData[j][9]) {
+             targetIncId = String(iData[j][0]).trim();
+             break;
+           }
+         }
+      }
+      
+      if (targetIncId) {
+        for (let j = 1; j < iData.length; j++) {
+          if (String(iData[j][0]).trim() === targetIncId) {
+            iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes || 'Checked in via dashboard');
+            iSheet.getRange(j + 1, 10).setValue(now); // Set Date Resolved
+            iSheet.getRange(j + 1, 11).setValue(user); // Set Resolved By
+            break;
+          }
+        }
+      }
+    }
+    
+    if (typeof logAudit === 'function') {
+      logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId || data.cleanName, 'Repaired and returned to Warehouse');
+    }
+
+    return { success: true, message: 'Van is back in the Warehouse.' };
+  } catch (err) {
+    return { success: false, message: 'Check-in script failed: ' + err.toString() };
+  }
+}
 function decommissionVehicle(targetId, reason) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Vehicles');
