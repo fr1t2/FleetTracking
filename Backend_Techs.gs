@@ -1,147 +1,124 @@
 /**
- * Run this function ONCE from the editor to upgrade your database.
- * It creates the Tech_Profiles sheet and migrates your existing roster.
+ * Saves and updates the Tech Profile including new HR and EV constraints
  */
-function upgradeDatabaseForTechs() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let techSheet = ss.getSheetByName('Tech_Profiles');
-  
-  if (!techSheet) {
-    techSheet = ss.insertSheet('Tech_Profiles');
-    techSheet.appendRow(['Tech Name', 'Phone', 'Shift', 'Start Time', 'End Time', 'Work Days', 'Passed Test', 'Go-Fast', 'Restricted', 'Status', 'Notes']);
-    techSheet.getRange('A1:K1').setFontWeight('bold').setBackground('#f0f2f5');
-    
-    // Migrate existing techs from _Config if they exist
-    const configSheet = ss.getSheetByName('_Config');
-    if (configSheet) {
-      const roster = configSheet.getRange('K2:K' + configSheet.getLastRow()).getValues().flat().filter(String);
-      roster.forEach(name => {
-        techSheet.appendRow([name, '', 'First Shift', '07:00', '15:30', 'Mon-Fri', 'Yes', 'No', 'No', 'Available', 'Migrated']);
-      });
-    }
-  }
-}
-
-/**
- * Updates a Tech's Profile attributes.
- */
-function updateTechProfile(data) {
+function updateTechProfile(p) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Tech_Profiles');
-  const rows = sheet.getDataRange().getValues();
+  const data = sheet.getDataRange().getValues();
   let rowIndex = -1;
-
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]).trim().toLowerCase() === String(data.origName).trim().toLowerCase()) {
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === p.origName.toLowerCase()) {
       rowIndex = i + 1; break;
     }
   }
-
+  
   const rowData = [
-    data.name, data.phone, data.shift, data.startTime, data.endTime, 
-    data.workDays, data.passedTest ? 'Yes' : 'No', data.goFast ? 'Yes' : 'No', 
-    data.restricted ? 'Yes' : 'No', data.status, data.notes || ''
+    p.name, p.phone, p.shift, p.startTime, p.endTime, p.workDays, 
+    p.passedTest ? 'Yes' : 'No', p.goFast ? 'Yes' : 'No', p.restricted ? 'Yes' : 'No', 
+    p.status, '', p.hrStatus, p.coastFuel ? 'Yes' : 'No', p.evGo ? 'Yes' : 'No', p.trainer ? 'Yes' : 'No'
   ];
 
-  if (rowIndex > -1) {
-    sheet.getRange(rowIndex, 1, 1, 11).setValues([rowData]);
-  } else {
+  if (rowIndex === -1) {
     sheet.appendRow(rowData);
+  } else {
+    sheet.getRange(rowIndex, 1, 1, 15).setValues([rowData]);
   }
-  
-  logAudit('TECH_UPDATED', 'Tech_Profiles', data.name, `Status: ${data.status} | Restricted: ${data.restricted}`);
-  return { success: true };
+  return {success: true};
 }
 
 /**
- * Permanently removes a tech from the system
+ * Termination simply moves them to "Terminated" status so they vanish from the frontend.
  */
 function processDeleteTech(techName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // 1. Remove from Tech Profiles
-  const tSheet = ss.getSheetByName('Tech_Profiles');
-  if (tSheet) {
-    const tData = tSheet.getDataRange().getValues();
-    for (let i = 1; i < tData.length; i++) {
-      if (String(tData[i][0]).trim().toLowerCase() === techName.toLowerCase()) {
-        tSheet.deleteRow(i + 1);
-        break;
-      }
-    }
-  }
-
-  // 2. Remove from Config Roster
-  const cSheet = ss.getSheetByName('_Config');
-  if (cSheet) {
-    const cData = cSheet.getDataRange().getValues();
-    for (let i = 1; i < cData.length; i++) {
-      if (String(cData[i][9]).trim().toLowerCase() === techName.toLowerCase()) { // Col J is Tech Roster
-        cSheet.getRange(i + 1, 10).clearContent(); 
-        break;
-      }
-    }
-  }
-  
-  if (typeof logAudit === 'function') logAudit('TECH_DELETED', 'Tech_Profiles', techName, 'Terminated / Removed from service');
-  return { success: true };
+   const ss = SpreadsheetApp.getActiveSpreadsheet();
+   const tSheet = ss.getSheetByName('Tech_Profiles');
+   if (tSheet) {
+     const tData = tSheet.getDataRange().getValues();
+     for (let i = 1; i < tData.length; i++) {
+       if (String(tData[i][0]).trim().toLowerCase() === techName.toLowerCase()) {
+         tSheet.getRange(i + 1, 12).setValue('Terminated'); // Set HR Status
+         break;
+       }
+     }
+   }
+   if (typeof logAudit === 'function') logAudit('TECH_TERMINATED', 'Tech_Profiles', techName, 'Terminated');
+   return { success: true };
 }
 
 /**
- * Logs an attendance event (Sick, NCNS, PTO) and updates their profile status
+ * Helper to allow frontend override of the driving test!
+ */
+function overrideDrivingTest(techName) {
+   const ss = SpreadsheetApp.getActiveSpreadsheet();
+   const tSheet = ss.getSheetByName('Tech_Profiles');
+   if (tSheet) {
+     const tData = tSheet.getDataRange().getValues();
+     for (let i = 1; i < tData.length; i++) {
+       if (String(tData[i][0]).trim().toLowerCase() === techName.toLowerCase()) {
+         tSheet.getRange(i + 1, 7).setValue('Yes');
+         break;
+       }
+     }
+   }
+   return { success: true };
+}
+
+/**
+ * Logs exception to Tech Profile, Attendance Log, AND Deployments (Shift History)!
  */
 function logTechAttendance(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const now = new Date();
   const user = Session.getActiveUser().getEmail() || 'local-user';
-  
-  // 1. Create Attendance_Log tab if it doesn't exist
-  let aSheet = ss.getSheetByName('Attendance_Log');
-  if (!aSheet) {
-    aSheet = ss.insertSheet('Attendance_Log');
-    aSheet.appendRow(['Date', 'Tech Name', 'Event Type', 'Notes', 'Logged By', 'Timestamp']);
-    aSheet.getRange('A1:F1').setFontWeight('bold').setBackground('#f0f2f5');
-  }
 
-  // 2. Record the Event
+  // 1. Log to Attendance DB
+  let aSheet = ss.getSheetByName('Attendance_Log');
+  if (!aSheet) { aSheet = ss.insertSheet('Attendance_Log'); aSheet.appendRow(['Date', 'Tech Name', 'Event Type', 'Notes', 'Logged By', 'Timestamp']); }
   aSheet.appendRow([ data.date, data.techName, data.type, data.notes, user, now ]);
 
-  // 3. Auto-update their Tech Profile status
+  // 2. Change their Profile Status
   const tSheet = ss.getSheetByName('Tech_Profiles');
   if (tSheet) {
     const tData = tSheet.getDataRange().getValues();
     for (let i = 1; i < tData.length; i++) {
       if (String(tData[i][0]).trim().toLowerCase() === data.techName.trim().toLowerCase()) {
-        tSheet.getRange(i + 1, 10).setValue(data.type); // Col J is Status
-        break;
+        tSheet.getRange(i + 1, 10).setValue(data.type); break;
       }
     }
   }
+
+  // 3. INJECT INTO DEPLOYMENTS FOR SHIFT HISTORY TAB
+  const dSheet = ss.getSheetByName('Deployments');
+  const depId = 'ATT-' + Utilities.getUuid().substring(0, 6).toUpperCase();
+  dSheet.appendRow([depId, data.date, data.shift, '—', '—', data.techName, '—', data.notes, '—', data.type, now, '', user, now, '', 'No']);
 
   return { success: true };
 }
 
 /**
- * Clears an attendance exception and sets the tech back to Available
+ * Clears exception and wipes their fake history record!
  */
-function clearTechException(techName) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const tSheet = ss.getSheetByName('Tech_Profiles');
-    
-    if (tSheet) {
-      const tData = tSheet.getDataRange().getValues();
-      for (let i = 1; i < tData.length; i++) {
-        if (String(tData[i][0]).trim().toLowerCase() === techName.trim().toLowerCase()) {
-          tSheet.getRange(i + 1, 10).setValue('Available'); // Col J is Status
-          break;
-        }
-      }
+function clearTechException(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 1. Restore Profile Status to Available
+  const tSheet = ss.getSheetByName('Tech_Profiles');
+  const tData = tSheet.getDataRange().getValues();
+  for (let i = 1; i < tData.length; i++) {
+    if (String(tData[i][0]).trim().toLowerCase() === data.techName.trim().toLowerCase()) {
+      tSheet.getRange(i + 1, 10).setValue('Available'); break;
     }
-    
-    if (typeof logAudit === 'function') logAudit('TECH_RETURNED_TO_DUTY', 'Tech_Profiles', techName, 'Exception cleared');
-    return { success: true };
-  } catch (err) {
-    return { success: false, message: 'Failed to clear exception: ' + err.toString() };
   }
+  
+  // 2. Erase or complete the fake Deployment shift
+  const dSheet = ss.getSheetByName('Deployments');
+  const dData = dSheet.getDataRange().getValues();
+  for (let j = 1; j < dData.length; j++) {
+    if (String(dData[j][5]).trim().toLowerCase() === data.techName.trim().toLowerCase() && 
+       ['Sick', 'PTO', 'NCNS', 'Late'].includes(String(dData[j][9]).trim())) {
+      dSheet.getRange(j + 1, 10).setValue(data.isLate ? 'Late (Arrived)' : 'Cleared'); // Strike it out or mark arrived
+    }
+  }
+
+  return { success: true };
 }

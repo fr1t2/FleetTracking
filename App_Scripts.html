@@ -8,11 +8,8 @@
     changeTheme(); changeLayout(); loadPortalData();
   };
 
-  // NEW: Close Modals when clicking the dark background overlay!
   window.onclick = function(event) {
-    if (event.target.classList.contains('modal-overlay')) {
-      event.target.classList.remove('active');
-    }
+    if (event.target.classList.contains('modal-overlay')) { event.target.classList.remove('active'); }
   };
 
   /* --- APP SHELL ROUTING --- */
@@ -75,6 +72,16 @@
   }
 
   /* --- SECONDARY TABS RENDERING --- */
+  function formatAMPM(tStr) {
+    if(!tStr) return 'TBD';
+    let [h, m] = tStr.split(':'); if(!h) return tStr;
+    let hh = parseInt(h, 10);
+    let ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12; if(hh === 0) hh = 12;
+    return `${hh}:${m||'00'} ${ampm}`;
+  }
+
+  // --- ... Insert identical FleetGrid logic from earlier steps ... ---
   function renderFleetGrid() {
     const container = document.getElementById('fleet-card-grid'); if(!container) return;
     const q = document.getElementById('fleet-search') ? document.getElementById('fleet-search').value.toLowerCase() : '';
@@ -115,7 +122,8 @@
     const sortBy = document.getElementById('tech-sort') ? document.getElementById('tech-sort').value : 'status';
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     
-    let techs = [...(globalState.techs || [])];
+    // FILTER OUT TERMINATED TECHS HERE
+    let techs = [...(globalState.techs || [])].filter(t => t.hrStatus !== 'Terminated');
     if(q) techs = techs.filter(t => t.name.toLowerCase().includes(q));
     
     techs.forEach(t => {
@@ -134,7 +142,7 @@
         return a.name.localeCompare(b.name);
       });
     } else {
-      const w = t => t._isDispatched ? 1 : (t.status === 'Available' ? 2 : (t.status==='Off-Duty'? 4 : 3));
+      const w = t => t._isDispatched ? 1 : (t.status === 'Available' ? 2 : (['Sick','NCNS','Late'].includes(t.status) ? 4 : 3));
       techs.sort((a,b) => w(a) - w(b) || a.name.localeCompare(b.name));
     }
 
@@ -157,17 +165,18 @@
         html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Status</th><th>Shift & Hours</th><th>Attributes</th><th>Actions</th></tr></thead><tbody>`;
         techs.forEach(t => {
           let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
-          if(t.status==='Sick' || t.status==='NCNS') bc = 'color:var(--danger); background:rgba(255,59,48,0.1); border:1px solid var(--danger);';
+          if(['Sick','NCNS','Late'].includes(t.status)) bc = 'color:var(--danger); background:rgba(255,59,48,0.1); border:1px solid var(--danger);';
           if(t.status==='PTO') bc = 'color:#007aff; background:rgba(0,122,255,0.1); border:1px solid #007aff;';
           let attr = '';
           if(t.restricted) attr += `<span class="cls-badge" style="background:var(--danger); color:#fff; font-size:9px; margin-right:4px;">RESTRICTED</span>`;
           if(t.goFast) attr += `⚡ `;
+          if(t.trainer) attr += `🎓 `;
           let muted = (t.status === 'Off-Duty' && !t._isDispatched) ? 'opacity:0.6;' : '';
           
           html += `<tr style="${muted}">
             <td><strong>${t.name}</strong><br><span style="font-size:11px; color:var(--text-muted);">${t.phone || 'No Phone'}</span></td>
             <td><span class="cls-badge" style="${bc}">${t._displayStatus}</span></td>
-            <td>${t.shift}<br><span style="font-size:11px; color:var(--text-muted);">${t.startTime} - ${t.endTime} | ${t.workDays}</span></td>
+            <td>${t.shift}<br><span style="font-size:11px; color:var(--text-muted);">${t.workDays} | ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</span></td>
             <td>${attr}</td>
             <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal('${t.name}')">Profile</button></td>
           </tr>`;
@@ -186,18 +195,18 @@
     let isMuted = (t.status === 'Off-Duty' && !t._isDispatched);
     let styleMod = isMuted ? 'opacity:0.5; filter:grayscale(0.8);' : '';
     let rBadge = t.restricted ? `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">RESTRICTED</div>` : '';
-    let color = t._isDispatched ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
+    let color = t._isDispatched ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS','Late'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
 
     if (layout === 'focus') {
       return `<div class="foc-card" style="border-left-color:${color}; width:280px; margin-bottom:8px; cursor:pointer; ${styleMod}" onclick="openTechActionModal('${t.name}')">
         ${rBadge}
-        <div class="foc-card-top"><div><div class="foc-title">${t.name} ${t.goFast?'⚡':''}</div><div class="foc-sub">${t.shift} | ${t.startTime}</div></div></div>
+        <div class="foc-card-top"><div><div class="foc-title">${t.name} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="foc-sub">${t.workDays} | ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div></div>
         <div style="font-weight:700; color:${color}; font-size:12px; margin-top:8px;">${t._displayStatus.toUpperCase()}</div>
       </div>`;
     } else {
       let splitName = t.name.split(' ');
       return `<div class="mod-sq-card" style="border-top-color:${color}; ${styleMod}" onclick="openTechActionModal('${t.name}')">
-        <div>${rBadge}<div class="sq-title">${splitName[0]} ${t.goFast?'⚡':''}</div><div class="sq-sub">${splitName.slice(1).join(' ')}<br>${t.startTime}</div></div>
+        <div>${rBadge}<div class="sq-title">${splitName[0]} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="sq-sub">${t.workDays}<br>${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div>
         <div class="sq-footer" style="color:${color};">${t._displayStatus.toUpperCase()}</div>
       </div>`;
     }
@@ -216,7 +225,7 @@
       html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Goals</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead><tbody>`;
       deps.forEach(d => {
         let techs = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:var(--text-muted);">+ ${d.coDriver}</span>` : d.tech;
-        let sClass = d.status === 'Completed' ? 'color:var(--success); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;';
+        let sClass = d.status === 'Completed' ? 'color:var(--success); font-weight:700;' : (['Sick','NCNS','Late'].includes(d.status) ? 'color:var(--danger); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;');
         html += `<tr><td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td><td>${techs}</td><td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">${d.zone}</span></td><td style="max-width:200px; white-space:normal;">${d.goals || '--'}</td><td>${d.departureTime}</td><td>${d.returnTime || '--'}</td><td style="${sClass}">${d.status}</td></tr>`;
       });
       html += `</tbody></table></div>`;
@@ -229,43 +238,20 @@
   function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 
   function prefillDispatchVan(cleanName) { const sel = document.getElementById('dp_van'); if(sel) sel.value = cleanName.trim(); openModal('dispatchModal'); }
-  function prefillDispatchTech(techName) { const sel = document.getElementById('dp_tech'); if(sel) sel.value = techName.trim(); openModal('dispatchModal'); }
+  function prefillDispatchTech(techName, isTraining=false) { 
+    const sel = document.getElementById('dp_tech'); if(sel) sel.value = techName.trim(); 
+    const trCheck = document.getElementById('dp_training'); if(trCheck) trCheck.checked = isTraining;
+    openModal('dispatchModal'); 
+  }
+  function prefillIncidentVan(cleanName) { const sel = document.getElementById('inc_van'); if(sel) { sel.value = cleanName.trim(); if (sel.selectedIndex <= 0) { for(let i = 0; i < sel.options.length; i++) { if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; } } } } const oosCb = document.getElementById('inc_oos'); if(oosCb) oosCb.checked = true; openModal('incidentModal'); }
   function prefillDecomVan(cleanName) { const sel = document.getElementById('dec_van'); if(sel) sel.value = cleanName.trim(); openModal('decomModal'); }
+  function prefillCheckInVan(cleanName) { const sel = document.getElementById('ci_van'); if(sel) { sel.value = cleanName.trim(); if (sel.selectedIndex <= 0) { for(let i = 0; i < sel.options.length; i++) { if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; } } } } openModal('checkInModal'); }
 
-  function prefillIncidentVan(cleanName) { 
-    const sel = document.getElementById('inc_van'); 
-    if(sel) {
-      sel.value = cleanName.trim(); 
-      if (sel.selectedIndex <= 0) {
-         for(let i = 0; i < sel.options.length; i++) {
-           if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; }
-         }
-      }
-    }
-    const oosCb = document.getElementById('inc_oos');
-    if(oosCb) oosCb.checked = true;
-    openModal('incidentModal'); 
-  }
 
-  function prefillCheckInVan(cleanName) { 
-    const sel = document.getElementById('ci_van');
-    if(sel) {
-      sel.value = cleanName.trim(); 
-      if (sel.selectedIndex <= 0) {
-         for(let i = 0; i < sel.options.length; i++) {
-           if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; }
-         }
-      }
-    }
-    openModal('checkInModal'); 
-  }
-
-  /* --- NEW VEHICLE PROFILE CARD --- */
+  // --- Vehicle Profile logic included unchanged from last step ---
   function openVanActionModal(rentalId) {
     const v = globalState.vehicles.find(x => x.rentalId === rentalId); if(!v) return;
     const title = document.getElementById('va_title'); if(title) title.innerText = `${v.cleanName} Profile`;
-
-    // Calculate Lifetime Shifts for this van
     const vanDeps = (globalState.deployments || []).filter(d => d.rentalId === rentalId);
     const pastDeps = vanDeps.filter(d => d.status === 'Completed');
     const lastDep = pastDeps.length > 0 ? pastDeps[0] : null; 
@@ -273,17 +259,12 @@
     const lastZone = lastDep ? lastDep.zone : 'None';
     const vIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
     
-    let coastEnabled = 'Yes';
-    if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
+    let coastEnabled = 'Yes'; if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
     
-    // Parse License Plate formatting (e.g., "CO - EXX-H13" -> State in grey, Plate bold)
     let displayPlate = v.plate;
     let plateMatch = v.plate.match(/^([a-zA-Z]{2})\s*-\s*(.+)$/);
-    if (plateMatch) {
-        displayPlate = `<span style="opacity:0.6; font-size:10px;">${plateMatch[1].toUpperCase()}</span> <span style="font-weight:900;">${plateMatch[2]}</span>`;
-    }
+    if (plateMatch) { displayPlate = `<span style="opacity:0.6; font-size:10px;">${plateMatch[1].toUpperCase()}</span> <span style="font-weight:900;">${plateMatch[2]}</span>`; }
 
-    // Samsara Link parsing
     let samsaraHtml = 'N/A';
     if(v.samsaraSerial || v.samsaraLink) {
         let link = v.samsaraLink || `https://cloud.samsara.com/fleet/vehicles?q=${v.samsaraSerial}`;
@@ -291,7 +272,6 @@
         samsaraHtml = `<a href="${link}" target="_blank" style="color:var(--veo-cyan); text-decoration:none;">${displaySerial} ↗</a>`;
     }
     
-    // Check if we are on the Fleet Registry tab to show Decommission button
     const isFleetTab = document.getElementById('tab-fleet') && document.getElementById('tab-fleet').classList.contains('active');
 
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
@@ -299,7 +279,7 @@
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
       <div style="font-size:18px; font-weight:900;">${v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()}</div>
       <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${v.makeModel} &bull; Plate: ${displayPlate}</div>
-    </div>`; // Removed the red OOS notes text to clean up UI!
+    </div>`; 
     
     html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
       <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
@@ -333,10 +313,7 @@
       html += `<button class="btn btn-success" style="grid-column:1/-1;" onclick="closeModal('vanActionModal'); prefillCheckInVan('${v.cleanName}')">✅ Repairs Done - Check In</button>`;
     }
 
-    if (isFleetTab) {
-       html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillDecomVan('${v.cleanName}')">🚨 Decommission Vehicle</button>`;
-    }
-
+    if (isFleetTab) { html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillDecomVan('${v.cleanName}')">🚨 Decommission Vehicle</button>`; }
     html += `</div>`;
 
     html += `<div style="display:flex; gap:10px; margin-top:8px;">
@@ -361,7 +338,6 @@
       });
     }
     html += `</div></div>`;
-    
     const body = document.getElementById('va_body'); if(body) body.innerHTML = html;
     openModal('vanActionModal');
   }
@@ -371,18 +347,18 @@
     const title = document.getElementById('ta_title'); if(title) title.innerText = `${t.name} Profile`;
     
     const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
-    const allDeps = globalState.deployments.filter(d => d.tech === t.name || d.coDriver === t.name);
+    const allDeps = globalState.deployments.filter(d => (d.tech === t.name || d.coDriver === t.name) && !['Sick','PTO','NCNS','Late'].includes(d.status));
     allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
     
     let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
-    let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
+    let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS','Late'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
     
     html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
       <div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;">
         <span>${activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()}</span>
-        <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal('techActionModal'); document.getElementById('att_tech').value='${t.name}'; document.getElementById('att_date').value=new Date().toISOString().split('T')[0]; openModal('attendanceModal');">📅 Log Time Off</button>
+        <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal('techActionModal'); document.getElementById('att_tech').value='${t.name}'; document.getElementById('att_date').value=new Date().toISOString().split('T')[0]; openModal('attendanceModal');">📅 Log Time Off / Late</button>
       </div>
-      <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${t.shift} &bull; ${t.startTime} - ${t.endTime} &bull; ${t.workDays}</div>
+      <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${t.shift} &bull; ${t.workDays} &bull; ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div>
       ${t.restricted ? `<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 DRIVING RESTRICTED</div>` : ''}
     </div>`;
 
@@ -403,11 +379,21 @@
     if (activeDep) {
       html += `<button class="btn btn-outline" onclick="closeModal('techActionModal'); document.getElementById('ed_id').value='${activeDep.id}'; document.getElementById('ed_zone').value='${activeDep.zone}'; openModal('editDispatchModal');">✏️ Edit Route</button>`;
       html += `<button class="btn btn-dark" onclick="closeModal('techActionModal'); endShift('${activeDep.id}', '${activeDep.rentalId}')">🛑 End Shift</button>`;
-    } else if (['Sick', 'NCNS', 'PTO'].includes(t.status)) {
-      html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--success); border-color:var(--success);" onclick="closeModal('techActionModal'); clearTechException('${t.name}')">✅ Clear Exception (Return to Available)</button>`;
+    } else if (['Sick', 'NCNS', 'PTO', 'Late'].includes(t.status)) {
+      let q = t.status === 'Late' ? 'Arrived (Clear Late Status)' : 'Clear Exception (Return to duty)';
+      html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--success); border-color:var(--success);" onclick="closeModal('techActionModal'); clearTechException('${t.name}', ${t.status==='Late'})">✅ ${q}</button>`;
     } else {
-      if(!t.restricted) html += `<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal('techActionModal'); document.getElementById('dp_tech').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Lead Driver</button>`;
-      else html += `<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal('techActionModal'); document.getElementById('dp_codriver').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Co-Driver</button>`;
+      if(!t.restricted) {
+         if(t.trainer) {
+            html += `<button class="btn btn-outline" style="color:#007aff; border-color:#007aff;" onclick="closeModal('techActionModal'); prefillDispatchTech('${t.name}', true)">🎓 Training</button>`;
+            html += `<button class="btn btn-primary" onclick="closeModal('techActionModal'); prefillDispatchTech('${t.name}', false)">📋 Dispatch</button>`;
+         } else {
+            html += `<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal('techActionModal'); prefillDispatchTech('${t.name}', false)">📋 Dispatch as Lead Driver</button>`;
+         }
+      }
+      else {
+         html += `<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal('techActionModal'); document.getElementById('dp_codriver').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Co-Driver</button>`;
+      }
     }
     html += `</div>`;
 
@@ -471,27 +457,22 @@
     const t = globalState.techs.find(x => x.name === techName); if(!t) return;
     document.getElementById('te_orig_name').value = t.name; document.getElementById('te_name').value = t.name;
     document.getElementById('te_phone').value = t.phone || ''; document.getElementById('te_shift').value = t.shift || '';
-    document.getElementById('te_status').value = t.status || 'Available'; document.getElementById('te_start').value = t.startTime || '';
+    document.getElementById('te_hr').value = t.hrStatus || 'Active'; document.getElementById('te_start').value = t.startTime || '';
     document.getElementById('te_end').value = t.endTime || ''; document.getElementById('te_days').value = t.workDays || '';
-    document.getElementById('te_test').checked = t.passedTest; document.getElementById('te_gofast').checked = t.goFast; document.getElementById('te_restricted').checked = t.restricted;
+    document.getElementById('te_test').checked = t.passedTest; document.getElementById('te_trainer').checked = t.trainer;
+    document.getElementById('te_gofast').checked = t.goFast; document.getElementById('te_coast').checked = t.coastFuel;
+    document.getElementById('te_evgo').checked = t.evGo; document.getElementById('te_restricted').checked = t.restricted;
     openModal('techEditModal');
   }
 
-  // Populate ALL full specs into the Edit Vehicle modal
   function openEditVehicleModal(rentalId) {
     const v = globalState.vehicles.find(x => x.rentalId === rentalId); if(!v) return;
-    document.getElementById('ev_rental').value = v.rentalId;
-    document.getElementById('ev_name').value = v.cleanName;
-    document.getElementById('ev_model').value = v.makeModel || '';
-    document.getElementById('ev_agency').value = v.agency || '';
-    document.getElementById('ev_vin').value = v.vin || '';
-    document.getElementById('ev_plate').value = v.plate || '';
-    document.getElementById('ev_plate_exp').value = v.plateExpDate || '';
-    document.getElementById('ev_samsara').value = v.samsaraSerial || '';
-    document.getElementById('ev_samsara_link').value = v.samsaraLink || '';
-    document.getElementById('ev_pickup').value = v.pickupDate || '';
-    document.getElementById('ev_service_num').value = v.serviceNumber || '';
-    document.getElementById('ev_addons').value = v.addons || '';
+    document.getElementById('ev_rental').value = v.rentalId; document.getElementById('ev_name').value = v.cleanName;
+    document.getElementById('ev_model').value = v.makeModel || ''; document.getElementById('ev_agency').value = v.agency || '';
+    document.getElementById('ev_vin').value = v.vin || ''; document.getElementById('ev_plate').value = v.plate || '';
+    document.getElementById('ev_plate_exp').value = v.plateExpDate || ''; document.getElementById('ev_samsara').value = v.samsaraSerial || '';
+    document.getElementById('ev_samsara_link').value = v.samsaraLink || ''; document.getElementById('ev_pickup').value = v.pickupDate || '';
+    document.getElementById('ev_service_num').value = v.serviceNumber || ''; document.getElementById('ev_addons').value = v.addons || '';
     openModal('editVehicleModal');
   }
 
@@ -529,11 +510,10 @@
     
     let aOpts = '<option value="">-- Select Agency --</option>' + (cfg.rentalAgencies || []).map(a=>`<option value="${a}">${a}</option>`).join('');
     if(document.getElementById('av_agency')) document.getElementById('av_agency').innerHTML = aOpts;
-    if(document.getElementById('ev_agency')) document.getElementById('ev_agency').innerHTML = aOpts; // For Edit Config
+    if(document.getElementById('ev_agency')) document.getElementById('ev_agency').innerHTML = aOpts;
     
     if(document.getElementById('inc_cat')) document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c=>`<option value="${c}">${c}</option>`).join('');
     if(document.getElementById('inc_impact')) document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i=>`<option value="${i}">${i}</option>`).join('');
-
     renderRosterList();
   }
 
@@ -542,46 +522,36 @@
     listEl.innerHTML = (globalState.config.techRoster || []).map(r => `<span style="background:var(--bg-surface); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:700; border:1px solid var(--border-color); display:flex; align-items:center; gap:8px;">${r} <button style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;" onclick="removeRoster('${r}')">&times;</button></span>`).join('');
     handleRosterInput();
   }
-
   function handleRosterInput() {
-    const inputEl = document.getElementById('roster-input'); const btn = document.getElementById('roster-action-btn');
-    if(!inputEl || !btn) return;
-    const val = inputEl.value.trim().toLowerCase();
-    const isEx = (globalState.config.techRoster || []).some(r => r.toLowerCase() === val);
+    const inputEl = document.getElementById('roster-input'); const btn = document.getElementById('roster-action-btn'); if(!inputEl || !btn) return;
+    const val = inputEl.value.trim().toLowerCase(); const isEx = (globalState.config.techRoster || []).some(r => r.toLowerCase() === val);
     btn.innerText = (val && isEx) ? 'Remove' : 'Add'; btn.className = (val && isEx) ? 'btn btn-danger' : 'btn btn-dark';
   }
-
   function handleRosterAction() {
     const inputEl = document.getElementById('roster-input'); if(!inputEl) return;
     const val = inputEl.value.trim(); if(!val) return;
     if((globalState.config.techRoster || []).some(r => r.toLowerCase() === val.toLowerCase())) removeRoster(val); else addRoster(val);
   }
+  
+  function addRoster(name) { document.getElementById('roster-input').value = ''; globalState.config.techRoster.push(name.trim()); populateModals(); refreshActiveViews(); google.script.run.addTechToRoster(name.trim()); }
+  function removeRoster(name) { if(!confirm("Remove "+name+"?")) return; document.getElementById('roster-input').value = ''; globalState.config.techRoster = globalState.config.techRoster.filter(r => r.toLowerCase() !== name.toLowerCase()); populateModals(); refreshActiveViews(); google.script.run.removeTechFromRoster(name); }
 
   /* --- DATA SUBMISSION FUNCTIONS --- */
   
-  function addRoster(name) {
-    document.getElementById('roster-input').value = '';
-    globalState.config.techRoster.push(name.trim());
-    populateModals(); refreshActiveViews();
-    google.script.run.addTechToRoster(name.trim());
-  }
-
-  function removeRoster(name) {
-    if(!confirm("Remove "+name+"?")) return;
-    document.getElementById('roster-input').value = '';
-    globalState.config.techRoster = globalState.config.techRoster.filter(r => r.toLowerCase() !== name.toLowerCase());
-    populateModals(); refreshActiveViews();
-    google.script.run.removeTechFromRoster(name);
-  }
-
   function submitTechEdit(e) {
     e.preventDefault();
     const p = {
       origName: document.getElementById('te_orig_name').value, name: document.getElementById('te_name').value, phone: document.getElementById('te_phone').value,
-      shift: document.getElementById('te_shift').value, status: document.getElementById('te_status').value, startTime: document.getElementById('te_start').value,
-      endTime: document.getElementById('te_end').value, workDays: document.getElementById('te_days').value,
-      passedTest: document.getElementById('te_test').checked, goFast: document.getElementById('te_gofast').checked, restricted: document.getElementById('te_restricted').checked
+      shift: document.getElementById('te_shift').value, hrStatus: document.getElementById('te_hr').value, startTime: document.getElementById('te_start').value,
+      endTime: document.getElementById('te_end').value, workDays: document.getElementById('te_days').value, passedTest: document.getElementById('te_test').checked, 
+      trainer: document.getElementById('te_trainer').checked, goFast: document.getElementById('te_gofast').checked, coastFuel: document.getElementById('te_coast').checked, 
+      evGo: document.getElementById('te_evgo').checked, restricted: document.getElementById('te_restricted').checked
     };
+    
+    // Status carries over if available, otherwise available
+    const existT = globalState.techs.find(t => t.name === p.origName);
+    p.status = existT ? existT.status : 'Available';
+
     closeModal('techEditModal');
     let tIdx = globalState.techs.findIndex(t => t.name === p.origName);
     if (tIdx > -1) { globalState.techs[tIdx] = p; } else { globalState.techs.push(p); }
@@ -595,8 +565,7 @@
     const p = {
       vanName: document.getElementById('av_name').value, rentalId: document.getElementById('av_rental').value, rentalAgency: document.getElementById('av_agency').value, 
       makeModel: document.getElementById('av_model').value, vin: document.getElementById('av_vin').value, licensePlate: document.getElementById('av_plate').value,
-      plateExpDate: document.getElementById('av_plate_exp').value, samsaraSerial: document.getElementById('av_samsara').value,
-      samsaraLink: '', addons: document.getElementById('av_addons').value
+      plateExpDate: document.getElementById('av_plate_exp').value, samsaraSerial: document.getElementById('av_samsara').value, samsaraLink: '', addons: document.getElementById('av_addons').value
     };
     closeModal('addVehicleModal');
     globalState.vehicles.push({ cleanName: p.vanName, rentalId: p.rentalId, status: 'Warehouse (Ready)', makeModel: p.makeModel, plate: p.licensePlate, pickupDate: new Date().toISOString().split('T')[0], samsaraSerial: p.samsaraSerial, addons: p.addons });
@@ -607,32 +576,18 @@
 
   function submitEditVehicle(e) {
     e.preventDefault();
-    // Grab everything including the newly expanded fields
     const p = {
-      rentalId: document.getElementById('ev_rental').value, 
-      vanName: document.getElementById('ev_name').value, 
-      makeModel: document.getElementById('ev_model').value,
-      rentalAgency: document.getElementById('ev_agency').value,
-      vin: document.getElementById('ev_vin').value,
-      licensePlate: document.getElementById('ev_plate').value, 
-      plateExpDate: document.getElementById('ev_plate_exp').value, 
-      samsaraSerial: document.getElementById('ev_samsara').value, 
-      samsaraLink: document.getElementById('ev_samsara_link').value,
-      pickupDate: document.getElementById('ev_pickup').value,
-      serviceNumber: document.getElementById('ev_service_num').value,
-      addons: document.getElementById('ev_addons').value
+      rentalId: document.getElementById('ev_rental').value, vanName: document.getElementById('ev_name').value, makeModel: document.getElementById('ev_model').value, rentalAgency: document.getElementById('ev_agency').value,
+      vin: document.getElementById('ev_vin').value, licensePlate: document.getElementById('ev_plate').value, plateExpDate: document.getElementById('ev_plate_exp').value, 
+      samsaraSerial: document.getElementById('ev_samsara').value, samsaraLink: document.getElementById('ev_samsara_link').value, pickupDate: document.getElementById('ev_pickup').value,
+      serviceNumber: document.getElementById('ev_service_num').value, addons: document.getElementById('ev_addons').value
     };
     closeModal('editVehicleModal');
-    
-    // Update local state instantly
     const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) {
-      globalState.vehicles[vIdx].cleanName = p.vanName; globalState.vehicles[vIdx].makeModel = p.makeModel;
-      globalState.vehicles[vIdx].agency = p.rentalAgency; globalState.vehicles[vIdx].vin = p.vin;
-      globalState.vehicles[vIdx].plate = p.licensePlate; globalState.vehicles[vIdx].plateExpDate = p.plateExpDate; 
-      globalState.vehicles[vIdx].samsaraSerial = p.samsaraSerial; globalState.vehicles[vIdx].samsaraLink = p.samsaraLink;
-      globalState.vehicles[vIdx].pickupDate = p.pickupDate; globalState.vehicles[vIdx].serviceNumber = p.serviceNumber;
-      globalState.vehicles[vIdx].addons = p.addons;
+      globalState.vehicles[vIdx].cleanName = p.vanName; globalState.vehicles[vIdx].makeModel = p.makeModel; globalState.vehicles[vIdx].agency = p.rentalAgency; globalState.vehicles[vIdx].vin = p.vin;
+      globalState.vehicles[vIdx].plate = p.licensePlate; globalState.vehicles[vIdx].plateExpDate = p.plateExpDate; globalState.vehicles[vIdx].samsaraSerial = p.samsaraSerial; globalState.vehicles[vIdx].samsaraLink = p.samsaraLink;
+      globalState.vehicles[vIdx].pickupDate = p.pickupDate; globalState.vehicles[vIdx].serviceNumber = p.serviceNumber; globalState.vehicles[vIdx].addons = p.addons;
     }
     refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -644,28 +599,19 @@
     const cleanName = document.getElementById('inc_van').value.trim();
     const v = globalState.vehicles.find(x => x.cleanName.trim().toLowerCase() === cleanName.toLowerCase());
     if (!v) { alert("Error: Could not locate vehicle data."); return; }
-
     const incDriverEl = document.getElementById('inc_driver');
     const triggerOosEl = document.getElementById('inc_oos');
     const p = {
-      cleanName: v.cleanName, rentalId: v.rentalId,
-      issueCategory: document.getElementById('inc_cat').value, statusImpact: document.getElementById('inc_impact').value,
-      triggerOos: triggerOosEl ? triggerOosEl.checked : true, description: document.getElementById('inc_desc').value,
-      driverInvolved: incDriverEl ? incDriverEl.value : ''
+      cleanName: v.cleanName, rentalId: v.rentalId, issueCategory: document.getElementById('inc_cat').value, statusImpact: document.getElementById('inc_impact').value,
+      triggerOos: triggerOosEl ? triggerOosEl.checked : true, description: document.getElementById('inc_desc').value, driverInvolved: incDriverEl ? incDriverEl.value : ''
     };
     closeModal('incidentModal');
-
     if(p.triggerOos) {
       const timeString = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       v.status = 'Out of Service'; v.zone = '—'; v.driver = '—'; 
-      globalState.deployments.forEach(d => {
-         if ((d.status === 'Dispatched' || d.status === 'Active') && (d.rentalId === p.rentalId || d.vehicle === p.cleanName)) {
-             d.status = 'Completed'; d.returnTime = timeString;
-         }
-      });
+      globalState.deployments.forEach(d => { if ((d.status === 'Dispatched' || d.status === 'Active') && (d.rentalId === p.rentalId || d.vehicle === p.cleanName)) { d.status = 'Completed'; d.returnTime = timeString; } });
       populateModals(); refreshActiveViews();
     }
-    
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler((res) => { if(res && !res.success) alert("Backend Warning: " + res.message); loadPortalData(); }).withFailureHandler(err => { alert("Critical Backend Error: " + err.message); loadPortalData(); }).processReportIncident(p);
   }
@@ -675,7 +621,6 @@
     const cleanName = document.getElementById('ci_van').value.trim();
     const v = globalState.vehicles.find(x => x.cleanName.trim().toLowerCase() === cleanName.toLowerCase());
     if (!v) { alert("Error: Could not locate vehicle data. Please select the van from the dropdown manually."); return; }
-
     const p = { cleanName: v.cleanName, rentalId: v.rentalId, resolutionNotes: document.getElementById('ci_notes').value };
     const inc = (globalState.incidents || []).find(i => i.rentalId === p.rentalId && !i.dateResolved);
     if (inc) p.incidentId = inc.id;
@@ -683,7 +628,6 @@
     closeModal('checkInModal');
     v.status = 'Warehouse (Ready)'; v.notes = ''; v.driver = '—'; v.zone = '—';   
     populateModals(); refreshActiveViews();
-    
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler((res) => { if(res && !res.success) alert("Backend Warning: " + res.message); loadPortalData(); }).withFailureHandler(err => { alert("Critical Backend Error: " + err.message); loadPortalData(); }).processCheckInVehicle(p);
   }
@@ -707,6 +651,17 @@
     const assignedTech = document.getElementById('dp_tech').value; const coDriver = document.getElementById('dp_codriver').value;
     if (assignedTech === coDriver && assignedTech !== '') { alert("Lead tech and co-driver cannot be the same person."); return; }
     
+    // --> DRIVING TEST VALIDATION <--
+    const leadTechProfile = globalState.techs.find(t => t.name === assignedTech);
+    if (leadTechProfile && !leadTechProfile.passedTest) {
+      if(confirm(`⚠️ WARNING: ${assignedTech} has not passed their driving test!\n\nHave they passed it now? (Click OK to allow this dispatch and update their profile)`)) {
+        leadTechProfile.passedTest = true;
+        google.script.run.overrideDrivingTest(assignedTech);
+      } else {
+        return; // Halt dispatch
+      }
+    }
+
     const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
     let conflicts = [], warnings = [];
     activeDeps.forEach(d => {
@@ -779,18 +734,6 @@
   }
 
   /* --- NEW TECH MANAGEMENT FUNCTIONS --- */
-  function uiDeleteTech() {
-    const techName = document.getElementById('te_orig_name').value;
-    if(!techName || !confirm(`⚠️ Are you absolutely sure you want to terminate/remove ${techName}? This cannot be undone.`)) return;
-    
-    closeModal('techEditModal');
-    globalState.techs = globalState.techs.filter(t => t.name !== techName);
-    
-    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
-    refreshActiveViews();
-    google.script.run.withSuccessHandler(()=>loadPortalData()).processDeleteTech(techName);
-  }
-
   function submitAttendance(e) {
     e.preventDefault();
     const p = {
@@ -805,12 +748,12 @@
     google.script.run.withSuccessHandler(()=>loadPortalData()).logTechAttendance(p);
   }
 
-  function clearTechException(techName) {
+  function clearTechException(techName, isLate) {
     if(!confirm(`Are you sure you want to clear the exception for ${techName} and return them to Available?`)) return;
     const tIdx = globalState.techs.findIndex(t => t.name === techName);
     if(tIdx > -1) globalState.techs[tIdx].status = 'Available';
     refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
-    google.script.run.withSuccessHandler(()=>loadPortalData()).clearTechException(techName);
+    google.script.run.withSuccessHandler(()=>loadPortalData()).clearTechException({ techName: techName, isLate: isLate });
   }
 </script>
