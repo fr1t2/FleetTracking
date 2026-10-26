@@ -129,13 +129,27 @@
     const layout = layoutEl ? layoutEl.value : 'modern';
     
     let vans = (globalState.vehicles || []).filter(v => v.status !== 'Decommissioned' && (!q || (v.cleanName||'').toLowerCase().includes(q) || (v.plate||'').toLowerCase().includes(q)));
+    
+    // Look up Driver Phone Numbers for active routes
+    vans.forEach(v => {
+      v._driverPhone = '';
+      if (v.status === 'Dispatched') {
+         const activeDep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && (d.status === 'Dispatched' || d.status === 'Active'));
+         if (activeDep && activeDep.tech) {
+            const techProf = (globalState.techs || []).find(t => t.name === activeDep.tech);
+            if (techProf && techProf.phone) v._driverPhone = techProf.phone;
+         }
+      }
+    });
+
     let html = '';
 
     if (layout === 'classic') {
       html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
-        html += '<tr><td><strong>' + v.cleanName + '</strong></td><td>' + v.rentalId + '</td><td><span class="cls-badge" style="' + bc + '">' + (v.status === 'Warehouse (Ready)' ? 'Ready' : v.status) + '</span></td><td>' + v.plate + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Manage</button></td></tr>';
+        let phoneHtml = v._driverPhone ? '<br><span style="font-size:11px; color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        html += '<tr><td><strong>' + v.cleanName + '</strong>' + phoneHtml + '</td><td>' + v.rentalId + '</td><td><span class="cls-badge" style="' + bc + '">' + (v.status === 'Warehouse (Ready)' ? 'Ready' : v.status) + '</span></td><td>' + v.plate + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Manage</button></td></tr>';
       });
       html += '</tbody></table></div>';
     } 
@@ -143,7 +157,8 @@
       html += '<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
-        html += '<div class="foc-card" style="border-left-color:' + bc + '; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div class="foc-card-top"><div><div class="foc-title">' + v.cleanName + '</div><div class="foc-sub">' + v.rentalId + ' &bull; Plate: ' + v.plate + '</div></div></div><div style="font-weight:800; color:' + bc + '; font-size:11px; margin-top:8px;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
+        let phoneHtml = v._driverPhone ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        html += '<div class="foc-card" style="border-left-color:' + bc + '; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div class="foc-card-top"><div><div class="foc-title">' + v.cleanName + '</div><div class="foc-sub">' + v.rentalId + ' &bull; Plate: ' + v.plate + phoneHtml + '</div></div></div><div style="font-weight:800; color:' + bc + '; font-size:11px; margin-top:8px;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
       });
       html += '</div>';
     } else {
@@ -151,14 +166,15 @@
       vans.forEach(v => {
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
         let color = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
-        html += '<div class="mod-sq-card ' + bClass + '" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div><div class="sq-title">' + v.cleanName + '</div><div class="sq-sub">' + v.rentalId + '<br>' + v.plate + '</div></div><div class="sq-footer" style="color:' + color + ';">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
+        let phoneHtml = v._driverPhone ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        html += '<div class="mod-sq-card ' + bClass + '" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div><div class="sq-title">' + v.cleanName + '</div><div class="sq-sub">' + v.rentalId + '<br>' + v.plate + phoneHtml + '</div></div><div class="sq-footer" style="color:' + color + ';">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
       });
       html += '</div>';
     }
     container.innerHTML = html;
   }
 
-function renderTechGrid() {
+  function renderTechGrid() {
     const container = document.getElementById('tech-card-grid'); if(!container) return;
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
@@ -204,7 +220,7 @@ function renderTechGrid() {
       }
     });
 
-    if (q) techs = techs.filter(t => String(t.name||'').toLowerCase().includes(q) || String(t.shift||'').toLowerCase().includes(q));
+    if (q) techs = techs.filter(t => String(t.name||'').toLowerCase().includes(q) || String(t.shift||'').toLowerCase().includes(q) || String(t.phone||'').includes(q));
     if (filterShift) techs = techs.filter(t => t.shift === filterShift);
     if (filterTime) {
       const [startRange, endRange] = filterTime.split('-').map(v => parseInt(v.replace(':','')));
@@ -217,7 +233,6 @@ function renderTechGrid() {
 
     let html = '';
 
-    // --- CLASSIC TABLE LAYOUT GENERATOR ---
     if (layout === 'classic') {
       const renderClassicRow = (t) => {
         let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
@@ -228,7 +243,7 @@ function renderTechGrid() {
         if(t.goFast) attr += '⚡ ';
         if(t.trainer) attr += '🎓 ';
         let muted = (!t._isWorkingToday || (!t._isDispatched && !t._isShiftActive && !['Sick','NCNS','Late','PTO'].includes(t.status))) ? 'opacity:0.6;' : '';
-        return '<tr style="' + muted + '"><td><strong>' + t.name + '</strong><br><span style="font-size:11px; color:var(--text-muted);">' + (t.phone || 'No Phone') + '</span></td><td><span class="cls-badge" style="' + bc + '">' + t._displayStatus + '</span></td><td>' + t.shift + '<br><span style="font-size:11px; color:var(--text-muted);">' + t.workDays + ' | ' + formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime) + '</span></td><td>' + attr + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal(\'' + t.name + '\')">Profile</button></td></tr>';
+        return '<tr style="' + muted + '"><td><strong>' + t.name + '</strong><br><span style="font-size:11px; color:var(--text-muted);">📞 ' + (t.phone || 'No Phone') + '</span></td><td><span class="cls-badge" style="' + bc + '">' + t._displayStatus + '</span></td><td>' + t.shift + '<br><span style="font-size:11px; color:var(--text-muted);">' + t.workDays + ' | ' + formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime) + '</span></td><td>' + attr + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal(\'' + t.name + '\')">Profile</button></td></tr>';
       };
 
       html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Status</th><th>Shift & Hours</th><th>Attributes</th><th>Actions</th></tr></thead><tbody>';
@@ -271,7 +286,6 @@ function renderTechGrid() {
       html += '</tbody></table></div>';
       
     } else {
-      // --- MODERN & FOCUS LAYOUT GENERATORS ---
       const layoutClass = layout === 'focus' ? 'foc-lanes' : 'mod-sq-grid';
       const layoutStyle = layout === 'focus' ? 'flex-wrap:wrap; align-items:flex-start;' : '';
 
@@ -355,15 +369,16 @@ function renderTechGrid() {
 
     let timeText = formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime);
     let nParts = String(t.name||'').split(' ');
+    let phoneDisplay = t.phone ? '📞 ' + t.phone : 'No Phone';
 
     if (layout === 'focus') {
       return '<div class="foc-card" style="border-left-color:' + color + '; width:280px; margin-bottom:8px; cursor:pointer; ' + styleMod + '" onclick="openTechActionModal(\'' + t.name + '\')">' +
         badges +
-        '<div class="foc-card-top"><div><div class="foc-title">' + t.name + (t.goFast?' ⚡':'') + (t.trainer?' 🎓':'') + '</div><div class="foc-sub">' + t.workDays + ' | ' + timeText + '</div></div></div>' +
+        '<div class="foc-card-top"><div><div class="foc-title">' + t.name + (t.goFast?' ⚡':'') + (t.trainer?' 🎓':'') + '</div><div class="foc-sub">' + phoneDisplay + ' &bull; ' + t.workDays + ' | ' + timeText + '</div></div></div>' +
         '<div style="font-weight:700; color:' + color + '; font-size:12px; margin-top:8px;">' + t._displayStatus.toUpperCase() + '</div></div>';
     } else {
       return '<div class="mod-sq-card" style="border-top-color:' + color + '; ' + styleMod + '" onclick="openTechActionModal(\'' + t.name + '\')">' +
-        '<div>' + badges + '<div class="sq-title">' + nParts[0] + (t.goFast?' ⚡':'') + (t.trainer?' 🎓':'') + '</div><div class="sq-sub">' + t.workDays + '<br>' + timeText + '</div></div>' +
+        '<div>' + badges + '<div class="sq-title">' + nParts[0] + (t.goFast?' ⚡':'') + (t.trainer?' 🎓':'') + '</div><div class="sq-sub">' + phoneDisplay + '<br>' + t.workDays + '<br>' + timeText + '</div></div>' +
         '<div class="sq-footer" style="color:' + color + ';">' + t._displayStatus.toUpperCase() + '</div></div>';
     }
   }
@@ -408,9 +423,26 @@ function renderTechGrid() {
     const title = document.getElementById('va_title'); if(title) title.innerText = v.cleanName + ' Profile';
     const vanDeps = (globalState.deployments || []).filter(d => d.rentalId === rentalId);
     const pastDeps = vanDeps.filter(d => d.status === 'Completed');
-    const lastDep = pastDeps.length > 0 ? pastDeps[0] : null; 
-    const lastDriver = lastDep ? lastDep.tech : 'None';
-    const lastZone = lastDep ? lastDep.zone : 'None';
+    
+    // NEW DYNAMIC ACTIVE/LAST DRIVER LOGIC FOR THE MODAL
+    let driverLabel = 'Last Driver';
+    let driverDisplay = 'None';
+    let activeDepForModal = vanDeps.find(d => d.status === 'Dispatched' || d.status === 'Active');
+    
+    if (activeDepForModal) {
+       driverLabel = 'Active Driver';
+       driverDisplay = activeDepForModal.tech;
+       const techProf = (globalState.techs || []).find(t => t.name === activeDepForModal.tech);
+       if (techProf && techProf.phone) {
+          driverDisplay += ' <br><span style="font-size:11px; color:var(--veo-cyan);">📞 ' + techProf.phone + '</span>';
+       }
+       if (activeDepForModal.coDriver) {
+          driverDisplay += ' <br><span style="font-size:10px; color:var(--text-muted);">+ ' + activeDepForModal.coDriver + '</span>';
+       }
+    } else if (pastDeps.length > 0) {
+       driverDisplay = pastDeps[0].tech;
+    }
+    
     const vIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
     
     let coastEnabled = 'Yes'; if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
@@ -421,7 +453,6 @@ function renderTechGrid() {
        if (plateMatch) { displayPlate = '<span style="opacity:0.6; font-size:10px;">' + plateMatch[1].toUpperCase() + '</span> <span style="font-weight:900;">' + plateMatch[2] + '</span>'; }
     }
 
-    // THIS SAFELY FORMATS THE LINK WITHOUT TEMPLATE LITERALS CRASHING DOC WRITE
     let samsaraHtml = 'N/A';
     if(v.samsaraSerial || v.samsaraLink) {
         let link = v.samsaraLink || ('https://cloud.samsara.com/fleet/vehicles?q=' + v.samsaraSerial);
@@ -435,7 +466,7 @@ function renderTechGrid() {
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">' + v.makeModel + ' &bull; Plate: ' + displayPlate + '</div></div>'; 
     
-    html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + vanDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Driver</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + lastDriver + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + samsaraHtml + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:' + (coastEnabled==='Yes'?'var(--success)':'var(--text-muted)') + '">' + coastEnabled + '</div></div></div>';
+    html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + vanDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">' + driverLabel + '</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + driverDisplay + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + samsaraHtml + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:' + (coastEnabled==='Yes'?'var(--success)':'var(--text-muted)') + '">' + coastEnabled + '</div></div></div>';
     
     html += '<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4><div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">';
     
@@ -481,7 +512,7 @@ function renderTechGrid() {
     let html = '<div style="display:flex; flex-direction:column; gap:16px;">';
     let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS','Late'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
     
-    html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;"><span>' + (activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()) + '</span><button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal(\'techActionModal\'); document.getElementById(\'att_tech\').value=\'' + t.name + '\'; document.getElementById(\'att_date\').value=new Date().toISOString().split(\'T\')[0]; openModal(\'attendanceModal\');">📅 Log Time Off / Late</button></div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">' + t.shift + ' &bull; ' + t.workDays + ' &bull; ' + formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime) + '</div>' + (t.restricted ? '<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 MVR RESTRICTED</div>' : '') + '</div>';
+    html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;"><span>' + (activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()) + '</span><button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal(\'techActionModal\'); document.getElementById(\'att_tech\').value=\'' + t.name + '\'; document.getElementById(\'att_date\').value=new Date().toISOString().split(\'T\')[0]; openModal(\'attendanceModal\');">📅 Log Time Off / Late</button></div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">📞 ' + (t.phone || 'No Phone') + ' &bull; ' + t.shift + ' &bull; ' + t.workDays + ' &bull; ' + formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime) + '</div>' + (t.restricted ? '<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 MVR RESTRICTED</div>' : '') + '</div>';
 
     html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + allDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Passed Test</div><div style="font-weight:900; font-size:14px; margin-top:4px; color:' + (t.passedTest?'var(--success)':'var(--danger)') + '">' + (t.passedTest?'YES':'NO') + '</div></div></div>';
     
