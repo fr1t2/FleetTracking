@@ -31,16 +31,34 @@
   </div>
 </div>
 
-<!-- EDIT VEHICLE MODAL -->
+<!-- EDIT VEHICLE MODAL (FULL CONFIG) -->
 <div id="editVehicleModal" class="modal-overlay">
   <div class="modal-box">
-    <div class="modal-header"><div>✏️ Edit Vehicle Specs</div><button class="modal-close" onclick="closeModal('editVehicleModal')">&times;</button></div>
+    <div class="modal-header"><div>⚙️ Edit Vehicle Config</div><button class="modal-close" onclick="closeModal('editVehicleModal')">&times;</button></div>
     <form onsubmit="submitEditVehicle(event)">
       <div class="modal-body">
-        <input type="hidden" id="ev_rental" />
-        <div class="form-row"><div class="form-group"><label>Clean Name</label><input type="text" id="ev_name" required></div><div class="form-group"><label>License Plate</label><input type="text" id="ev_plate"></div></div>
-        <div class="form-row"><div class="form-group"><label>Tag Expiration</label><input type="date" id="ev_plate_exp"></div><div class="form-group"><label>Samsara ID</label><input type="text" id="ev_samsara"></div></div>
-        <div class="form-group"><label>Addons & Builds</label><input type="text" id="ev_addons"></div>
+        <input type="hidden" id="ev_rental">
+        <div class="form-row">
+          <div class="form-group"><label>Vehicle Clean Name *</label><input type="text" id="ev_name" required></div>
+          <div class="form-group"><label>Make & Model</label><input type="text" id="ev_model"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Rental Agency</label><select id="ev_agency"></select></div>
+          <div class="form-group"><label>VIN</label><input type="text" id="ev_vin"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>License Plate</label><input type="text" id="ev_plate"></div>
+          <div class="form-group"><label>Plate Exp Date</label><input type="date" id="ev_plate_exp"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Samsara Gateway Serial</label><input type="text" id="ev_samsara"></div>
+          <div class="form-group"><label>Samsara Link (URL)</label><input type="url" id="ev_samsara_link"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Pick-up Date</label><input type="date" id="ev_pickup"></div>
+          <div class="form-group"><label>Service Number</label><input type="text" id="ev_service_num"></div>
+        </div>
+        <div class="form-group"><label>Addons & Interior Builds</label><input type="text" id="ev_addons"></div>
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('editVehicleModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
     </form>

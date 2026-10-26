@@ -25,21 +25,32 @@ function getDashboardState() {
   // 1. Vehicles
   const vSheet = ss.getSheetByName('Vehicles');
   const vehicles = [];
+// 1. Vehicles
+  const vSheet = ss.getSheetByName('Vehicles');
+  const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
-    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 18).getValues();
+    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 19).getValues();
     vRows.forEach(r => {
       const cleanName = String(r[0] || '').trim();
       const rentalId = String(r[1] || '').trim();
       if (!cleanName && !rentalId) return;
       vehicles.push({
-        cleanName: cleanName, rentalId: rentalId, agency: String(r[2] || ''), makeModel: String(r[3] || ''), 
-        vin: String(r[4] || ''), plate: String(r[5] || ''), 
+        cleanName: cleanName, rentalId: rentalId, 
+        agency: String(r[2] || ''), 
+        makeModel: String(r[3] || ''), 
+        vin: String(r[4] || ''), 
+        plate: String(r[5] || ''), 
         plateExpDate: (r[6] instanceof Date) ? Utilities.formatDate(r[6], tz, 'yyyy-MM-dd') : String(r[6] || '—'),
-        samsaraSerial: String(r[7] || ''), status: String(r[8] || 'Warehouse (Ready)').trim(),
-        pickupDate: (r[9] instanceof Date) ? Utilities.formatDate(r[9], tz, 'yyyy-MM-dd') : String(r[9] || '—'),
-        zone: String(r[11] || '—'), driver: String(r[12] || '—'),
-        lastService: (r[13] instanceof Date) ? Utilities.formatDate(r[13], tz, 'yyyy-MM-dd') : '—',
-        notes: String(r[14] || ''), addons: String(r[17] || '')
+        samsaraSerial: String(r[7] || ''), 
+        samsaraLink: String(r[8] || ''), // <--- OUR NEW COLUMN 8
+        status: String(r[9] || 'Warehouse (Ready)').trim(),
+        pickupDate: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'yyyy-MM-dd') : String(r[10] || '—'),
+        serviceNumber: String(r[11] || ''),
+        zone: String(r[12] || '—'), 
+        driver: String(r[13] || '—'),
+        lastService: (r[14] instanceof Date) ? Utilities.formatDate(r[14], tz, 'yyyy-MM-dd') : '—',
+        notes: String(r[15] || ''), 
+        addons: String(r[18] || '')
       });
     });
   }
