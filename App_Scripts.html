@@ -52,8 +52,31 @@
   function loadPortalData() {
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
+    
     google.script.run.withSuccessHandler(function(st) { 
       globalState = st; 
+      
+      // --- NEW: STATE AUTO-HEALER (Prevents Double-Counting) ---
+      // This forces the Vehicles math to perfectly align with Active Routes
+      globalState.vehicles.forEach(v => {
+        const activeDep = globalState.deployments.find(d => 
+          (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId
+        );
+        
+        // If they have a live route but the DB forgot to mark them Dispatched:
+        if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
+          v.status = 'Dispatched';
+          v.zone = activeDep.zone;
+          v.driver = activeDep.coDriver ? `${activeDep.tech} & ${activeDep.coDriver}` : activeDep.tech;
+        } 
+        // If they have NO live route but got stuck on Dispatched:
+        else if (!activeDep && v.status === 'Dispatched') {
+          v.status = 'Warehouse (Ready)';
+          v.zone = '—';
+          v.driver = '—';
+        }
+      });
+
       if(loader) loader.style.display='none'; 
       populateModals(); 
       refreshActiveViews(); 
