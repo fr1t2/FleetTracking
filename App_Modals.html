@@ -71,12 +71,27 @@
     <div class="modal-header"><div>📋 Dispatch Vehicle</div><button class="modal-close" onclick="closeModal('dispatchModal')">&times;</button></div>
     <form onsubmit="submitDispatch(event)">
       <div class="modal-body">
-        <div class="form-group"><label>Van Assignment *</label><select id="dp_van" required></select></div>
-        <div class="form-row"><div class="form-group"><label>Lead Tech *</label><select id="dp_tech" required></select></div><div class="form-group"><label>Shift *</label><select id="dp_shift" required></select></div></div>
-        <div class="form-row"><div class="form-group"><label>Co-Driver (Optional)</label><select id="dp_codriver"></select></div><div class="form-group"><label style="margin-top:28px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="dp_training" style="width:auto;"> 🎓 Training Route</label></div></div>
-        <div class="form-row"><div class="form-group"><label>Work Zone *</label><select id="dp_zone" required></select></div><div class="form-group"><label>Battery Target</label><input type="text" id="dp_target"></div></div>
-        <div class="form-group"><label>Focus</label><select id="dp_focus"></select></div>
-        <div class="form-group"><label>Goals</label><textarea id="dp_goals" rows="2"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Vehicle *</label><select id="dp_van" required></select></div>
+          <div class="form-group"><label>Assigned Lead Tech *</label><select id="dp_tech" required></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Co-Driver (Optional)</label><select id="dp_codriver"></select></div>
+          <div class="form-group"><label>Shift *</label><select id="dp_shift" required></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Work Zone *</label><select id="dp_zone" required></select></div>
+          <div class="form-group"><label>Battery Target %</label><input type="number" id="dp_target" placeholder="e.g. 80"></div>
+        </div>
+        <div class="form-group"><label>Focus Category</label><select id="dp_focus"></select></div>
+        
+        <!-- NEW EXPANDED SHIFT NOTES FIELD -->
+        <div class="form-group">
+          <label>Shift Notes & Assignment Details</label>
+          <textarea id="dp_goals" rows="3" placeholder="Enter specific shift instructions, duties, or exceptions for the driver(s)..."></textarea>
+        </div>
+        
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;"><input type="checkbox" id="dp_training" style="width:auto;"> Flag as Training Shift</label>
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('dispatchModal')">Cancel</button><button type="submit" class="btn btn-primary">Deploy Van</button></div>
     </form>

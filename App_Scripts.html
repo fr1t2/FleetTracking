@@ -139,102 +139,141 @@
     container.innerHTML = html;
   }
 
-  function renderTechGrid() {
+function renderTechGrid() {
     const container = document.getElementById('tech-card-grid'); if(!container) return;
     const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
-    const sortBy = document.getElementById('tech-sort') ? document.getElementById('tech-sort').value : 'status';
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     
-    // FILTER OUT TERMINATED TECHS HERE
+    // Filter out terminated techs
     let techs = [...(globalState.techs || [])].filter(t => t.hrStatus !== 'Terminated');
     if(q) techs = techs.filter(t => t.name.toLowerCase().includes(q));
     
+    // TIME MATH ENGINE
+    const now = new Date();
+    const currentDay = ['sun','mon','tue','wed','thu','fri','sat'][now.getDay()];
+    const currentHour = now.getHours() + (now.getMinutes() / 60);
+
     techs.forEach(t => {
+      // 1. Determine Dispatched Status
       const dep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
       t._isDispatched = !!dep;
       if(dep) t._displayStatus = `🚙 Route: ${dep.vehicle}`;
       else t._displayStatus = t.status; 
+      
+      // 2. Parse Work Days
+      const str = (t.workDays || '').toLowerCase();
+      let wDays = [];
+      const match = str.match(/(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)/);
+      if (match) {
+         const dayNames = ['mon','tue','wed','thu','fri','sat','sun'];
+         let i1 = dayNames.findIndex(d => match[1].includes(d));
+         let i2 = dayNames.findIndex(d => match[2].includes(d));
+         if(i1 > -1 && i2 > -1) {
+            if(i1 <= i2) { for(let i=i1; i<=i2; i++) wDays.push(dayNames[i]); }
+            else { for(let i=i1; i<7; i++) wDays.push(dayNames[i]); for(let i=0; i<=i2; i++) wDays.push(dayNames[i]); }
+         }
+      } else {
+         ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => { if(str.includes(d)) wDays.push(d); });
+         if(wDays.length===0 && str) wDays = ['mon','tue','wed','thu','fri','sat','sun'];
+      }
+      
+      t._isWorkingToday = wDays.includes(currentDay);
+      t._isShiftActive = false;
+
+      // 3. Determine if within 30 mins of shift start -> 8 hours later
+      if (t._isWorkingToday && t.startTime) {
+         let [h, m] = t.startTime.split(':');
+         let startH = parseInt(h) + (parseInt(m)||0)/60;
+         let startWindow = startH - 0.5; // Opens 30 mins before shift
+         let endWindow = startH + 8;     // 8 hour shift
+         
+         if (endWindow > 24) {
+            t._isShiftActive = (currentHour >= startWindow) || (currentHour <= (endWindow - 24));
+         } else {
+            t._isShiftActive = (currentHour >= startWindow && currentHour <= endWindow);
+         }
+      }
     });
 
-    if (sortBy === 'alpha') {
-      techs.sort((a,b) => a.name.localeCompare(b.name));
-    } else if (sortBy === 'shift') {
-      techs.sort((a,b) => {
-        if(a.shift !== b.shift) return a.shift.localeCompare(b.shift);
-        if(a.startTime !== b.startTime) return (a.startTime||'').localeCompare(b.startTime||'');
-        return a.name.localeCompare(b.name);
-      });
-    } else {
-      const w = t => t._isDispatched ? 1 : (t.status === 'Available' ? 2 : (['Sick','NCNS','Late'].includes(t.status) ? 4 : 3));
-      techs.sort((a,b) => w(a) - w(b) || a.name.localeCompare(b.name));
-    }
+    // Split into two groups: Deployed vs Roster
+    let deployedTechs = techs.filter(t => t._isDispatched);
+    let rosterTechs = techs.filter(t => !t._isDispatched);
+    
+    // Sort Roster: Exceptions/Warnings first, Active Shifts next, Off-shift last
+    rosterTechs.sort((a,b) => {
+      const w = t => {
+        if(['Sick','NCNS','Late','PTO'].includes(t.status) || !t.passedTest || t.restricted) return 1;
+        if(t._isWorkingToday && t._isShiftActive) return 2;
+        if(t._isWorkingToday && !t._isShiftActive) return 3;
+        return 4; // Not working today
+      };
+      return w(a) - w(b) || a.name.localeCompare(b.name);
+    });
 
     let html = '';
-    
-    if (sortBy === 'shift' && layout !== 'classic') {
-      let currentShift = '';
-      html += `<div style="display:flex; flex-direction:column; gap:32px;">`;
-      techs.forEach(t => {
-        if (t.shift !== currentShift) {
-          if(currentShift !== '') html += `</div></div>`;
-          currentShift = t.shift;
-          html += `<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">${currentShift}</h3><div class="${layout==='focus'?'foc-lanes':'mod-sq-grid'}" style="${layout==='focus'?'flex-wrap:wrap; align-items:flex-start;':''}">`;
-        }
-        html += buildTechCardHTML(t, layout);
-      });
-      if(techs.length > 0) html += `</div></div></div>`;
-    } else {
-      if (layout === 'classic') {
-        html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Status</th><th>Shift & Hours</th><th>Attributes</th><th>Actions</th></tr></thead><tbody>`;
-        techs.forEach(t => {
-          let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
-          if(['Sick','NCNS','Late'].includes(t.status)) bc = 'color:var(--danger); background:rgba(255,59,48,0.1); border:1px solid var(--danger);';
-          if(t.status==='PTO') bc = 'color:#007aff; background:rgba(0,122,255,0.1); border:1px solid #007aff;';
-          let attr = '';
-          if(t.restricted) attr += `<span class="cls-badge" style="background:var(--danger); color:#fff; font-size:9px; margin-right:4px;">RESTRICTED</span>`;
-          if(t.goFast) attr += `⚡ `;
-          if(t.trainer) attr += `🎓 `;
-          let muted = (t.status === 'Off-Duty' && !t._isDispatched) ? 'opacity:0.6;' : '';
-          
-          html += `<tr style="${muted}">
-            <td><strong>${t.name}</strong><br><span style="font-size:11px; color:var(--text-muted);">${t.phone || 'No Phone'}</span></td>
-            <td><span class="cls-badge" style="${bc}">${t._displayStatus}</span></td>
-            <td>${t.shift}<br><span style="font-size:11px; color:var(--text-muted);">${t.workDays} | ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</span></td>
-            <td>${attr}</td>
-            <td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal('${t.name}')">Profile</button></td>
-          </tr>`;
-        });
-        html += `</tbody></table></div>`;
-      } else {
-        html += `<div class="${layout==='focus'?'foc-lanes':'mod-sq-grid'}" style="${layout==='focus'?'flex-wrap:wrap; align-items:flex-start;':''}">`;
-        techs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += `</div>`;
-      }
+    const layoutClass = layout === 'focus' ? 'foc-lanes' : (layout === 'classic' ? 'cls-table' : 'mod-sq-grid');
+    const layoutStyle = layout === 'focus' ? 'flex-wrap:wrap; align-items:flex-start;' : '';
+
+    // RENDER DEPLOYED TECHS AT THE TOP
+    if (deployedTechs.length > 0) {
+      html += `<div style="margin-bottom: 32px;">
+                 <h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3>
+                 <div class="${layoutClass}" style="${layoutStyle}">`;
+      deployedTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
+      html += `</div></div>`;
     }
+
+    // RENDER THE REST OF THE ROSTER
+    html += `<div>
+               <h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3>
+               <div class="${layoutClass}" style="${layoutStyle}">`;
+    rosterTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
+    html += `</div></div>`;
+
     container.innerHTML = html;
   }
 
   function buildTechCardHTML(t, layout) {
-    let isMuted = (t.status === 'Off-Duty' && !t._isDispatched);
-    let styleMod = isMuted ? 'opacity:0.5; filter:grayscale(0.8);' : '';
-    let rBadge = t.restricted ? `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">RESTRICTED</div>` : '';
-    let color = t._isDispatched ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS','Late'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
+    // 1. Determine Muting/Grey-out CSS
+    let styleMod = '';
+    if (!t._isDispatched) {
+      if (!t._isWorkingToday) {
+        styleMod = 'opacity:0.3; filter:grayscale(1);'; // Not working today (Heavily Muted)
+      } else if (!t._isShiftActive) {
+        styleMod = 'opacity:0.65;'; // Working today, but shift hasn't started yet
+      }
+    }
+    
+    // Override muting if they called out sick/PTO so you can clearly see exceptions
+    if (['Sick','NCNS','Late','PTO'].includes(t.status)) styleMod = 'opacity:1;'; 
+
+    // 2. Badges & Warnings
+    let badges = '';
+    if (t.restricted) badges += `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">🛑 DRIVING RESTRICTED</div>`;
+    if (!t.passedTest) badges += `<div style="background:#ff9500; color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">⚠️ NO DRIVING TEST</div>`;
+
+    // 3. Status Color Coding
+    let color = 'var(--success)'; // Default Available
+    if (t._isDispatched) color = 'var(--veo-cyan)';
+    else if (['Sick','NCNS','Late'].includes(t.status) || t.restricted) color = 'var(--danger)';
+    else if (t.status === 'PTO') color = '#007aff';
+    else if (!t.passedTest) color = '#ff9500';
+    else if (!t._isWorkingToday) color = 'var(--text-muted)'; // Grey border if off-day
 
     if (layout === 'focus') {
       return `<div class="foc-card" style="border-left-color:${color}; width:280px; margin-bottom:8px; cursor:pointer; ${styleMod}" onclick="openTechActionModal('${t.name}')">
-        ${rBadge}
+        ${badges}
         <div class="foc-card-top"><div><div class="foc-title">${t.name} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="foc-sub">${t.workDays} | ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div></div>
         <div style="font-weight:700; color:${color}; font-size:12px; margin-top:8px;">${t._displayStatus.toUpperCase()}</div>
       </div>`;
     } else {
       let splitName = t.name.split(' ');
       return `<div class="mod-sq-card" style="border-top-color:${color}; ${styleMod}" onclick="openTechActionModal('${t.name}')">
-        <div>${rBadge}<div class="sq-title">${splitName[0]} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="sq-sub">${t.workDays}<br>${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div>
+        <div>${badges}<div class="sq-title">${splitName[0]} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="sq-sub">${t.workDays}<br>${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div>
         <div class="sq-footer" style="color:${color};">${t._displayStatus.toUpperCase()}</div>
       </div>`;
     }
   }
-
   function renderHistoryTab() {
     const container = document.getElementById('history-table-body'); if(!container) return;
     const dateVal = document.getElementById('hist-date') ? document.getElementById('hist-date').value : '';
