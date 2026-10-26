@@ -22,9 +22,7 @@ function getDashboardState() {
   const tz = Session.getScriptTimeZone();
   const cfg = getSystemConfig(); // Found in Config.gs
 
-  // 1. Vehicles
-  const vSheet = ss.getSheetByName('Vehicles');
-  const vehicles = [];
+
 // 1. Vehicles
   const vSheet = ss.getSheetByName('Vehicles');
   const vehicles = [];
