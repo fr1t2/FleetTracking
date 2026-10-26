@@ -2,10 +2,17 @@
   let globalState = null;
 
   window.onload = function() {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.getElementById('theme-selector').value = 'dark';
-    const today = new Date().toISOString().split('T')[0];
-    if(document.getElementById('hist-date')) document.getElementById('hist-date').value = today;
-    changeTheme(); changeLayout(); loadPortalData();
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.getElementById('theme-selector').value = 'dark';
+      const today = new Date().toISOString().split('T')[0];
+      const histDate = document.getElementById('hist-date');
+      if(histDate) histDate.value = today;
+      changeTheme(); 
+      changeLayout(); 
+      loadPortalData();
+    } catch(err) {
+      alert("App Initialization Crash: " + err.message);
+    }
   };
 
   window.onclick = function(event) {
@@ -37,16 +44,19 @@
   }
 
   function changeLayout() { 
-    ['classic', 'modern', 'focus'].forEach(id => { 
-      const el = document.getElementById('layout-' + id); 
-      if(el) el.style.display = 'none'; 
-    }); 
-    const sel = document.getElementById('layout-selector'); 
-    if(sel) { 
-      const target = document.getElementById(`layout-${sel.value}`); 
+    try {
+      ['classic', 'modern', 'focus'].forEach(id => { 
+        const el = document.getElementById('layout-' + id); 
+        if(el) el.style.display = 'none'; 
+      }); 
+      const sel = document.getElementById('layout-selector'); 
+      let active = sel ? sel.value : 'modern';
+      const target = document.getElementById('layout-' + active); 
       if(target) target.style.display = 'block'; 
-    } 
-    if(globalState) refreshActiveViews(); 
+      if(globalState) refreshActiveViews(); 
+    } catch(err) {
+      console.error("Layout Switcher Error: ", err);
+    }
   }
 
   function loadPortalData() {
@@ -55,79 +65,95 @@
     
     google.script.run
       .withSuccessHandler(function(st) { 
-        globalState = st; 
-        
-        // AUTO-HEALER
-        globalState.vehicles.forEach(v => {
-          const activeDep = globalState.deployments.find(d => (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId);
-          if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
-            v.status = 'Dispatched'; v.zone = activeDep.zone; v.driver = activeDep.coDriver ? `${activeDep.tech} & ${activeDep.coDriver}` : activeDep.tech;
-          } else if (!activeDep && v.status === 'Dispatched') {
-            v.status = 'Warehouse (Ready)'; v.zone = '—'; v.driver = '—';
-          }
-        });
+        try {
+          globalState = st || { vehicles:[], deployments:[], techs:[], config:{}, incidents:[] }; 
+          
+          // AUTO-HEALER
+          (globalState.vehicles || []).forEach(v => {
+            const activeDep = (globalState.deployments || []).find(d => (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId);
+            if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
+              v.status = 'Dispatched'; v.zone = activeDep.zone; v.driver = activeDep.coDriver ? (activeDep.tech + ' & ' + activeDep.coDriver) : activeDep.tech;
+            } else if (!activeDep && v.status === 'Dispatched') {
+              v.status = 'Warehouse (Ready)'; v.zone = '—'; v.driver = '—';
+            }
+          });
 
-        if(loader) loader.style.display='none'; 
-        populateModals(); 
-        refreshActiveViews(); 
+          if(loader) loader.style.display='none'; 
+          populateModals(); 
+          refreshActiveViews(); 
+        } catch(err) {
+          if(loader) loader.style.display='none';
+          alert("FRONTEND CRASH (Data Load): " + err.message);
+        }
       })
       .withFailureHandler(function(err) {
         if(loader) loader.style.display='none';
-        alert("CRITICAL LOAD ERROR: " + err.message);
+        alert("BACKEND CRITICAL LOAD ERROR: " + err.message);
       })
       .getDashboardState();
   }
 
   function refreshActiveViews() {
     if(!globalState) return;
-    const l = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
-    if (l === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
-    if (l === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
-    if (l === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
-    if(typeof renderFleetGrid === 'function') renderFleetGrid();
-    if(typeof renderTechGrid === 'function') renderTechGrid();
-    if(typeof renderHistoryTab === 'function') renderHistoryTab();
+    try {
+      const l = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
+      if (l === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
+      if (l === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
+      if (l === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
+      if(typeof renderFleetGrid === 'function') renderFleetGrid();
+      if(typeof renderTechGrid === 'function') renderTechGrid();
+      if(typeof renderHistoryTab === 'function') renderHistoryTab();
+    } catch(err) {
+      alert("RENDER CRASH: " + err.message);
+    }
   }
 
   /* --- SECONDARY TABS RENDERING --- */
   function formatAMPM(tStr) {
     if(!tStr) return 'TBD';
-    let [h, m] = tStr.split(':'); if(!h) return tStr;
-    let hh = parseInt(h, 10); let ampm = hh >= 12 ? 'PM' : 'AM';
+    tStr = String(tStr);
+    if(!tStr.includes(':')) return tStr;
+    let parts = tStr.split(':'); 
+    let hh = parseInt(parts[0], 10); 
+    if(isNaN(hh)) return tStr;
+    let ampm = hh >= 12 ? 'PM' : 'AM';
     hh = hh % 12; if(hh === 0) hh = 12;
-    return `${hh}:${m||'00'} ${ampm}`;
+    return hh + ':' + (parts[1] || '00') + ' ' + ampm;
   }
 
   function renderFleetGrid() {
     const container = document.getElementById('fleet-card-grid'); if(!container) return;
-    const q = document.getElementById('fleet-search') ? document.getElementById('fleet-search').value.toLowerCase() : '';
-    const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
-    let vans = globalState.vehicles.filter(v => v.status !== 'Decommissioned' && (!q || v.cleanName.toLowerCase().includes(q) || v.plate.toLowerCase().includes(q)));
+    const searchEl = document.getElementById('fleet-search');
+    const q = searchEl ? searchEl.value.toLowerCase() : '';
+    const layoutEl = document.getElementById('layout-selector');
+    const layout = layoutEl ? layoutEl.value : 'modern';
+    
+    let vans = (globalState.vehicles || []).filter(v => v.status !== 'Decommissioned' && (!q || (v.cleanName||'').toLowerCase().includes(q) || (v.plate||'').toLowerCase().includes(q)));
     let html = '';
 
     if (layout === 'classic') {
-      html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>`;
+      html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
-        html += `<tr><td><strong>${v.cleanName}</strong></td><td>${v.rentalId}</td><td><span class="cls-badge" style="${bc}">${v.status === 'Warehouse (Ready)' ? 'Ready' : v.status}</span></td><td>${v.plate}</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal('${v.rentalId}')">Manage</button></td></tr>`;
+        html += '<tr><td><strong>' + v.cleanName + '</strong></td><td>' + v.rentalId + '</td><td><span class="cls-badge" style="' + bc + '">' + (v.status === 'Warehouse (Ready)' ? 'Ready' : v.status) + '</span></td><td>' + v.plate + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Manage</button></td></tr>';
       });
-      html += `</tbody></table></div>`;
+      html += '</tbody></table></div>';
     } 
     else if (layout === 'focus') {
-      html += `<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">`;
+      html += '<div class="foc-lanes" style="flex-wrap:wrap; align-items:flex-start;">';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
-        html += `<div class="foc-card" style="border-left-color:${bc}; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal('${v.rentalId}')"><div class="foc-card-top"><div><div class="foc-title">${v.cleanName}</div><div class="foc-sub">${v.rentalId} &bull; Plate: ${v.plate}</div></div></div><div style="font-weight:800; color:${bc}; font-size:11px; margin-top:8px;">${v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()}</div></div>`;
+        html += '<div class="foc-card" style="border-left-color:' + bc + '; width:280px; margin-bottom:8px; cursor:pointer;" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div class="foc-card-top"><div><div class="foc-title">' + v.cleanName + '</div><div class="foc-sub">' + v.rentalId + ' &bull; Plate: ' + v.plate + '</div></div></div><div style="font-weight:800; color:' + bc + '; font-size:11px; margin-top:8px;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
       });
-      html += `</div>`;
+      html += '</div>';
     } else {
-      html += `<div class="mod-sq-grid">`;
+      html += '<div class="mod-sq-grid">';
       vans.forEach(v => {
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
         let color = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
-        html += `<div class="mod-sq-card ${bClass}" onclick="openVanActionModal('${v.rentalId}')"><div><div class="sq-title">${v.cleanName}</div><div class="sq-sub">${v.rentalId}<br>${v.plate}</div></div><div class="sq-footer" style="color:${color};">${v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()}</div></div>`;
+        html += '<div class="mod-sq-card ' + bClass + '" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div><div class="sq-title">' + v.cleanName + '</div><div class="sq-sub">' + v.rentalId + '<br>' + v.plate + '</div></div><div class="sq-footer" style="color:' + color + ';">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
       });
-      html += `</div>`;
+      html += '</div>';
     }
     container.innerHTML = html;
   }
@@ -135,27 +161,23 @@
   function renderTechGrid() {
     const container = document.getElementById('tech-card-grid'); if(!container) return;
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
-    
-    // 1. Pull values from advanced filter bars
     const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
     const sortBy = document.getElementById('tech-sort') ? document.getElementById('tech-sort').value : 'smart';
     const filterShift = document.getElementById('tech-filter-shift') ? document.getElementById('tech-filter-shift').value : '';
     const filterTime = document.getElementById('tech-filter-time') ? document.getElementById('tech-filter-time').value : '';
     
-    // Strip terminated
     let techs = [...(globalState.techs || [])].filter(t => t.hrStatus !== 'Terminated');
     
-    // TIME MATH ENGINE
     const now = new Date();
     const currentDay = ['sun','mon','tue','wed','thu','fri','sat'][now.getDay()];
     const currentHour = now.getHours() + (now.getMinutes() / 60);
 
     techs.forEach(t => {
-      const dep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
+      const dep = (globalState.deployments || []).find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
       t._isDispatched = !!dep;
-      if(dep) t._displayStatus = `🚙 Route: ${dep.vehicle}`; else t._displayStatus = t.status; 
+      if(dep) t._displayStatus = '🚙 Route: ' + dep.vehicle; else t._displayStatus = t.status; 
       
-      const str = (t.workDays || '').toLowerCase();
+      const str = String(t.workDays || '').toLowerCase();
       let wDays = [];
       const match = str.match(/(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)/);
       if (match) {
@@ -172,9 +194,9 @@
       
       t._isWorkingToday = wDays.includes(currentDay);
       t._isShiftActive = false;
-      if (t._isWorkingToday && t.startTime) {
-         let [h, m] = t.startTime.split(':');
-         let startH = parseInt(h) + (parseInt(m)||0)/60;
+      if (t._isWorkingToday && t.startTime && String(t.startTime).includes(':')) {
+         let timeParts = String(t.startTime).split(':');
+         let startH = (parseInt(timeParts[0])||0) + (parseInt(timeParts[1])||0)/60;
          let startWindow = startH - 0.5; 
          let endWindow = startH + 8;     
          if (endWindow > 24) { t._isShiftActive = (currentHour >= startWindow) || (currentHour <= (endWindow - 24)); } 
@@ -182,14 +204,13 @@
       }
     });
 
-    // 2. Apply Multi-Layer Filters
-    if (q) techs = techs.filter(t => t.name.toLowerCase().includes(q) || (t.shift||'').toLowerCase().includes(q));
+    if (q) techs = techs.filter(t => String(t.name||'').toLowerCase().includes(q) || String(t.shift||'').toLowerCase().includes(q));
     if (filterShift) techs = techs.filter(t => t.shift === filterShift);
     if (filterTime) {
       const [startRange, endRange] = filterTime.split('-').map(v => parseInt(v.replace(':','')));
       techs = techs.filter(t => {
         if (!t.startTime) return false;
-        const techT = parseInt(t.startTime.replace(':',''));
+        const techT = parseInt(String(t.startTime).replace(':',''));
         return techT >= startRange && techT <= endRange;
       });
     }
@@ -198,7 +219,6 @@
     const layoutClass = layout === 'focus' ? 'foc-lanes' : (layout === 'classic' ? 'cls-table' : 'mod-sq-grid');
     const layoutStyle = layout === 'focus' ? 'flex-wrap:wrap; align-items:flex-start;' : '';
 
-    // 3. Apply Sort Mode Routing
     if (sortBy === 'smart') {
       let deployedTechs = techs.filter(t => t._isDispatched);
       let rosterTechs = techs.filter(t => !t._isDispatched);
@@ -209,52 +229,50 @@
           if(t._isWorkingToday && !t._isShiftActive) return 3;
           return 4;
         };
-        return w(a) - w(b) || a.name.localeCompare(b.name);
+        return w(a) - w(b) || String(a.name||'').localeCompare(String(b.name||''));
       });
 
       if (deployedTechs.length > 0) {
-        html += `<div style="margin-bottom: 32px;"><h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3><div class="${layoutClass}" style="${layoutStyle}">`;
+        html += '<div style="margin-bottom: 32px;"><h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
         deployedTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += `</div></div>`;
+        html += '</div></div>';
       }
       if (rosterTechs.length > 0) {
-        html += `<div><h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3><div class="${layoutClass}" style="${layoutStyle}">`;
+        html += '<div><h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
         rosterTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += `</div></div>`;
+        html += '</div></div>';
       }
     } else {
-      // Linear Sorting logic (combines active and roster together)
       if (sortBy === 'alpha') {
-        techs.sort((a,b) => a.name.localeCompare(b.name));
+        techs.sort((a,b) => String(a.name||'').localeCompare(String(b.name||'')));
       } else if (sortBy === 'shift_time') {
         techs.sort((a,b) => {
-          let s = (a.shift||'').localeCompare(b.shift||'');
+          let s = String(a.shift||'').localeCompare(String(b.shift||''));
           if (s !== 0) return s;
-          let t1 = a.startTime||'99:99'; let t2 = b.startTime||'99:99';
+          let t1 = String(a.startTime||'99:99'); let t2 = String(b.startTime||'99:99');
           if (t1 !== t2) return t1.localeCompare(t2);
-          return a.name.localeCompare(b.name);
+          return String(a.name||'').localeCompare(String(b.name||''));
         });
       }
 
       if (sortBy === 'shift_time' && layout !== 'classic') {
         let currentShift = '';
-        html += `<div style="display:flex; flex-direction:column; gap:32px;">`;
+        html += '<div style="display:flex; flex-direction:column; gap:32px;">';
         techs.forEach(t => {
           if (t.shift !== currentShift) {
-            if(currentShift !== '') html += `</div></div>`;
+            if(currentShift !== '') html += '</div></div>';
             currentShift = t.shift;
-            html += `<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">${currentShift}</h3><div class="${layoutClass}" style="${layoutStyle}">`;
+            html += '<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">' + currentShift + '</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
           }
           html += buildTechCardHTML(t, layout);
         });
-        if(techs.length > 0) html += `</div></div></div>`;
+        if(techs.length > 0) html += '</div></div></div>';
       } else {
-        html += `<div class="${layoutClass}" style="${layoutStyle}">`;
+        html += '<div class="' + layoutClass + '" style="' + layoutStyle + '">';
         techs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += `</div>`;
+        html += '</div>';
       }
     }
-    
     container.innerHTML = html;
   }
 
@@ -267,8 +285,8 @@
     if (['Sick','NCNS','Late','PTO'].includes(t.status)) styleMod = 'opacity:1;'; 
 
     let badges = '';
-    if (t.restricted) badges += `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">🛑 MVR RESTRICTED</div>`;
-    if (!t.passedTest) badges += `<div style="background:#ff9500; color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">⚠️ NO DRIVING TEST</div>`;
+    if (t.restricted) badges += '<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">🛑 MVR RESTRICTED</div>';
+    if (!t.passedTest) badges += '<div style="background:#ff9500; color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">⚠️ NO DRIVING TEST</div>';
 
     let color = 'var(--success)';
     if (t._isDispatched) color = 'var(--veo-cyan)';
@@ -277,18 +295,18 @@
     else if (!t.passedTest) color = '#ff9500';
     else if (!t._isWorkingToday) color = 'var(--text-muted)'; 
 
+    let timeText = formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime);
+    let nParts = String(t.name||'').split(' ');
+
     if (layout === 'focus') {
-      return `<div class="foc-card" style="border-left-color:${color}; width:280px; margin-bottom:8px; cursor:pointer; ${styleMod}" onclick="openTechActionModal('${t.name}')">
-        ${badges}
-        <div class="foc-card-top"><div><div class="foc-title">${t.name} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="foc-sub">${t.workDays} | ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div></div>
-        <div style="font-weight:700; color:${color}; font-size:12px; margin-top:8px;">${t._displayStatus.toUpperCase()}</div>
-      </div>`;
+      return '<div class="foc-card" style="border-left-color:' + color + '; width:280px; margin-bottom:8px; cursor:pointer; ' + styleMod + '" onclick="openTechActionModal(\'' + t.name + '\')">' +
+        badges +
+        '<div class="foc-card-top"><div><div class="foc-title">' + t.name + (t.goFast?' ⚡':'') + (t.trainer?' 🎓':'') + '</div><div class="foc-sub">' + t.workDays + ' | ' + timeText + '</div></div></div>' +
+        '<div style="font-weight:700; color:' + color + '; font-size:12px; margin-top:8px;">' + t._displayStatus.toUpperCase() + '</div></div>';
     } else {
-      let splitName = t.name.split(' ');
-      return `<div class="mod-sq-card" style="border-top-color:${color}; ${styleMod}" onclick="openTechActionModal('${t.name}')">
-        <div>${badges}<div class="sq-title">${splitName[0]} ${t.goFast?'⚡':''} ${t.trainer?'🎓':''}</div><div class="sq-sub">${t.workDays}<br>${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div></div>
-        <div class="sq-footer" style="color:${color};">${t._displayStatus.toUpperCase()}</div>
-      </div>`;
+      return '<div class="mod-sq-card" style="border-top-color:' + color + '; ' + styleMod + '" onclick="openTechActionModal(\'' + t.name + '\')">' +
+        '<div>' + badges + '<div class="sq-title">' + nParts[0] + (t.goFast?' ⚡':'') + (t.trainer?' 🎓':'') + '</div><div class="sq-sub">' + t.workDays + '<br>' + timeText + '</div></div>' +
+        '<div class="sq-footer" style="color:' + color + ';">' + t._displayStatus.toUpperCase() + '</div></div>';
     }
   }
 
@@ -296,19 +314,19 @@
     const container = document.getElementById('history-table-body'); if(!container) return;
     const dateVal = document.getElementById('hist-date') ? document.getElementById('hist-date').value : '';
     const shiftVal = document.getElementById('hist-shift') ? document.getElementById('hist-shift').value : '';
-    let deps = globalState.deployments.filter(d => d.date === dateVal && d.shift === shiftVal);
-    deps.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
+    let deps = (globalState.deployments || []).filter(d => d.date === dateVal && d.shift === shiftVal);
+    deps.sort((a, b) => String(a.departureTime || '').localeCompare(String(b.departureTime || '')));
     let html = '';
 
     if (deps.length === 0) { html = '<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600; width:100%;">No deployment records found.</div>'; } 
     else {
-      html += `<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Goals</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead><tbody>`;
+      html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Goals</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead><tbody>';
       deps.forEach(d => {
-        let techs = d.coDriver ? `${d.tech} <br><span style="font-size:11px; color:var(--text-muted);">+ ${d.coDriver}</span>` : d.tech;
+        let techs = d.coDriver ? (d.tech + ' <br><span style="font-size:11px; color:var(--text-muted);">+ ' + d.coDriver + '</span>') : d.tech;
         let sClass = d.status === 'Completed' ? 'color:var(--success); font-weight:700;' : (['Sick','NCNS','Late'].includes(d.status) ? 'color:var(--danger); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;');
-        html += `<tr><td><strong>${d.vehicle}</strong><br><span style="font-size:11px; color:var(--text-muted);">${d.rentalId}</span></td><td>${techs}</td><td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">${d.zone}</span></td><td style="max-width:200px; white-space:normal;">${d.goals || '--'}</td><td>${d.departureTime}</td><td>${d.returnTime || '--'}</td><td style="${sClass}">${d.status}</td></tr>`;
+        html += '<tr><td><strong>' + d.vehicle + '</strong><br><span style="font-size:11px; color:var(--text-muted);">' + d.rentalId + '</span></td><td>' + techs + '</td><td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">' + d.zone + '</span></td><td style="max-width:200px; white-space:normal;">' + (d.goals || '--') + '</td><td>' + d.departureTime + '</td><td>' + (d.returnTime || '--') + '</td><td style="' + sClass + '">' + d.status + '</td></tr>';
       });
-      html += `</tbody></table></div>`;
+      html += '</tbody></table></div>';
     }
     container.innerHTML = html;
   }
@@ -328,8 +346,8 @@
   function prefillCheckInVan(cleanName) { const sel = document.getElementById('ci_van'); if(sel) { sel.value = cleanName.trim(); if (sel.selectedIndex <= 0) { for(let i = 0; i < sel.options.length; i++) { if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; } } } } openModal('checkInModal'); }
 
   function openVanActionModal(rentalId) {
-    const v = globalState.vehicles.find(x => x.rentalId === rentalId); if(!v) return;
-    const title = document.getElementById('va_title'); if(title) title.innerText = `${v.cleanName} Profile`;
+    const v = (globalState.vehicles || []).find(x => x.rentalId === rentalId); if(!v) return;
+    const title = document.getElementById('va_title'); if(title) title.innerText = v.cleanName + ' Profile';
     const vanDeps = (globalState.deployments || []).filter(d => d.rentalId === rentalId);
     const pastDeps = vanDeps.filter(d => d.status === 'Completed');
     const lastDep = pastDeps.length > 0 ? pastDeps[0] : null; 
@@ -340,142 +358,97 @@
     let coastEnabled = 'Yes'; if(v.addons) coastEnabled = v.addons.toLowerCase().includes('no coast') ? 'No' : 'Yes';
     
     let displayPlate = v.plate;
-    let plateMatch = v.plate.match(/^([a-zA-Z]{2})\s*-\s*(.+)$/);
-    if (plateMatch) { displayPlate = `<span style="opacity:0.6; font-size:10px;">${plateMatch[1].toUpperCase()}</span> <span style="font-weight:900;">${plateMatch[2]}</span>`; }
+    if(v.plate) {
+       let plateMatch = String(v.plate).match(/^([a-zA-Z]{2})\s*-\s*(.+)$/);
+       if (plateMatch) { displayPlate = '<span style="opacity:0.6; font-size:10px;">' + plateMatch[1].toUpperCase() + '</span> <span style="font-weight:900;">' + plateMatch[2] + '</span>'; }
+    }
 
+    // THIS SAFELY FORMATS THE LINK WITHOUT TEMPLATE LITERALS CRASHING DOC WRITE
     let samsaraHtml = 'N/A';
     if(v.samsaraSerial || v.samsaraLink) {
-        let link = v.samsaraLink || `https://cloud.samsara.com/fleet/vehicles?q=${v.samsaraSerial}`;
+        let link = v.samsaraLink || ('https://cloud.samsara.com/fleet/vehicles?q=' + v.samsaraSerial);
         let displaySerial = v.samsaraSerial || 'View Samsara';
-        samsaraHtml = `<a href="${link}" target="_blank" style="color:var(--veo-cyan); text-decoration:none;">${displaySerial} ↗</a>`;
+        samsaraHtml = '<a href="' + link + '" target="_blank" style="color:var(--veo-cyan); text-decoration:none;">' + displaySerial + ' ↗</a>';
     }
     
     const isFleetTab = document.getElementById('tab-fleet') && document.getElementById('tab-fleet').classList.contains('active');
 
-    let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+    let html = '<div style="display:flex; flex-direction:column; gap:16px;">';
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
-    html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
-      <div style="font-size:18px; font-weight:900;">${v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()}</div>
-      <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${v.makeModel} &bull; Plate: ${displayPlate}</div>
-    </div>`; 
+    html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">' + v.makeModel + ' &bull; Plate: ' + displayPlate + '</div></div>'; 
     
-    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">${vanDeps.length}</div>
-      </div>
-      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Driver</div><div style="font-weight:800; font-size:14px; margin-top:4px;">${lastDriver}</div>
-      </div>
-      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div>
-        <div style="font-weight:800; font-size:14px; margin-top:4px;">${samsaraHtml}</div>
-      </div>
-      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:${coastEnabled==='Yes'?'var(--success)':'var(--text-muted)'}">${coastEnabled}</div>
-      </div>
-    </div>`;
+    html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + vanDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Driver</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + lastDriver + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + samsaraHtml + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:' + (coastEnabled==='Yes'?'var(--success)':'var(--text-muted)') + '">' + coastEnabled + '</div></div></div>';
     
-    html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
-    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
+    html += '<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4><div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">';
+    
     if (v.status === 'Warehouse (Ready)') {
-      html += `<button class="btn btn-primary" onclick="closeModal('vanActionModal'); prefillDispatchVan('${v.cleanName}')">📋 Deploy Van</button>`;
-      html += `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillIncidentVan('${v.cleanName}')">⚠️ Mark OOS</button>`;
+      html += '<button class="btn btn-primary" onclick="closeModal(\'vanActionModal\'); prefillDispatchVan(\'' + v.cleanName + '\')">📋 Deploy Van</button><button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="closeModal(\'vanActionModal\'); prefillIncidentVan(\'' + v.cleanName + '\')">⚠️ Mark OOS</button>';
     } else if (v.status === 'Dispatched') {
-      const dep = globalState.deployments.find(d => d.rentalId === v.rentalId && (d.status === 'Dispatched' || d.status === 'Active'));
+      const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && (d.status === 'Dispatched' || d.status === 'Active'));
       if (dep) {
-        html += `<button class="btn btn-dark" onclick="closeModal('vanActionModal'); endShift('${dep.id}', '${v.rentalId}')">🛑 End Shift</button>`;
-        html += `<button class="btn btn-outline" onclick="closeModal('vanActionModal'); openEditDispatchModal('${dep.id}')">✏️ Edit Route</button>`;
+        html += '<button class="btn btn-dark" onclick="closeModal(\'vanActionModal\'); endShift(\'' + dep.id + '\', \'' + v.rentalId + '\')">🛑 End Shift</button><button class="btn btn-outline" onclick="closeModal(\'vanActionModal\'); openEditDispatchModal(\'' + dep.id + '\')">✏️ Edit Route</button>';
       }
-      html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillIncidentVan('${v.cleanName}')">⚠️ Mark OOS</button>`;
+      html += '<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal(\'vanActionModal\'); prefillIncidentVan(\'' + v.cleanName + '\')">⚠️ Mark OOS</button>';
     } else if (v.status === 'Out of Service') {
-      html += `<button class="btn btn-success" style="grid-column:1/-1;" onclick="closeModal('vanActionModal'); prefillCheckInVan('${v.cleanName}')">✅ Repairs Done - Check In</button>`;
+      html += '<button class="btn btn-success" style="grid-column:1/-1;" onclick="closeModal(\'vanActionModal\'); prefillCheckInVan(\'' + v.cleanName + '\')">✅ Repairs Done - Check In</button>';
     }
 
-    if (isFleetTab) { html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal('vanActionModal'); prefillDecomVan('${v.cleanName}')">🚨 Decommission Vehicle</button>`; }
-    html += `</div>`;
+    if (isFleetTab) { html += '<button class="btn btn-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="closeModal(\'vanActionModal\'); prefillDecomVan(\'' + v.cleanName + '\')">🚨 Decommission Vehicle</button>'; }
+    html += '</div>';
 
-    html += `<div style="display:flex; gap:10px; margin-top:8px;">
-      <button class="btn btn-outline" style="flex:1; font-size:11px;" onclick="closeModal('vanActionModal'); openEditVehicleModal('${v.rentalId}')">⚙️ Edit Full Specs</button>
-      <button class="btn btn-outline" style="flex:1; font-size:11px; color:var(--text-muted);" onclick="const e = document.getElementById('van-service-history'); e.style.display = e.style.display==='none' ? 'block' : 'none';">🛠️ Toggle Service Log</button>
-    </div>`;
-
-    html += `<div id="van-service-history" style="display:none; margin-top:12px; background:var(--bg-main); border-radius:8px; padding:12px; border:1px solid var(--border-color); max-height:200px; overflow-y:auto;">
-      <div style="font-size:12px; text-transform:uppercase; font-weight:800; margin-bottom:12px;">Recorded Service History</div>`;
+    html += '<div style="display:flex; gap:10px; margin-top:8px;"><button class="btn btn-outline" style="flex:1; font-size:11px;" onclick="closeModal(\'vanActionModal\'); openEditVehicleModal(\'' + v.rentalId + '\')">⚙️ Edit Full Specs</button><button class="btn btn-outline" style="flex:1; font-size:11px; color:var(--text-muted);" onclick="const e = document.getElementById(\'van-service-history\'); e.style.display = e.style.display===\'none\' ? \'block\' : \'none\';">🛠️ Toggle Service Log</button></div>';
+    html += '<div id="van-service-history" style="display:none; margin-top:12px; background:var(--bg-main); border-radius:8px; padding:12px; border:1px solid var(--border-color); max-height:200px; overflow-y:auto;"><div style="font-size:12px; text-transform:uppercase; font-weight:800; margin-bottom:12px;">Recorded Service History</div>';
     
     if(vIncidents.length === 0) {
-      html += `<div style="font-size:12px; color:var(--text-muted);">No service history found.</div>`;
+      html += '<div style="font-size:12px; color:var(--text-muted);">No service history found.</div>';
     } else {
       vIncidents.forEach(inc => {
         let isRes = !!inc.dateResolved;
-        html += `<div style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;">
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);"><span>${inc.dateReported}</span><span style="color:${isRes ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${isRes ? 'Resolved' : 'Open'}</span></div>
-          <div style="font-weight:700; font-size:13px; margin-top:2px;">${inc.category}</div>
-          <div style="font-size:12px; margin-top:2px; color:var(--text-main);">${inc.details}</div>
-          ${isRes && inc.resolution ? `<div style="font-size:11px; margin-top:4px; color:var(--text-muted);">Fix: ${inc.resolution}</div>` : ''}
-        </div>`;
+        html += '<div style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;"><div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);"><span>' + inc.dateReported + '</span><span style="color:' + (isRes ? 'var(--success)' : 'var(--danger)') + '; font-weight:700;">' + (isRes ? 'Resolved' : 'Open') + '</span></div><div style="font-weight:700; font-size:13px; margin-top:2px;">' + inc.category + '</div><div style="font-size:12px; margin-top:2px; color:var(--text-main);">' + inc.details + '</div>' + (isRes && inc.resolution ? '<div style="font-size:11px; margin-top:4px; color:var(--text-muted);">Fix: ' + inc.resolution + '</div>' : '') + '</div>';
       });
     }
-    html += `</div></div>`;
+    html += '</div></div>';
     const body = document.getElementById('va_body'); if(body) body.innerHTML = html;
     openModal('vanActionModal');
   }
 
   function openTechActionModal(techName) {
-    const t = globalState.techs.find(x => x.name === techName); if(!t) return;
-    const title = document.getElementById('ta_title'); if(title) title.innerText = `${t.name} Profile`;
+    const t = (globalState.techs || []).find(x => x.name === techName); if(!t) return;
+    const title = document.getElementById('ta_title'); if(title) title.innerText = t.name + ' Profile';
     
-    const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
-    const allDeps = globalState.deployments.filter(d => (d.tech === t.name || d.coDriver === t.name) && !['Sick','PTO','NCNS','Late'].includes(d.status));
-    allDeps.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+    const activeDep = (globalState.deployments || []).find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
+    const allDeps = (globalState.deployments || []).filter(d => (d.tech === t.name || d.coDriver === t.name) && !['Sick','PTO','NCNS','Late'].includes(d.status));
+    allDeps.sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')));
     
-    let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+    let html = '<div style="display:flex; flex-direction:column; gap:16px;">';
     let bannerColor = activeDep ? 'var(--veo-cyan)' : (t.status === 'Available' ? 'var(--success)' : (['Sick','NCNS','Late'].includes(t.status) ? 'var(--danger)' : (t.status === 'PTO' ? '#007aff' : 'var(--text-muted)')));
     
-    html += `<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ${bannerColor}; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
-      <div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;">
-        <span>${activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()}</span>
-        <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal('techActionModal'); document.getElementById('att_tech').value='${t.name}'; document.getElementById('att_date').value=new Date().toISOString().split('T')[0]; openModal('attendanceModal');">📅 Log Time Off / Late</button>
-      </div>
-      <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${t.shift} &bull; ${t.workDays} &bull; ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div>
-      ${t.restricted ? `<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 MVR RESTRICTED</div>` : ''}
-    </div>`;
+    html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900; display:flex; justify-content:space-between; align-items:center;"><span>' + (activeDep ? '🚙 ON ROUTE' : t.status.toUpperCase()) + '</span><button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal(\'techActionModal\'); document.getElementById(\'att_tech\').value=\'' + t.name + '\'; document.getElementById(\'att_date\').value=new Date().toISOString().split(\'T\')[0]; openModal(\'attendanceModal\');">📅 Log Time Off / Late</button></div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">' + t.shift + ' &bull; ' + t.workDays + ' &bull; ' + formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime) + '</div>' + (t.restricted ? '<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 MVR RESTRICTED</div>' : '') + '</div>';
 
-    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">${allDeps.length}</div>
-      </div>
-      <div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Passed Test</div><div style="font-weight:900; font-size:14px; margin-top:4px; color:${t.passedTest?'var(--success)':'var(--danger)'}">${t.passedTest?'YES':'NO'}</div>
-      </div>
-    </div>`;
+    html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + allDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Passed Test</div><div style="font-weight:900; font-size:14px; margin-top:4px; color:' + (t.passedTest?'var(--success)':'var(--danger)') + '">' + (t.passedTest?'YES':'NO') + '</div></div></div>';
     
     html += buildTechTimelineGraphic(t.workDays, t.startTime, t.endTime);
 
-    html += `<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4>`;
-    html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
+    html += '<h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">Dispatch Operations</h4><div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">';
     
     if (activeDep) {
-      html += `<button class="btn btn-outline" onclick="closeModal('techActionModal'); document.getElementById('ed_id').value='${activeDep.id}'; document.getElementById('ed_zone').value='${activeDep.zone}'; openModal('editDispatchModal');">✏️ Edit Route</button>`;
-      html += `<button class="btn btn-dark" onclick="closeModal('techActionModal'); endShift('${activeDep.id}', '${activeDep.rentalId}')">🛑 End Shift</button>`;
+      html += '<button class="btn btn-outline" onclick="closeModal(\'techActionModal\'); document.getElementById(\'ed_id\').value=\'' + activeDep.id + '\'; document.getElementById(\'ed_zone\').value=\'' + activeDep.zone + '\'; openModal(\'editDispatchModal\');">✏️ Edit Route</button><button class="btn btn-dark" onclick="closeModal(\'techActionModal\'); endShift(\'' + activeDep.id + '\', \'' + activeDep.rentalId + '\')">🛑 End Shift</button>';
     } else if (['Sick', 'NCNS', 'PTO', 'Late'].includes(t.status)) {
       let q = t.status === 'Late' ? 'Arrived (Clear Late Status)' : 'Clear Exception (Return to duty)';
-      html += `<button class="btn btn-outline" style="grid-column:1/-1; color:var(--success); border-color:var(--success);" onclick="closeModal('techActionModal'); clearTechException('${t.name}', ${t.status==='Late'})">✅ ${q}</button>`;
+      html += '<button class="btn btn-outline" style="grid-column:1/-1; color:var(--success); border-color:var(--success);" onclick="closeModal(\'techActionModal\'); clearTechException(\'' + t.name + '\', ' + (t.status==='Late') + ')">✅ ' + q + '</button>';
     } else {
       if(!t.restricted) {
          if(t.trainer) {
-            html += `<button class="btn btn-outline" style="color:#007aff; border-color:#007aff;" onclick="closeModal('techActionModal'); prefillDispatchTech('${t.name}', true)">🎓 Training</button>`;
-            html += `<button class="btn btn-primary" onclick="closeModal('techActionModal'); prefillDispatchTech('${t.name}', false)">📋 Dispatch</button>`;
+            html += '<button class="btn btn-outline" style="color:#007aff; border-color:#007aff;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', true)">🎓 Training</button><button class="btn btn-primary" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch</button>';
          } else {
-            html += `<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal('techActionModal'); prefillDispatchTech('${t.name}', false)">📋 Dispatch as Lead Driver</button>`;
+            html += '<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch as Lead Driver</button>';
          }
       }
       else {
-         html += `<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal('techActionModal'); document.getElementById('dp_codriver').value='${t.name}'; openModal('dispatchModal');">📋 Dispatch as Co-Driver</button>`;
+         html += '<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal(\'techActionModal\'); document.getElementById(\'dp_codriver\').value=\'' + t.name + '\'; openModal(\'dispatchModal\');">📋 Dispatch as Co-Driver</button>';
       }
     }
-    html += `</div>`;
-
-    html += `<button class="btn btn-outline" style="width:100%; font-size:11px; margin-top:8px;" onclick="closeModal('techActionModal'); openTechEditModal('${t.name}')">⚙️ Edit Profile Stats</button></div>`;
+    html += '</div><button class="btn btn-outline" style="width:100%; font-size:11px; margin-top:8px;" onclick="closeModal(\'techActionModal\'); openTechEditModal(\'' + t.name + '\')">⚙️ Edit Profile Stats</button></div>';
 
     const body = document.getElementById('ta_body'); if(body) body.innerHTML = html;
     openModal('techActionModal');
@@ -483,20 +456,19 @@
 
   function buildTechTimelineGraphic(workDaysStr, startStr, endStr) {
     let s = 0, e = 0;
-    if (startStr && endStr) { 
-      let [h1,m1] = startStr.split(':'); s = (parseInt(h1) + parseInt(m1||0)/60) / 24 * 100; 
-      let [h2,m2] = endStr.split(':'); e = (parseInt(h2) + parseInt(m2||0)/60) / 24 * 100; 
+    if (startStr && endStr && String(startStr).includes(':') && String(endStr).includes(':')) { 
+      let [h1,m1] = String(startStr).split(':'); s = ((parseInt(h1)||0) + (parseInt(m1)||0)/60) / 24 * 100; 
+      let [h2,m2] = String(endStr).split(':'); e = ((parseInt(h2)||0) + (parseInt(m2)||0)/60) / 24 * 100; 
     }
     
     const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const str = (workDaysStr||'').toLowerCase();
+    const str = String(workDaysStr||'').toLowerCase();
     let wDays = [];
     
     const match = str.match(/(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)/);
     if (match) {
        const dayNames = ['mon','tue','wed','thu','fri','sat','sun'];
-       let i1 = dayNames.findIndex(d => match[1].includes(d));
-       let i2 = dayNames.findIndex(d => match[2].includes(d));
+       let i1 = dayNames.findIndex(d => match[1].includes(d)); let i2 = dayNames.findIndex(d => match[2].includes(d));
        if(i1 > -1 && i2 > -1) {
           if(i1 <= i2) { for(let i=i1; i<=i2; i++) wDays.push(dayNames[i]); }
           else { for(let i=i1; i<7; i++) wDays.push(dayNames[i]); for(let i=0; i<=i2; i++) wDays.push(dayNames[i]); }
@@ -506,33 +478,23 @@
        if(wDays.length===0 && str) wDays = days; 
     }
     
-    let html = `<div style="display:flex; flex-direction:column; gap:6px; font-size:10px; font-weight:700; background:var(--bg-panel); padding:16px; border-radius:8px; border:1px solid var(--border-color);">`;
-    html += `<div style="margin-bottom:4px; color:var(--text-muted); text-transform:uppercase; font-size:11px; display:flex; justify-content:space-between;"><span>Weekly Schedule</span> <span>00:00 - 24:00</span></div>`;
+    let html = '<div style="display:flex; flex-direction:column; gap:6px; font-size:10px; font-weight:700; background:var(--bg-panel); padding:16px; border-radius:8px; border:1px solid var(--border-color);"><div style="margin-bottom:4px; color:var(--text-muted); text-transform:uppercase; font-size:11px; display:flex; justify-content:space-between;"><span>Weekly Schedule</span> <span>00:00 - 24:00</span></div>';
     
     days.forEach(d => {
        let isWorking = wDays.includes(d.toLowerCase()); 
        let barHtml = '';
        if (isWorking && startStr && endStr) {
-          if (e >= s) { barHtml = `<div style="position:absolute; left:${s}%; width:${e-s}%; top:0; bottom:0; background:var(--veo-cyan); border-radius:4px; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div>`; } 
-          else { barHtml = `<div style="position:absolute; left:${s}%; width:${100-s}%; top:0; bottom:0; background:var(--veo-cyan); border-radius:4px 0 0 4px; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div><div style="position:absolute; left:0; width:${e}%; top:0; bottom:0; background:var(--veo-cyan); border-radius:0 4px 4px 0; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div>`; }
+          if (e >= s) { barHtml = '<div style="position:absolute; left:' + s + '%; width:' + (e-s) + '%; top:0; bottom:0; background:var(--veo-cyan); border-radius:4px; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div>'; } 
+          else { barHtml = '<div style="position:absolute; left:' + s + '%; width:' + (100-s) + '%; top:0; bottom:0; background:var(--veo-cyan); border-radius:4px 0 0 4px; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div><div style="position:absolute; left:0; width:' + e + '%; top:0; bottom:0; background:var(--veo-cyan); border-radius:0 4px 4px 0; box-shadow:0 0 6px rgba(0,229,255,0.3);"></div>'; }
        }
-       html += `<div style="display:flex; align-items:center; gap:8px;">
-         <div style="width:25px; color:${isWorking ? 'var(--text-main)' : 'var(--text-muted)'}; opacity:${isWorking?1:0.4};">${d}</div>
-         <div style="flex:1; height:12px; background:rgba(0,0,0,0.05); border-radius:4px; position:relative; border:1px solid var(--border-color); overflow:hidden;">
-           ${barHtml}
-           <div style="position:absolute; left:25%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div>
-           <div style="position:absolute; left:50%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div>
-           <div style="position:absolute; left:75%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div>
-         </div>
-       </div>`;
+       html += '<div style="display:flex; align-items:center; gap:8px;"><div style="width:25px; color:' + (isWorking ? 'var(--text-main)' : 'var(--text-muted)') + '; opacity:' + (isWorking?1:0.4) + ';">' + d + '</div><div style="flex:1; height:12px; background:rgba(0,0,0,0.05); border-radius:4px; position:relative; border:1px solid var(--border-color); overflow:hidden;">' + barHtml + '<div style="position:absolute; left:25%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div><div style="position:absolute; left:50%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div><div style="position:absolute; left:75%; top:0; bottom:0; border-left:1px dashed var(--text-muted); opacity:0.2;"></div></div></div>';
     });
-    html += `<div style="display:flex; justify-content:space-between; margin-left:33px; color:var(--text-muted); font-size:9px; margin-top:2px; padding:0 2px;"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>`;
-    html += `</div>`;
+    html += '<div style="display:flex; justify-content:space-between; margin-left:33px; color:var(--text-muted); font-size:9px; margin-top:2px; padding:0 2px;"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div></div>';
     return html;
   }
 
   function openTechEditModal(techName) {
-    const t = globalState.techs.find(x => x.name === techName); if(!t) return;
+    const t = (globalState.techs || []).find(x => x.name === techName); if(!t) return;
     document.getElementById('te_orig_name').value = t.name; document.getElementById('te_name').value = t.name;
     document.getElementById('te_phone').value = t.phone || ''; document.getElementById('te_shift').value = t.shift || '';
     document.getElementById('te_hr').value = t.hrStatus || 'Active'; document.getElementById('te_start').value = t.startTime || '';
@@ -544,7 +506,7 @@
   }
 
   function openEditVehicleModal(rentalId) {
-    const v = globalState.vehicles.find(x => x.rentalId === rentalId); if(!v) return;
+    const v = (globalState.vehicles || []).find(x => x.rentalId === rentalId); if(!v) return;
     document.getElementById('ev_rental').value = v.rentalId; document.getElementById('ev_name').value = v.cleanName;
     document.getElementById('ev_model').value = v.makeModel || ''; document.getElementById('ev_agency').value = v.agency || '';
     document.getElementById('ev_vin').value = v.vin || ''; document.getElementById('ev_plate').value = v.plate || '';
@@ -558,51 +520,48 @@
   function populateModals() {
     const cfg = globalState.config || {};
     const techs = globalState.techs || [];
+    const vans = globalState.vehicles || [];
     
-    let leadOpts = '<option value="">-- Select Lead Tech --</option>' + techs.filter(t => !t.restricted).map(t => `<option value="${t.name}">${t.name} ${t.status!=='Available'?'('+t.status+')':''}</option>`).join('');
+    let leadOpts = '<option value="">-- Select Lead Tech --</option>' + techs.filter(t => !t.restricted).map(t => '<option value="' + t.name + '">' + t.name + (t.status!=='Available'?' ('+t.status+')':'') + '</option>').join('');
     if(document.getElementById('dp_tech')) document.getElementById('dp_tech').innerHTML = leadOpts; 
-    let allTechOpts = '<option value="">-- Select --</option>' + techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    let allTechOpts = '<option value="">-- Select --</option>' + techs.map(t => '<option value="' + t.name + '">' + t.name + '</option>').join('');
     if(document.getElementById('dp_codriver')) document.getElementById('dp_codriver').innerHTML = allTechOpts;
     if(document.getElementById('inc_driver')) document.getElementById('inc_driver').innerHTML = allTechOpts;
     
-    const vans = globalState.vehicles || [];
-    let vOpts = '<option value="">-- Ready or In-Use Vans --</option>' + vans.filter(v=>v.status==='Warehouse (Ready)' || v.status==='Dispatched').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName} (${v.status === 'Dispatched' ? 'In Use' : 'Ready'})</option>`).join('');
+    let vOpts = '<option value="">-- Ready or In-Use Vans --</option>' + vans.filter(v=>v.status==='Warehouse (Ready)' || v.status==='Dispatched').map(v=>'<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + ' (' + (v.status === 'Dispatched' ? 'In Use' : 'Ready') + ')</option>').join('');
     if(document.getElementById('dp_van')) document.getElementById('dp_van').innerHTML = vOpts;
     
-    if(document.getElementById('inc_van')) document.getElementById('inc_van').innerHTML = '<option value="">-- Vehicle --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    if(document.getElementById('ci_van')) document.getElementById('ci_van').innerHTML = '<option value="">-- Select OOS Van --</option>' + vans.filter(v=>v.status==='Out of Service').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
-    if(document.getElementById('dec_van')) document.getElementById('dec_van').innerHTML = '<option value="">-- Select Van --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>`<option value="${v.cleanName}" data-rental="${v.rentalId}">${v.cleanName}</option>`).join('');
+    if(document.getElementById('inc_van')) document.getElementById('inc_van').innerHTML = '<option value="">-- Vehicle --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>'<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + '</option>').join('');
+    if(document.getElementById('ci_van')) document.getElementById('ci_van').innerHTML = '<option value="">-- Select OOS Van --</option>' + vans.filter(v=>v.status==='Out of Service').map(v=>'<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + '</option>').join('');
+    if(document.getElementById('dec_van')) document.getElementById('dec_van').innerHTML = '<option value="">-- Select Van --</option>' + vans.filter(v=>v.status!=='Decommissioned').map(v=>'<option value="' + v.cleanName + '" data-rental="' + v.rentalId + '">' + v.cleanName + '</option>').join('');
 
     const shifts = cfg.shifts || [];
-    let sOpts = shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
+    let sOpts = shifts.map(s=>'<option value="' + s + '">' + s + '</option>').join('');
     
-    if(document.getElementById('tech-filter-shift')) {
-       document.getElementById('tech-filter-shift').innerHTML = '<option value="">All Shifts</option>' + sOpts;
-    }
-
+    if(document.getElementById('tech-filter-shift')) { document.getElementById('tech-filter-shift').innerHTML = '<option value="">All Shifts</option>' + sOpts; }
     if(document.getElementById('dp_shift')) document.getElementById('dp_shift').innerHTML = sOpts;
     if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
     if(document.getElementById('te_shift')) document.getElementById('te_shift').innerHTML = sOpts;
 
     const zones = cfg.zones || [];
-    let zOpts = '<option value="">-- Zone --</option>' + zones.map(z=>`<option value="${z}">${z}</option>`).join('');
+    let zOpts = '<option value="">-- Zone --</option>' + zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
     if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts;
     if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts;
     
-    if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>`<option value="${f}">${f}</option>`).join('');
+    if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>'<option value="' + f + '">' + f + '</option>').join('');
     
-    let aOpts = '<option value="">-- Select Agency --</option>' + (cfg.rentalAgencies || []).map(a=>`<option value="${a}">${a}</option>`).join('');
+    let aOpts = '<option value="">-- Select Agency --</option>' + (cfg.rentalAgencies || []).map(a=>'<option value="' + a + '">' + a + '</option>').join('');
     if(document.getElementById('av_agency')) document.getElementById('av_agency').innerHTML = aOpts;
     if(document.getElementById('ev_agency')) document.getElementById('ev_agency').innerHTML = aOpts;
     
-    if(document.getElementById('inc_cat')) document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c=>`<option value="${c}">${c}</option>`).join('');
-    if(document.getElementById('inc_impact')) document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i=>`<option value="${i}">${i}</option>`).join('');
+    if(document.getElementById('inc_cat')) document.getElementById('inc_cat').innerHTML = (cfg.issueCategories || []).map(c=>'<option value="' + c + '">' + c + '</option>').join('');
+    if(document.getElementById('inc_impact')) document.getElementById('inc_impact').innerHTML = (cfg.statusImpacts || []).map(i=>'<option value="' + i + '">' + i + '</option>').join('');
     renderRosterList();
   }
 
   function renderRosterList() {
     const listEl = document.getElementById('roster-list'); if(!listEl) return;
-    listEl.innerHTML = (globalState.config.techRoster || []).map(r => `<span style="background:var(--bg-surface); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:700; border:1px solid var(--border-color); display:flex; align-items:center; gap:8px;">${r} <button style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;" onclick="removeRoster('${r}')">&times;</button></span>`).join('');
+    listEl.innerHTML = (globalState.config.techRoster || []).map(r => '<span style="background:var(--bg-surface); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:700; border:1px solid var(--border-color); display:flex; align-items:center; gap:8px;">' + r + ' <button style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;" onclick="removeRoster(\'' + r + '\')">&times;</button></span>').join('');
     handleRosterInput();
   }
   function handleRosterInput() {
@@ -630,11 +589,11 @@
       trainer: document.getElementById('te_trainer').checked, goFast: document.getElementById('te_gofast').checked, coastFuel: document.getElementById('te_coast').checked, 
       evGo: document.getElementById('te_evgo').checked, restricted: document.getElementById('te_restricted').checked
     };
-    const existT = globalState.techs.find(t => t.name === p.origName);
+    const existT = (globalState.techs || []).find(t => t.name === p.origName);
     p.status = existT ? existT.status : 'Available';
 
     closeModal('techEditModal');
-    let tIdx = globalState.techs.findIndex(t => t.name === p.origName);
+    let tIdx = (globalState.techs || []).findIndex(t => t.name === p.origName);
     if (tIdx > -1) { globalState.techs[tIdx] = p; } else { globalState.techs.push(p); }
     populateModals(); refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -664,7 +623,7 @@
       serviceNumber: document.getElementById('ev_service_num').value, addons: document.getElementById('ev_addons').value
     };
     closeModal('editVehicleModal');
-    const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
+    const vIdx = (globalState.vehicles || []).findIndex(v=>v.rentalId===p.rentalId);
     if(vIdx > -1) {
       globalState.vehicles[vIdx].cleanName = p.vanName; globalState.vehicles[vIdx].makeModel = p.makeModel; globalState.vehicles[vIdx].agency = p.rentalAgency; globalState.vehicles[vIdx].vin = p.vin;
       globalState.vehicles[vIdx].plate = p.licensePlate; globalState.vehicles[vIdx].plateExpDate = p.plateExpDate; globalState.vehicles[vIdx].samsaraSerial = p.samsaraSerial; globalState.vehicles[vIdx].samsaraLink = p.samsaraLink;
@@ -678,7 +637,7 @@
   function submitIncident(e) {
     e.preventDefault();
     const cleanName = document.getElementById('inc_van').value.trim();
-    const v = globalState.vehicles.find(x => x.cleanName.trim().toLowerCase() === cleanName.toLowerCase());
+    const v = (globalState.vehicles || []).find(x => String(x.cleanName||'').trim().toLowerCase() === cleanName.toLowerCase());
     if (!v) { alert("Error: Could not locate vehicle data."); return; }
     const incDriverEl = document.getElementById('inc_driver');
     const triggerOosEl = document.getElementById('inc_oos');
@@ -690,7 +649,7 @@
     if(p.triggerOos) {
       const timeString = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       v.status = 'Out of Service'; v.zone = '—'; v.driver = '—'; 
-      globalState.deployments.forEach(d => { if ((d.status === 'Dispatched' || d.status === 'Active') && (d.rentalId === p.rentalId || d.vehicle === p.cleanName)) { d.status = 'Completed'; d.returnTime = timeString; } });
+      (globalState.deployments || []).forEach(d => { if ((d.status === 'Dispatched' || d.status === 'Active') && (d.rentalId === p.rentalId || d.vehicle === p.cleanName)) { d.status = 'Completed'; d.returnTime = timeString; } });
       populateModals(); refreshActiveViews();
     }
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -700,8 +659,8 @@
   function submitCheckIn(e) {
     e.preventDefault();
     const cleanName = document.getElementById('ci_van').value.trim();
-    const v = globalState.vehicles.find(x => x.cleanName.trim().toLowerCase() === cleanName.toLowerCase());
-    if (!v) { alert("Error: Could not locate vehicle data. Please select the van from the dropdown manually."); return; }
+    const v = (globalState.vehicles || []).find(x => String(x.cleanName||'').trim().toLowerCase() === cleanName.toLowerCase());
+    if (!v) { alert("Error: Could not locate vehicle data."); return; }
     const p = { cleanName: v.cleanName, rentalId: v.rentalId, resolutionNotes: document.getElementById('ci_notes').value };
     const inc = (globalState.incidents || []).find(i => i.rentalId === p.rentalId && !i.dateResolved);
     if (inc) p.incidentId = inc.id;
@@ -718,7 +677,7 @@
     const targetId = document.getElementById('dec_van').value;
     const reason = document.getElementById('dec_reason').value;
     closeModal('decomModal');
-    const vIdx = globalState.vehicles.findIndex(v=>v.cleanName===targetId);
+    const vIdx = (globalState.vehicles || []).findIndex(v=>v.cleanName===targetId);
     if(vIdx > -1) globalState.vehicles[vIdx].status = 'Decommissioned';
     populateModals(); refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -732,20 +691,20 @@
     const assignedTech = document.getElementById('dp_tech').value; const coDriver = document.getElementById('dp_codriver').value;
     if (assignedTech === coDriver && assignedTech !== '') { alert("Lead tech and co-driver cannot be the same person."); return; }
     
-    const leadTechProfile = globalState.techs.find(t => t.name === assignedTech);
+    const leadTechProfile = (globalState.techs || []).find(t => t.name === assignedTech);
     if (leadTechProfile && !leadTechProfile.passedTest) {
-      if(confirm(`⚠️ WARNING: ${assignedTech} has not passed their driving test!\n\nHave they passed it now? (Click OK to allow this dispatch and update their profile)`)) {
+      if(confirm('⚠️ WARNING: ' + assignedTech + ' has not passed their driving test!\n\nHave they passed it now? (Click OK to allow this dispatch and update their profile)')) {
         leadTechProfile.passedTest = true; google.script.run.overrideDrivingTest(assignedTech);
       } else { return; }
     }
 
-    const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
+    const activeDeps = (globalState.deployments || []).filter(d => d.status === 'Dispatched');
     let conflicts = [], warnings = [];
     activeDeps.forEach(d => {
       let isC = false, rsn = [];
-      if (d.rentalId === rentalId) { isC = true; rsn.push(`Van ${cleanName} is assigned to ${d.tech}`); }
-      if (d.tech === assignedTech || (d.coDriver && d.coDriver === assignedTech)) { isC = true; rsn.push(`${assignedTech} is driving ${d.vehicle}`); }
-      if (coDriver && (d.tech === coDriver || (d.coDriver && d.coDriver === coDriver))) { isC = true; rsn.push(`${coDriver} is driving ${d.vehicle}`); }
+      if (d.rentalId === rentalId) { isC = true; rsn.push('Van ' + cleanName + ' is assigned to ' + d.tech); }
+      if (d.tech === assignedTech || (d.coDriver && d.coDriver === assignedTech)) { isC = true; rsn.push(assignedTech + ' is driving ' + d.vehicle); }
+      if (coDriver && (d.tech === coDriver || (d.coDriver && d.coDriver === coDriver))) { isC = true; rsn.push(coDriver + ' is driving ' + d.vehicle); }
       if (isC) { conflicts.push(d); warnings.push("⚠️ " + rsn.join(" AND ")); }
     });
     warnings = [...new Set(warnings)];
@@ -761,12 +720,12 @@
     const now = new Date(); const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     conflicts.forEach(c => {
       c.status = 'Completed'; c.returnTime = timeString;
-      if (c.rentalId !== rentalId) { const oldV = globalState.vehicles.find(v => v.rentalId === c.rentalId); if (oldV) { oldV.status = 'Warehouse (Ready)'; oldV.zone = '—'; oldV.driver = '—'; } }
+      if (c.rentalId !== rentalId) { const oldV = (globalState.vehicles || []).find(v => v.rentalId === c.rentalId); if (oldV) { oldV.status = 'Warehouse (Ready)'; oldV.zone = '—'; oldV.driver = '—'; } }
     });
 
     globalState.deployments.unshift({ id:'...', date: now.toISOString().split('T')[0], shift: p.shift, vehicle: p.cleanName, rentalId: p.rentalId, tech: p.assignedTech, zone: p.workZone, status: 'Dispatched', departureTime: timeString, coDriver: p.coDriver, isTraining: p.isTraining });
-    const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===p.rentalId);
-    if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? `${p.assignedTech} & ${p.coDriver}` : p.assignedTech; }
+    const vIdx = (globalState.vehicles || []).findIndex(v=>v.rentalId===p.rentalId);
+    if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? (p.assignedTech + ' & ' + p.coDriver) : p.assignedTech; }
     populateModals(); refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
     google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
@@ -776,7 +735,7 @@
     e.preventDefault();
     const p = { id: document.getElementById('ed_id').value, zone: document.getElementById('ed_zone').value, target: document.getElementById('ed_target').value, goals: document.getElementById('ed_goals').value };
     closeModal('editDispatchModal');
-    const dIdx = globalState.deployments.findIndex(d=>d.id===p.id);
+    const dIdx = (globalState.deployments || []).findIndex(d=>d.id===p.id);
     if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
     refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -785,9 +744,9 @@
 
   function endShift(depId, rentId) {
     if(!confirm("End shift?")) return;
-    const dIdx = globalState.deployments.findIndex(d=>d.id===depId);
+    const dIdx = (globalState.deployments || []).findIndex(d=>d.id===depId);
     if(dIdx > -1) { globalState.deployments[dIdx].status = 'Completed'; globalState.deployments[dIdx].returnTime = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
-    const vIdx = globalState.vehicles.findIndex(v=>v.rentalId===rentId);
+    const vIdx = (globalState.vehicles || []).findIndex(v=>v.rentalId===rentId);
     if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; globalState.vehicles[vIdx].driver = '—'; globalState.vehicles[vIdx].zone = '—'; }
     populateModals(); refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -818,7 +777,7 @@
       type: document.getElementById('att_type').value, notes: document.getElementById('att_notes').value
     };
     closeModal('attendanceModal');
-    const tIdx = globalState.techs.findIndex(t => t.name === p.techName);
+    const tIdx = (globalState.techs || []).findIndex(t => t.name === p.techName);
     if(tIdx > -1) globalState.techs[tIdx].status = p.type;
     refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
@@ -826,8 +785,8 @@
   }
 
   function clearTechException(techName, isLate) {
-    if(!confirm(`Are you sure you want to clear the exception for ${techName} and return them to Available?`)) return;
-    const tIdx = globalState.techs.findIndex(t => t.name === techName);
+    if(!confirm('Are you sure you want to clear the exception for ' + techName + ' and return them to Available?')) return;
+    const tIdx = (globalState.techs || []).findIndex(t => t.name === techName);
     if(tIdx > -1) globalState.techs[tIdx].status = 'Available';
     refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
