@@ -158,7 +158,7 @@
     container.innerHTML = html;
   }
 
-  function renderTechGrid() {
+function renderTechGrid() {
     const container = document.getElementById('tech-card-grid'); if(!container) return;
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
@@ -216,63 +216,121 @@
     }
 
     let html = '';
-    const layoutClass = layout === 'focus' ? 'foc-lanes' : (layout === 'classic' ? 'cls-table' : 'mod-sq-grid');
-    const layoutStyle = layout === 'focus' ? 'flex-wrap:wrap; align-items:flex-start;' : '';
 
-    if (sortBy === 'smart') {
-      let deployedTechs = techs.filter(t => t._isDispatched);
-      let rosterTechs = techs.filter(t => !t._isDispatched);
-      rosterTechs.sort((a,b) => {
-        const w = t => {
-          if(['Sick','NCNS','Late','PTO'].includes(t.status) || !t.passedTest || t.restricted) return 1;
-          if(t._isWorkingToday && t._isShiftActive) return 2;
-          if(t._isWorkingToday && !t._isShiftActive) return 3;
-          return 4;
-        };
-        return w(a) - w(b) || String(a.name||'').localeCompare(String(b.name||''));
-      });
+    // --- CLASSIC TABLE LAYOUT GENERATOR ---
+    if (layout === 'classic') {
+      const renderClassicRow = (t) => {
+        let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
+        if(['Sick','NCNS','Late'].includes(t.status)) bc = 'color:var(--danger); background:rgba(255,59,48,0.1); border:1px solid var(--danger);';
+        if(t.status==='PTO') bc = 'color:#007aff; background:rgba(0,122,255,0.1); border:1px solid #007aff;';
+        let attr = '';
+        if(t.restricted) attr += '<span class="cls-badge" style="background:var(--danger); color:#fff; font-size:9px; margin-right:4px;">RESTRICTED</span>';
+        if(t.goFast) attr += '⚡ ';
+        if(t.trainer) attr += '🎓 ';
+        let muted = (!t._isWorkingToday || (!t._isDispatched && !t._isShiftActive && !['Sick','NCNS','Late','PTO'].includes(t.status))) ? 'opacity:0.6;' : '';
+        return '<tr style="' + muted + '"><td><strong>' + t.name + '</strong><br><span style="font-size:11px; color:var(--text-muted);">' + (t.phone || 'No Phone') + '</span></td><td><span class="cls-badge" style="' + bc + '">' + t._displayStatus + '</span></td><td>' + t.shift + '<br><span style="font-size:11px; color:var(--text-muted);">' + t.workDays + ' | ' + formatAMPM(t.startTime) + ' - ' + formatAMPM(t.endTime) + '</span></td><td>' + attr + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openTechActionModal(\'' + t.name + '\')">Profile</button></td></tr>';
+      };
 
-      if (deployedTechs.length > 0) {
-        html += '<div style="margin-bottom: 32px;"><h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
-        deployedTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += '</div></div>';
-      }
-      if (rosterTechs.length > 0) {
-        html += '<div><h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
-        rosterTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += '</div></div>';
-      }
-    } else {
-      if (sortBy === 'alpha') {
-        techs.sort((a,b) => String(a.name||'').localeCompare(String(b.name||'')));
-      } else if (sortBy === 'shift_time') {
-        techs.sort((a,b) => {
-          let s = String(a.shift||'').localeCompare(String(b.shift||''));
-          if (s !== 0) return s;
-          let t1 = String(a.startTime||'99:99'); let t2 = String(b.startTime||'99:99');
-          if (t1 !== t2) return t1.localeCompare(t2);
-          return String(a.name||'').localeCompare(String(b.name||''));
+      html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Status</th><th>Shift & Hours</th><th>Attributes</th><th>Actions</th></tr></thead><tbody>';
+      
+      if (sortBy === 'smart') {
+        let deployedTechs = techs.filter(t => t._isDispatched);
+        let rosterTechs = techs.filter(t => !t._isDispatched);
+        rosterTechs.sort((a,b) => {
+          const w = t => {
+            if(['Sick','NCNS','Late','PTO'].includes(t.status) || !t.passedTest || t.restricted) return 1;
+            if(t._isWorkingToday && t._isShiftActive) return 2;
+            if(t._isWorkingToday && !t._isShiftActive) return 3;
+            return 4;
+          };
+          return w(a) - w(b) || String(a.name||'').localeCompare(String(b.name||''));
         });
-      }
-
-      if (sortBy === 'shift_time' && layout !== 'classic') {
-        let currentShift = '';
-        html += '<div style="display:flex; flex-direction:column; gap:32px;">';
-        techs.forEach(t => {
-          if (t.shift !== currentShift) {
-            if(currentShift !== '') html += '</div></div>';
-            currentShift = t.shift;
-            html += '<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">' + currentShift + '</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
-          }
-          html += buildTechCardHTML(t, layout);
-        });
-        if(techs.length > 0) html += '</div></div></div>';
+        
+        if (deployedTechs.length > 0) {
+           html += '<tr style="background:rgba(0,229,255,0.05);"><td colspan="5" style="color:var(--veo-cyan-dark); font-weight:900; font-size:12px; padding:12px 16px;">🚙 ACTIVE ON ROUTE</td></tr>';
+           deployedTechs.forEach(t => html += renderClassicRow(t));
+        }
+        if (rosterTechs.length > 0) {
+           html += '<tr style="background:var(--bg-surface);"><td colspan="5" style="color:var(--text-muted); font-weight:900; font-size:12px; padding:12px 16px;">👥 WAREHOUSE ROSTER</td></tr>';
+           rosterTechs.forEach(t => html += renderClassicRow(t));
+        }
       } else {
-        html += '<div class="' + layoutClass + '" style="' + layoutStyle + '">';
-        techs.forEach(t => { html += buildTechCardHTML(t, layout); });
-        html += '</div>';
+        if (sortBy === 'alpha') {
+          techs.sort((a,b) => String(a.name||'').localeCompare(String(b.name||'')));
+        } else if (sortBy === 'shift_time') {
+          techs.sort((a,b) => {
+            let s = String(a.shift||'').localeCompare(String(b.shift||''));
+            if (s !== 0) return s;
+            let t1 = String(a.startTime||'99:99'); let t2 = String(b.startTime||'99:99');
+            if (t1 !== t2) return t1.localeCompare(t2);
+            return String(a.name||'').localeCompare(String(b.name||''));
+          });
+        }
+        techs.forEach(t => html += renderClassicRow(t));
+      }
+      html += '</tbody></table></div>';
+      
+    } else {
+      // --- MODERN & FOCUS LAYOUT GENERATORS ---
+      const layoutClass = layout === 'focus' ? 'foc-lanes' : 'mod-sq-grid';
+      const layoutStyle = layout === 'focus' ? 'flex-wrap:wrap; align-items:flex-start;' : '';
+
+      if (sortBy === 'smart') {
+        let deployedTechs = techs.filter(t => t._isDispatched);
+        let rosterTechs = techs.filter(t => !t._isDispatched);
+        rosterTechs.sort((a,b) => {
+          const w = t => {
+            if(['Sick','NCNS','Late','PTO'].includes(t.status) || !t.passedTest || t.restricted) return 1;
+            if(t._isWorkingToday && t._isShiftActive) return 2;
+            if(t._isWorkingToday && !t._isShiftActive) return 3;
+            return 4;
+          };
+          return w(a) - w(b) || String(a.name||'').localeCompare(String(b.name||''));
+        });
+
+        if (deployedTechs.length > 0) {
+          html += '<div style="margin-bottom: 32px;"><h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
+          deployedTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
+          html += '</div></div>';
+        }
+        if (rosterTechs.length > 0) {
+          html += '<div><h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
+          rosterTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
+          html += '</div></div>';
+        }
+      } else {
+        if (sortBy === 'alpha') {
+          techs.sort((a,b) => String(a.name||'').localeCompare(String(b.name||'')));
+        } else if (sortBy === 'shift_time') {
+          techs.sort((a,b) => {
+            let s = String(a.shift||'').localeCompare(String(b.shift||''));
+            if (s !== 0) return s;
+            let t1 = String(a.startTime||'99:99'); let t2 = String(b.startTime||'99:99');
+            if (t1 !== t2) return t1.localeCompare(t2);
+            return String(a.name||'').localeCompare(String(b.name||''));
+          });
+        }
+
+        if (sortBy === 'shift_time') {
+          let currentShift = '';
+          html += '<div style="display:flex; flex-direction:column; gap:32px;">';
+          techs.forEach(t => {
+            if (t.shift !== currentShift) {
+              if(currentShift !== '') html += '</div></div>';
+              currentShift = t.shift;
+              html += '<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">' + currentShift + '</h3><div class="' + layoutClass + '" style="' + layoutStyle + '">';
+            }
+            html += buildTechCardHTML(t, layout);
+          });
+          if(techs.length > 0) html += '</div></div></div>';
+        } else {
+          html += '<div class="' + layoutClass + '" style="' + layoutStyle + '">';
+          techs.forEach(t => { html += buildTechCardHTML(t, layout); });
+          html += '</div>';
+        }
       }
     }
+    
     container.innerHTML = html;
   }
 
