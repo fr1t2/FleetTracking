@@ -52,23 +52,30 @@
   function loadPortalData() {
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
-    google.script.run.withSuccessHandler(function(st) { 
-      globalState = st; 
-      
-      // AUTO-HEALER
-      globalState.vehicles.forEach(v => {
-        const activeDep = globalState.deployments.find(d => (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId);
-        if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
-          v.status = 'Dispatched'; v.zone = activeDep.zone; v.driver = activeDep.coDriver ? `${activeDep.tech} & ${activeDep.coDriver}` : activeDep.tech;
-        } else if (!activeDep && v.status === 'Dispatched') {
-          v.status = 'Warehouse (Ready)'; v.zone = '—'; v.driver = '—';
-        }
-      });
+    
+    google.script.run
+      .withSuccessHandler(function(st) { 
+        globalState = st; 
+        
+        // AUTO-HEALER
+        globalState.vehicles.forEach(v => {
+          const activeDep = globalState.deployments.find(d => (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId);
+          if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
+            v.status = 'Dispatched'; v.zone = activeDep.zone; v.driver = activeDep.coDriver ? `${activeDep.tech} & ${activeDep.coDriver}` : activeDep.tech;
+          } else if (!activeDep && v.status === 'Dispatched') {
+            v.status = 'Warehouse (Ready)'; v.zone = '—'; v.driver = '—';
+          }
+        });
 
-      if(loader) loader.style.display='none'; 
-      populateModals(); 
-      refreshActiveViews(); 
-    }).getDashboardState();
+        if(loader) loader.style.display='none'; 
+        populateModals(); 
+        refreshActiveViews(); 
+      })
+      .withFailureHandler(function(err) {
+        if(loader) loader.style.display='none';
+        alert("CRITICAL LOAD ERROR: " + err.message);
+      })
+      .getDashboardState();
   }
 
   function refreshActiveViews() {
@@ -569,7 +576,6 @@
     const shifts = cfg.shifts || [];
     let sOpts = shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
     
-    // POPULATE THE NEW FILTER DROPDOWN AS WELL
     if(document.getElementById('tech-filter-shift')) {
        document.getElementById('tech-filter-shift').innerHTML = '<option value="">All Shifts</option>' + sOpts;
     }
