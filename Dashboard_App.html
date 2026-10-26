@@ -62,20 +62,45 @@
     </div>
 
   <!-- TAB 3: TECH PROFILES -->
-    <div id="tab-techs" class="tab-content">
-       <div style="display:flex; justify-content:space-between; margin-bottom:24px; background:var(--bg-surface); padding:16px 24px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow); flex-wrap:wrap; gap:16px;">
-          <div style="display:flex; gap:12px; align-items:center; flex:1;">
-            <input type="text" id="tech-search" placeholder="🔍 Search tech..." class="control-select" style="max-width:250px; width:100%;" onkeyup="renderTechGrid()" />
-            <select id="tech-sort" class="control-select" onchange="renderTechGrid()">
-              <option value="status">Sort: Priority (Active ➔ Off-Duty)</option>
-              <option value="shift">Sort: Shift ➔ Start Time</option>
-              <option value="alpha">Sort: Alphabetical</option>
-            </select>
-          </div>
-          <button class="btn btn-outline" onclick="openModal('techEditModal'); document.getElementById('te_orig_name').value=''; document.getElementById('te_name').value='';">➕ Add New Tech</button>
-       </div>
-       <div id="tech-card-grid"></div>
+  <!-- TECH PROFILES TAB CONTENT -->
+  <div id="tab-techs" class="tab-content">
+    
+    <!-- 1. ADVANCED TECH FILTER BAR -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:16px; background:var(--bg-panel); padding:16px; border-radius:8px; border:1px solid var(--border-color);">
+      <div>
+        <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Search Name</label>
+        <input type="text" id="tech-search" placeholder="🔍 Search Techs..." onkeyup="renderTechGrid()" style="width:100%;" class="form-control">
+      </div>
+      <div>
+        <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Filter by Shift</label>
+        <select id="tech-filter-shift" onchange="renderTechGrid()" style="width:100%;" class="form-control">
+          <option value="">All Shifts</option>
+          <!-- Populated dynamically by Apps Script -->
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Filter by Start Time</label>
+        <select id="tech-filter-time" onchange="renderTechGrid()" style="width:100%;" class="form-control">
+          <option value="">All Start Times</option>
+          <option value="05:00-07:59">First Shift (5 AM - 7 AM)</option>
+          <option value="13:00-15:59">Second Shift (1 PM - 3 PM)</option>
+          <option value="21:00-23:59">Third Shift (9 PM - 11 PM)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Sort Mode</label>
+        <select id="tech-sort" onchange="renderTechGrid()" style="width:100%;" class="form-control">
+          <option value="smart">Smart View (Deployed on Top)</option>
+          <option value="shift_time">Shift ➔ Time ➔ A-Z</option>
+          <option value="alpha">Alphabetical (A-Z)</option>
+        </select>
+      </div>
     </div>
+
+    <!-- 2. THE EMPTY CONTAINER THE JAVASCRIPT LOOKS FOR -->
+    <div id="tech-card-grid"></div>
+    
+  </div>
     
     <!-- TAB 4: SHIFT HISTORY -->
     <div id="tab-history" class="tab-content">

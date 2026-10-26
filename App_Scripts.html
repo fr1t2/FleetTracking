@@ -52,28 +52,16 @@
   function loadPortalData() {
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display='block';
-    
     google.script.run.withSuccessHandler(function(st) { 
       globalState = st; 
       
-      // --- NEW: STATE AUTO-HEALER (Prevents Double-Counting) ---
-      // This forces the Vehicles math to perfectly align with Active Routes
+      // AUTO-HEALER
       globalState.vehicles.forEach(v => {
-        const activeDep = globalState.deployments.find(d => 
-          (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId
-        );
-        
-        // If they have a live route but the DB forgot to mark them Dispatched:
+        const activeDep = globalState.deployments.find(d => (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId);
         if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
-          v.status = 'Dispatched';
-          v.zone = activeDep.zone;
-          v.driver = activeDep.coDriver ? `${activeDep.tech} & ${activeDep.coDriver}` : activeDep.tech;
-        } 
-        // If they have NO live route but got stuck on Dispatched:
-        else if (!activeDep && v.status === 'Dispatched') {
-          v.status = 'Warehouse (Ready)';
-          v.zone = '—';
-          v.driver = '—';
+          v.status = 'Dispatched'; v.zone = activeDep.zone; v.driver = activeDep.coDriver ? `${activeDep.tech} & ${activeDep.coDriver}` : activeDep.tech;
+        } else if (!activeDep && v.status === 'Dispatched') {
+          v.status = 'Warehouse (Ready)'; v.zone = '—'; v.driver = '—';
         }
       });
 
@@ -98,13 +86,11 @@
   function formatAMPM(tStr) {
     if(!tStr) return 'TBD';
     let [h, m] = tStr.split(':'); if(!h) return tStr;
-    let hh = parseInt(h, 10);
-    let ampm = hh >= 12 ? 'PM' : 'AM';
+    let hh = parseInt(h, 10); let ampm = hh >= 12 ? 'PM' : 'AM';
     hh = hh % 12; if(hh === 0) hh = 12;
     return `${hh}:${m||'00'} ${ampm}`;
   }
 
-  // --- ... Insert identical FleetGrid logic from earlier steps ... ---
   function renderFleetGrid() {
     const container = document.getElementById('fleet-card-grid'); if(!container) return;
     const q = document.getElementById('fleet-search') ? document.getElementById('fleet-search').value.toLowerCase() : '';
@@ -139,14 +125,18 @@
     container.innerHTML = html;
   }
 
-function renderTechGrid() {
+  function renderTechGrid() {
     const container = document.getElementById('tech-card-grid'); if(!container) return;
-    const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
     const layout = document.getElementById('layout-selector') ? document.getElementById('layout-selector').value : 'modern';
     
-    // Filter out terminated techs
+    // 1. Pull values from advanced filter bars
+    const q = document.getElementById('tech-search') ? document.getElementById('tech-search').value.toLowerCase() : '';
+    const sortBy = document.getElementById('tech-sort') ? document.getElementById('tech-sort').value : 'smart';
+    const filterShift = document.getElementById('tech-filter-shift') ? document.getElementById('tech-filter-shift').value : '';
+    const filterTime = document.getElementById('tech-filter-time') ? document.getElementById('tech-filter-time').value : '';
+    
+    // Strip terminated
     let techs = [...(globalState.techs || [])].filter(t => t.hrStatus !== 'Terminated');
-    if(q) techs = techs.filter(t => t.name.toLowerCase().includes(q));
     
     // TIME MATH ENGINE
     const now = new Date();
@@ -154,20 +144,16 @@ function renderTechGrid() {
     const currentHour = now.getHours() + (now.getMinutes() / 60);
 
     techs.forEach(t => {
-      // 1. Determine Dispatched Status
       const dep = globalState.deployments.find(d => d.status === 'Dispatched' && (d.tech === t.name || d.coDriver === t.name));
       t._isDispatched = !!dep;
-      if(dep) t._displayStatus = `🚙 Route: ${dep.vehicle}`;
-      else t._displayStatus = t.status; 
+      if(dep) t._displayStatus = `🚙 Route: ${dep.vehicle}`; else t._displayStatus = t.status; 
       
-      // 2. Parse Work Days
       const str = (t.workDays || '').toLowerCase();
       let wDays = [];
       const match = str.match(/(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)/);
       if (match) {
          const dayNames = ['mon','tue','wed','thu','fri','sat','sun'];
-         let i1 = dayNames.findIndex(d => match[1].includes(d));
-         let i2 = dayNames.findIndex(d => match[2].includes(d));
+         let i1 = dayNames.findIndex(d => match[1].includes(d)); let i2 = dayNames.findIndex(d => match[2].includes(d));
          if(i1 > -1 && i2 > -1) {
             if(i1 <= i2) { for(let i=i1; i<=i2; i++) wDays.push(dayNames[i]); }
             else { for(let i=i1; i<7; i++) wDays.push(dayNames[i]); for(let i=0; i<=i2; i++) wDays.push(dayNames[i]); }
@@ -179,86 +165,110 @@ function renderTechGrid() {
       
       t._isWorkingToday = wDays.includes(currentDay);
       t._isShiftActive = false;
-
-      // 3. Determine if within 30 mins of shift start -> 8 hours later
       if (t._isWorkingToday && t.startTime) {
          let [h, m] = t.startTime.split(':');
          let startH = parseInt(h) + (parseInt(m)||0)/60;
-         let startWindow = startH - 0.5; // Opens 30 mins before shift
-         let endWindow = startH + 8;     // 8 hour shift
-         
-         if (endWindow > 24) {
-            t._isShiftActive = (currentHour >= startWindow) || (currentHour <= (endWindow - 24));
-         } else {
-            t._isShiftActive = (currentHour >= startWindow && currentHour <= endWindow);
-         }
+         let startWindow = startH - 0.5; 
+         let endWindow = startH + 8;     
+         if (endWindow > 24) { t._isShiftActive = (currentHour >= startWindow) || (currentHour <= (endWindow - 24)); } 
+         else { t._isShiftActive = (currentHour >= startWindow && currentHour <= endWindow); }
       }
     });
 
-    // Split into two groups: Deployed vs Roster
-    let deployedTechs = techs.filter(t => t._isDispatched);
-    let rosterTechs = techs.filter(t => !t._isDispatched);
-    
-    // Sort Roster: Exceptions/Warnings first, Active Shifts next, Off-shift last
-    rosterTechs.sort((a,b) => {
-      const w = t => {
-        if(['Sick','NCNS','Late','PTO'].includes(t.status) || !t.passedTest || t.restricted) return 1;
-        if(t._isWorkingToday && t._isShiftActive) return 2;
-        if(t._isWorkingToday && !t._isShiftActive) return 3;
-        return 4; // Not working today
-      };
-      return w(a) - w(b) || a.name.localeCompare(b.name);
-    });
+    // 2. Apply Multi-Layer Filters
+    if (q) techs = techs.filter(t => t.name.toLowerCase().includes(q) || (t.shift||'').toLowerCase().includes(q));
+    if (filterShift) techs = techs.filter(t => t.shift === filterShift);
+    if (filterTime) {
+      const [startRange, endRange] = filterTime.split('-').map(v => parseInt(v.replace(':','')));
+      techs = techs.filter(t => {
+        if (!t.startTime) return false;
+        const techT = parseInt(t.startTime.replace(':',''));
+        return techT >= startRange && techT <= endRange;
+      });
+    }
 
     let html = '';
     const layoutClass = layout === 'focus' ? 'foc-lanes' : (layout === 'classic' ? 'cls-table' : 'mod-sq-grid');
     const layoutStyle = layout === 'focus' ? 'flex-wrap:wrap; align-items:flex-start;' : '';
 
-    // RENDER DEPLOYED TECHS AT THE TOP
-    if (deployedTechs.length > 0) {
-      html += `<div style="margin-bottom: 32px;">
-                 <h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3>
-                 <div class="${layoutClass}" style="${layoutStyle}">`;
-      deployedTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
-      html += `</div></div>`;
+    // 3. Apply Sort Mode Routing
+    if (sortBy === 'smart') {
+      let deployedTechs = techs.filter(t => t._isDispatched);
+      let rosterTechs = techs.filter(t => !t._isDispatched);
+      rosterTechs.sort((a,b) => {
+        const w = t => {
+          if(['Sick','NCNS','Late','PTO'].includes(t.status) || !t.passedTest || t.restricted) return 1;
+          if(t._isWorkingToday && t._isShiftActive) return 2;
+          if(t._isWorkingToday && !t._isShiftActive) return 3;
+          return 4;
+        };
+        return w(a) - w(b) || a.name.localeCompare(b.name);
+      });
+
+      if (deployedTechs.length > 0) {
+        html += `<div style="margin-bottom: 32px;"><h3 style="font-weight:900; color:var(--veo-cyan); margin-bottom:12px; border-bottom:2px solid var(--veo-cyan); padding-bottom:8px;">🚙 ACTIVE ON ROUTE</h3><div class="${layoutClass}" style="${layoutStyle}">`;
+        deployedTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
+        html += `</div></div>`;
+      }
+      if (rosterTechs.length > 0) {
+        html += `<div><h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3><div class="${layoutClass}" style="${layoutStyle}">`;
+        rosterTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
+        html += `</div></div>`;
+      }
+    } else {
+      // Linear Sorting logic (combines active and roster together)
+      if (sortBy === 'alpha') {
+        techs.sort((a,b) => a.name.localeCompare(b.name));
+      } else if (sortBy === 'shift_time') {
+        techs.sort((a,b) => {
+          let s = (a.shift||'').localeCompare(b.shift||'');
+          if (s !== 0) return s;
+          let t1 = a.startTime||'99:99'; let t2 = b.startTime||'99:99';
+          if (t1 !== t2) return t1.localeCompare(t2);
+          return a.name.localeCompare(b.name);
+        });
+      }
+
+      if (sortBy === 'shift_time' && layout !== 'classic') {
+        let currentShift = '';
+        html += `<div style="display:flex; flex-direction:column; gap:32px;">`;
+        techs.forEach(t => {
+          if (t.shift !== currentShift) {
+            if(currentShift !== '') html += `</div></div>`;
+            currentShift = t.shift;
+            html += `<div><h3 style="margin-bottom:16px; font-size:16px; font-weight:900; color:var(--veo-cyan-dark); border-bottom:1px solid var(--border-color); padding-bottom:8px;">${currentShift}</h3><div class="${layoutClass}" style="${layoutStyle}">`;
+          }
+          html += buildTechCardHTML(t, layout);
+        });
+        if(techs.length > 0) html += `</div></div></div>`;
+      } else {
+        html += `<div class="${layoutClass}" style="${layoutStyle}">`;
+        techs.forEach(t => { html += buildTechCardHTML(t, layout); });
+        html += `</div>`;
+      }
     }
-
-    // RENDER THE REST OF THE ROSTER
-    html += `<div>
-               <h3 style="font-weight:900; color:var(--text-muted); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">👥 WAREHOUSE ROSTER</h3>
-               <div class="${layoutClass}" style="${layoutStyle}">`;
-    rosterTechs.forEach(t => { html += buildTechCardHTML(t, layout); });
-    html += `</div></div>`;
-
+    
     container.innerHTML = html;
   }
 
   function buildTechCardHTML(t, layout) {
-    // 1. Determine Muting/Grey-out CSS
     let styleMod = '';
     if (!t._isDispatched) {
-      if (!t._isWorkingToday) {
-        styleMod = 'opacity:0.3; filter:grayscale(1);'; // Not working today (Heavily Muted)
-      } else if (!t._isShiftActive) {
-        styleMod = 'opacity:0.65;'; // Working today, but shift hasn't started yet
-      }
+      if (!t._isWorkingToday) styleMod = 'opacity:0.3; filter:grayscale(1);'; 
+      else if (!t._isShiftActive) styleMod = 'opacity:0.65;'; 
     }
-    
-    // Override muting if they called out sick/PTO so you can clearly see exceptions
     if (['Sick','NCNS','Late','PTO'].includes(t.status)) styleMod = 'opacity:1;'; 
 
-    // 2. Badges & Warnings
     let badges = '';
-    if (t.restricted) badges += `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">🛑 DRIVING RESTRICTED</div>`;
+    if (t.restricted) badges += `<div style="background:var(--danger); color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">🛑 MVR RESTRICTED</div>`;
     if (!t.passedTest) badges += `<div style="background:#ff9500; color:#fff; font-size:9px; font-weight:900; text-align:center; border-radius:4px; padding:2px; margin-bottom:4px;">⚠️ NO DRIVING TEST</div>`;
 
-    // 3. Status Color Coding
-    let color = 'var(--success)'; // Default Available
+    let color = 'var(--success)';
     if (t._isDispatched) color = 'var(--veo-cyan)';
     else if (['Sick','NCNS','Late'].includes(t.status) || t.restricted) color = 'var(--danger)';
     else if (t.status === 'PTO') color = '#007aff';
     else if (!t.passedTest) color = '#ff9500';
-    else if (!t._isWorkingToday) color = 'var(--text-muted)'; // Grey border if off-day
+    else if (!t._isWorkingToday) color = 'var(--text-muted)'; 
 
     if (layout === 'focus') {
       return `<div class="foc-card" style="border-left-color:${color}; width:280px; margin-bottom:8px; cursor:pointer; ${styleMod}" onclick="openTechActionModal('${t.name}')">
@@ -274,6 +284,7 @@ function renderTechGrid() {
       </div>`;
     }
   }
+
   function renderHistoryTab() {
     const container = document.getElementById('history-table-body'); if(!container) return;
     const dateVal = document.getElementById('hist-date') ? document.getElementById('hist-date').value : '';
@@ -309,8 +320,6 @@ function renderTechGrid() {
   function prefillDecomVan(cleanName) { const sel = document.getElementById('dec_van'); if(sel) sel.value = cleanName.trim(); openModal('decomModal'); }
   function prefillCheckInVan(cleanName) { const sel = document.getElementById('ci_van'); if(sel) { sel.value = cleanName.trim(); if (sel.selectedIndex <= 0) { for(let i = 0; i < sel.options.length; i++) { if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; } } } } openModal('checkInModal'); }
 
-
-  // --- Vehicle Profile logic included unchanged from last step ---
   function openVanActionModal(rentalId) {
     const v = globalState.vehicles.find(x => x.rentalId === rentalId); if(!v) return;
     const title = document.getElementById('va_title'); if(title) title.innerText = `${v.cleanName} Profile`;
@@ -421,7 +430,7 @@ function renderTechGrid() {
         <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="closeModal('techActionModal'); document.getElementById('att_tech').value='${t.name}'; document.getElementById('att_date').value=new Date().toISOString().split('T')[0]; openModal('attendanceModal');">📅 Log Time Off / Late</button>
       </div>
       <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">${t.shift} &bull; ${t.workDays} &bull; ${formatAMPM(t.startTime)} - ${formatAMPM(t.endTime)}</div>
-      ${t.restricted ? `<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 DRIVING RESTRICTED</div>` : ''}
+      ${t.restricted ? `<div style="color:var(--danger); font-weight:800; font-size:11px; margin-top:6px; background:rgba(255,59,48,0.1); padding:4px 8px; border-radius:4px; display:inline-block;">🛑 MVR RESTRICTED</div>` : ''}
     </div>`;
 
     html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -559,6 +568,12 @@ function renderTechGrid() {
 
     const shifts = cfg.shifts || [];
     let sOpts = shifts.map(s=>`<option value="${s}">${s}</option>`).join('');
+    
+    // POPULATE THE NEW FILTER DROPDOWN AS WELL
+    if(document.getElementById('tech-filter-shift')) {
+       document.getElementById('tech-filter-shift').innerHTML = '<option value="">All Shifts</option>' + sOpts;
+    }
+
     if(document.getElementById('dp_shift')) document.getElementById('dp_shift').innerHTML = sOpts;
     if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
     if(document.getElementById('te_shift')) document.getElementById('te_shift').innerHTML = sOpts;
@@ -609,8 +624,6 @@ function renderTechGrid() {
       trainer: document.getElementById('te_trainer').checked, goFast: document.getElementById('te_gofast').checked, coastFuel: document.getElementById('te_coast').checked, 
       evGo: document.getElementById('te_evgo').checked, restricted: document.getElementById('te_restricted').checked
     };
-    
-    // Status carries over if available, otherwise available
     const existT = globalState.techs.find(t => t.name === p.origName);
     p.status = existT ? existT.status : 'Available';
 
@@ -713,15 +726,11 @@ function renderTechGrid() {
     const assignedTech = document.getElementById('dp_tech').value; const coDriver = document.getElementById('dp_codriver').value;
     if (assignedTech === coDriver && assignedTech !== '') { alert("Lead tech and co-driver cannot be the same person."); return; }
     
-    // --> DRIVING TEST VALIDATION <--
     const leadTechProfile = globalState.techs.find(t => t.name === assignedTech);
     if (leadTechProfile && !leadTechProfile.passedTest) {
       if(confirm(`⚠️ WARNING: ${assignedTech} has not passed their driving test!\n\nHave they passed it now? (Click OK to allow this dispatch and update their profile)`)) {
-        leadTechProfile.passedTest = true;
-        google.script.run.overrideDrivingTest(assignedTech);
-      } else {
-        return; // Halt dispatch
-      }
+        leadTechProfile.passedTest = true; google.script.run.overrideDrivingTest(assignedTech);
+      } else { return; }
     }
 
     const activeDeps = globalState.deployments.filter(d => d.status === 'Dispatched');
