@@ -501,7 +501,7 @@
     openModal('vanActionModal');
   }
 
-  function openTechActionModal(techName) {
+function openTechActionModal(techName) {
     const t = (globalState.techs || []).find(x => x.name === techName); if(!t) return;
     const title = document.getElementById('ta_title'); if(title) title.innerText = t.name + ' Profile';
     
@@ -530,7 +530,8 @@
          if(t.trainer) {
             html += '<button class="btn btn-outline" style="color:#007aff; border-color:#007aff;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', true)">🎓 Training</button><button class="btn btn-primary" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch</button>';
          } else {
-            html += '<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch as Lead Driver</button>';
+            // Changed "Dispatch as Lead Driver" to "Dispatch"
+            html += '<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch</button>';
          }
       }
       else {
@@ -605,13 +606,14 @@
     openModal('editVehicleModal');
   }
 
-  /* --- MODAL POPULATOR --- */
+/* --- MODAL POPULATOR --- */
   function populateModals() {
     const cfg = globalState.config || {};
     const techs = globalState.techs || [];
     const vans = globalState.vehicles || [];
     
-    let leadOpts = '<option value="">-- Select Lead Tech --</option>' + techs.filter(t => !t.restricted).map(t => '<option value="' + t.name + '">' + t.name + (t.status!=='Available'?' ('+t.status+')':'') + '</option>').join('');
+    // Changed "Select Lead Tech" to "Select Tech"
+    let leadOpts = '<option value="">-- Select Tech --</option>' + techs.filter(t => !t.restricted).map(t => '<option value="' + t.name + '">' + t.name + (t.status!=='Available'?' ('+t.status+')':'') + '</option>').join('');
     if(document.getElementById('dp_tech')) document.getElementById('dp_tech').innerHTML = leadOpts; 
     let allTechOpts = '<option value="">-- Select --</option>' + techs.map(t => '<option value="' + t.name + '">' + t.name + '</option>').join('');
     if(document.getElementById('dp_codriver')) document.getElementById('dp_codriver').innerHTML = allTechOpts;
@@ -632,10 +634,13 @@
     if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
     if(document.getElementById('te_shift')) document.getElementById('te_shift').innerHTML = sOpts;
 
+    // Do NOT include an empty option for dp_zone since it is multi-select now
     const zones = cfg.zones || [];
-    let zOpts = '<option value="">-- Zone --</option>' + zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
+    let zOpts = zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
     if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts;
-    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts;
+    
+    let zOptsWithEmpty = '<option value="">-- Zone --</option>' + zOpts;
+    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOptsWithEmpty;
     
     if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>'<option value="' + f + '">' + f + '</option>').join('');
     
@@ -773,12 +778,18 @@
     google.script.run.withSuccessHandler(()=>loadPortalData()).decommissionVehicle(targetId, reason);
   }
 
-  function submitDispatch(e) {
+function submitDispatch(e) {
     e.preventDefault();
     const sel = document.getElementById('dp_van'); const opt = sel.options[sel.selectedIndex];
     const rentalId = opt.getAttribute('data-rental'); const cleanName = sel.value;
     const assignedTech = document.getElementById('dp_tech').value; const coDriver = document.getElementById('dp_codriver').value;
-    if (assignedTech === coDriver && assignedTech !== '') { alert("Lead tech and co-driver cannot be the same person."); return; }
+    
+    // Changed "Lead tech" to "Tech"
+    if (assignedTech === coDriver && assignedTech !== '') { alert("Tech and co-driver cannot be the same person."); return; }
+    
+    // NEW: Gather multiple selected zones and join them with a comma
+    const zoneSelect = document.getElementById('dp_zone');
+    const selectedZones = Array.from(zoneSelect.selectedOptions).map(option => option.value).join(', ');
     
     const leadTechProfile = (globalState.techs || []).find(t => t.name === assignedTech);
     if (leadTechProfile && !leadTechProfile.passedTest) {
@@ -801,7 +812,7 @@
 
     const p = {
       cleanName: cleanName, rentalId: rentalId, assignedTech: assignedTech, coDriver: coDriver, isTraining: document.getElementById('dp_training').checked, 
-      shift: document.getElementById('dp_shift').value, workZone: document.getElementById('dp_zone').value, batteryTarget: document.getElementById('dp_target').value,
+      shift: document.getElementById('dp_shift').value, workZone: selectedZones, batteryTarget: document.getElementById('dp_target').value,
       focusCategory: document.getElementById('dp_focus').value, goals: document.getElementById('dp_goals').value
     };
     closeModal('dispatchModal');

@@ -73,19 +73,23 @@
       <div class="modal-body">
         <div class="form-row">
           <div class="form-group"><label>Vehicle *</label><select id="dp_van" required></select></div>
-          <div class="form-group"><label>Assigned Lead Tech *</label><select id="dp_tech" required></select></div>
+          <div class="form-group"><label>Assigned Tech *</label><select id="dp_tech" required></select></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Co-Driver (Optional)</label><select id="dp_codriver"></select></div>
           <div class="form-group"><label>Shift *</label><select id="dp_shift" required></select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Work Zone *</label><select id="dp_zone" required></select></div>
-          <div class="form-group"><label>Battery Target %</label><input type="number" id="dp_target" placeholder="e.g. 80"></div>
+          <div class="form-group">
+            <label>Work Zone(s) *</label>
+            <!-- Added 'multiple' and styling to make it a list box -->
+            <select id="dp_zone" multiple required style="height:auto; min-height:80px;"></select>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Hold Ctrl/Cmd to select multiple</div>
+          </div>
+          <div class="form-group"><label>Battery Count</label><input type="number" id="dp_target" placeholder="e.g. 80"></div>
         </div>
         <div class="form-group"><label>Focus Category</label><select id="dp_focus"></select></div>
         
-        <!-- NEW EXPANDED SHIFT NOTES FIELD -->
         <div class="form-group">
           <label>Shift Notes & Assignment Details</label>
           <textarea id="dp_goals" rows="3" placeholder="Enter specific shift instructions, duties, or exceptions for the driver(s)..."></textarea>
