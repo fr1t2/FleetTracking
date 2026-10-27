@@ -1,4 +1,3 @@
-<!-- Injecting a strict CSS constraint so cards never stretch huge on half-screens -->
 <!-- Injecting structural and mobile responsive constraints -->
 <style>
   /* --- Base structural constraints --- */
@@ -18,54 +17,25 @@
   }
   .foc-card { flex: 0 1 280px !important; max-width: 280px !important; }
 
-  /* --- NEW: MOBILE RESPONSIVENESS UPGRADES --- */
-  @media (max-width: 768px) {
-    /* 1. Stack the main dispatch lanes vertically instead of side-by-side */
-    .mod-layout {
-      grid-template-columns: 1fr !important;
-    }
-    
-    /* 2. Allow KPI cards to wrap nicely instead of squishing */
-    .mod-kpi-row {
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
-      gap: 12px !important;
-    }
+  /* --- NEW: TABLE RESPONSIVENESS --- */
+  .cls-panel {
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cls-table {
+    min-width: 700px !important; /* Forces scroll instead of squishing on mobile */
+  }
 
-    /* 3. Re-flow the Top Navigation Bar so it doesn't overflow */
-    .top-nav {
-      flex-direction: column !important;
-      height: auto !important;
-      padding: 16px 12px !important;
-      gap: 16px !important;
-      align-items: stretch !important;
-    }
-    
-    /* Make the tabs horizontally swipe-able */
-    .nav-tabs {
-      width: 100%;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      justify-content: flex-start;
-      /* Hides the scrollbar for a cleaner look while keeping swipe capability */
-      scrollbar-width: none; 
-      -ms-overflow-style: none;  
-    }
-    .nav-tabs::-webkit-scrollbar { 
-      display: none; 
-    }
-    
-    /* Stack the system controls (theme, layout, refresh buttons) into a uniform grid */
-    .system-controls {
-      width: 100%;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 8px !important;
-    }
-    .system-controls .control-select, .system-controls .btn {
-      flex: 1 1 45%; /* Makes buttons take up roughly half the width each */
-      text-align: center;
-      min-width: 120px;
-    }
+  /* --- MOBILE RESPONSIVENESS UPGRADES --- */
+  @media (max-width: 768px) {
+    .mod-layout { grid-template-columns: 1fr !important; }
+    .mod-kpi-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; gap: 12px !important; }
+    .top-nav { flex-direction: column !important; height: auto !important; padding: 16px 12px !important; gap: 16px !important; align-items: stretch !important; }
+    .nav-tabs { width: 100%; overflow-x: auto; padding-bottom: 4px; justify-content: flex-start; scrollbar-width: none; -ms-overflow-style: none; }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .system-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; gap: 8px !important; }
+    .system-controls .control-select, .system-controls .btn { flex: 1 1 45%; text-align: center; min-width: 120px; }
   }
 </style>
 
@@ -139,7 +109,6 @@
         try {
           globalState = st || { vehicles:[], deployments:[], techs:[], config:{}, incidents:[] }; 
           
-          // AUTO-HEALER
           (globalState.vehicles || []).forEach(v => {
             const activeDep = (globalState.deployments || []).find(d => (d.status === 'Dispatched' || d.status === 'Active') && d.rentalId === v.rentalId);
             if (activeDep && v.status !== 'Dispatched' && v.status !== 'Out of Service') {
@@ -201,7 +170,6 @@
     
     let vans = (globalState.vehicles || []).filter(v => v.status !== 'Decommissioned' && (!q || (v.cleanName||'').toLowerCase().includes(q) || (v.plate||'').toLowerCase().includes(q)));
     
-    // Look up Driver Phone Numbers for active routes
     vans.forEach(v => {
       v._driverPhone = '';
       if (v.status === 'Dispatched') {
@@ -358,7 +326,7 @@
       
     } else {
       const layoutClass = layout === 'focus' ? 'foc-lanes' : 'mod-sq-grid';
-      const layoutStyle = ''; // Let CSS take over to prevent huge items
+      const layoutStyle = ''; 
 
       if (sortBy === 'smart') {
         let deployedTechs = techs.filter(t => t._isDispatched);
@@ -523,7 +491,6 @@
        if (plateMatch) { displayPlate = '<span style="opacity:0.6; font-size:10px;">' + plateMatch[1].toUpperCase() + '</span> <span style="font-weight:900;">' + plateMatch[2] + '</span>'; }
     }
 
-    // STRICT SAMSARA LINK LOGIC: Only uses the explicit link field if it exists
     let samsaraHtml = '<span style="color:var(--text-muted); font-size:11px;">Link Missing</span>';
     if(v.samsaraLink) {
         samsaraHtml = '<a href="' + v.samsaraLink + '" target="_blank" style="color:var(--veo-cyan); text-decoration:none; font-weight:800;">Open Samsara ↗</a>';
@@ -534,7 +501,6 @@
     let html = '<div style="display:flex; flex-direction:column; gap:16px;">';
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     
-    // INCLUDES UNIT NUMBER NOW
     html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> &bull; ' + v.makeModel + ' &bull; Plate: ' + displayPlate + '</div></div>'; 
     
     html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + vanDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">' + driverLabel + '</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + driverDisplay + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + samsaraHtml + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:' + (coastEnabled==='Yes'?'var(--success)':'var(--text-muted)') + '">' + coastEnabled + '</div></div></div>';
@@ -705,7 +671,7 @@
 
     const zones = cfg.zones || [];
     let zOpts = zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
-    if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts; // Multi-select, no empty option needed
+    if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts; 
     let zOptsWithEmpty = '<option value="">-- Zone --</option>' + zOpts;
     if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOptsWithEmpty;
     
