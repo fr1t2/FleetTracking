@@ -1,23 +1,71 @@
 <!-- Injecting a strict CSS constraint so cards never stretch huge on half-screens -->
+<!-- Injecting structural and mobile responsive constraints -->
 <style>
+  /* --- Base structural constraints --- */
   .mod-sq-grid {
     display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
     gap: 12px !important;
     justify-content: start !important;
   }
-  .mod-sq-card {
-    max-width: 250px !important;
-  }
+  .mod-sq-card { max-width: 250px !important; }
+  
   .foc-lanes {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 12px !important;
     align-items: flex-start !important;
   }
-  .foc-card {
-    flex: 0 1 280px !important;
-    max-width: 280px !important;
+  .foc-card { flex: 0 1 280px !important; max-width: 280px !important; }
+
+  /* --- NEW: MOBILE RESPONSIVENESS UPGRADES --- */
+  @media (max-width: 768px) {
+    /* 1. Stack the main dispatch lanes vertically instead of side-by-side */
+    .mod-layout {
+      grid-template-columns: 1fr !important;
+    }
+    
+    /* 2. Allow KPI cards to wrap nicely instead of squishing */
+    .mod-kpi-row {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+      gap: 12px !important;
+    }
+
+    /* 3. Re-flow the Top Navigation Bar so it doesn't overflow */
+    .top-nav {
+      flex-direction: column !important;
+      height: auto !important;
+      padding: 16px 12px !important;
+      gap: 16px !important;
+      align-items: stretch !important;
+    }
+    
+    /* Make the tabs horizontally swipe-able */
+    .nav-tabs {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      justify-content: flex-start;
+      /* Hides the scrollbar for a cleaner look while keeping swipe capability */
+      scrollbar-width: none; 
+      -ms-overflow-style: none;  
+    }
+    .nav-tabs::-webkit-scrollbar { 
+      display: none; 
+    }
+    
+    /* Stack the system controls (theme, layout, refresh buttons) into a uniform grid */
+    .system-controls {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px !important;
+    }
+    .system-controls .control-select, .system-controls .btn {
+      flex: 1 1 45%; /* Makes buttons take up roughly half the width each */
+      text-align: center;
+      min-width: 120px;
+    }
   }
 </style>
 
