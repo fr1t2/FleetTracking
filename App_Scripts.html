@@ -3,13 +3,13 @@
   /* --- Base structural constraints & COMPACT SCALING --- */
   .mod-sq-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; /* Shrunk from 180px to fit more per row */
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
     gap: 10px !important;
     justify-content: start !important;
   }
   .mod-sq-card { 
     max-width: 100% !important; 
-    padding: 12px !important; /* Shrunk padding */
+    padding: 12px !important;
     min-height: auto !important; 
   }
   
@@ -20,24 +20,24 @@
     align-items: flex-start !important;
   }
   .foc-card { 
-    flex: 0 1 230px !important; /* Shrunk from 280px */
+    flex: 0 1 230px !important;
     max-width: 230px !important; 
-    padding: 12px !important; /* Shrunk padding */
+    padding: 12px !important;
   }
 
   /* --- COMPACT TEXT SCALING --- */
   .sq-title, .foc-title { font-size: 14px !important; margin-bottom: 2px !important; font-weight: 800 !important; }
-  .sq-sub, .foc-sub { font-size: 10px !important; line-height: 1.3 !important; }
+  .sq-sub, .foc-sub { font-size: 10px !important; line-height: 1.3 !important; color: var(--text-muted); }
   .sq-footer { margin-top: 8px !important; padding-top: 6px !important; font-size: 10px !important; }
 
-  /* --- NEW: TABLE RESPONSIVENESS --- */
+  /* --- TABLE RESPONSIVENESS --- */
   .cls-panel {
     overflow-x: auto !important;
     width: 100% !important;
     -webkit-overflow-scrolling: touch;
   }
   .cls-table {
-    min-width: 700px !important; /* Forces scroll instead of squishing on mobile */
+    min-width: 700px !important;
   }
 
   /* --- MOBILE RESPONSIVENESS UPGRADES --- */
@@ -50,7 +50,6 @@
     .system-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; gap: 8px !important; }
     .system-controls .control-select, .system-controls .btn { flex: 1 1 45%; text-align: center; min-width: 120px; font-size:11px !important; padding:6px !important; }
     
-    /* On mobile, let the grid flow evenly */
     .mod-sq-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important; }
     .foc-card { flex: 1 1 100% !important; max-width: 100% !important; }
   }
@@ -201,11 +200,15 @@
     let html = '';
 
     if (layout === 'classic') {
-      html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit #</th><th>Status</th><th>Plate</th><th>Actions</th></tr></thead><tbody>';
+      html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit # / Agency</th><th>Status</th><th>Plate / Service #</th><th>Actions</th></tr></thead><tbody>';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
         let phoneHtml = v._driverPhone ? '<br><span style="font-size:11px; color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
-        html += '<tr><td><strong>' + v.cleanName + '</strong>' + phoneHtml + '</td><td>' + v.rentalId + '</td><td><span class="cls-badge" style="' + bc + '">' + (v.status === 'Warehouse (Ready)' ? 'Ready' : v.status) + '</span></td><td>' + v.plate + '</td><td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Manage</button></td></tr>';
+        html += '<tr><td><strong>' + v.cleanName + '</strong>' + phoneHtml + '</td>' +
+                '<td>' + v.rentalId + '<br><span style="font-size:10px; color:var(--text-muted);">' + (v.agency || '--') + '</span></td>' +
+                '<td><span class="cls-badge" style="' + bc + '">' + (v.status === 'Warehouse (Ready)' ? 'Ready' : v.status) + '</span></td>' +
+                '<td>' + v.plate + '<br><span style="font-size:10px; color:var(--text-muted);">Svc: ' + (v.serviceNumber || '--') + '</span></td>' +
+                '<td><button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Manage</button></td></tr>';
       });
       html += '</tbody></table></div>';
     } 
@@ -214,7 +217,9 @@
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
         let phoneHtml = v._driverPhone ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
-        html += '<div class="foc-card" style="border-left-color:' + bc + ';" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div class="foc-card-top"><div><div class="foc-title">' + v.cleanName + '</div><div class="foc-sub">Unit: <strong>' + v.rentalId + '</strong> &bull; Plate: ' + v.plate + phoneHtml + '</div></div></div><div style="font-weight:800; color:' + bc + '; font-size:11px; margin-top:8px;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
+        html += '<div class="foc-card" style="border-left-color:' + bc + ';" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div class="foc-card-top"><div><div class="foc-title">' + v.cleanName + '</div>' +
+                '<div class="foc-sub">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> (' + (v.agency || '--') + ') &bull; Plate: ' + v.plate + ' &bull; Svc: ' + (v.serviceNumber || '--') + phoneHtml + '</div></div></div>' +
+                '<div style="font-weight:800; color:' + bc + '; font-size:11px; margin-top:8px;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
       });
       html += '</div>';
     } else {
@@ -223,7 +228,9 @@
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
         let color = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
         let phoneHtml = v._driverPhone ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
-        html += '<div class="mod-sq-card ' + bClass + '" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div><div class="sq-title">' + v.cleanName + '</div><div class="sq-sub">Unit: <strong>' + v.rentalId + '</strong><br>Plate: ' + v.plate + phoneHtml + '</div></div><div class="sq-footer" style="color:' + color + ';">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
+        html += '<div class="mod-sq-card ' + bClass + '" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div><div class="sq-title">' + v.cleanName + '</div>' +
+                '<div class="sq-sub">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> (' + (v.agency || '--') + ')<br>Plate: ' + v.plate + '<br>Svc: ' + (v.serviceNumber || '--') + phoneHtml + '</div></div>' +
+                '<div class="sq-footer" style="color:' + color + ';">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
       });
       html += '</div>';
     }
@@ -518,7 +525,8 @@
     let html = '<div style="display:flex; flex-direction:column; gap:16px;">';
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     
-    html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> &bull; ' + v.makeModel + ' &bull; Plate: ' + displayPlate + '</div></div>'; 
+    // UPDATED HEADER TO INCLUDE RENTAL AGENCY AND SERVICE NUMBER
+    html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> (' + (v.agency || '--') + ') &bull; ' + v.makeModel + ' &bull; Plate: ' + displayPlate + ' &bull; Svc: ' + (v.serviceNumber || '--') + '</div></div>'; 
     
     html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + vanDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">' + driverLabel + '</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + driverDisplay + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + samsaraHtml + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:' + (coastEnabled==='Yes'?'var(--success)':'var(--text-muted)') + '">' + coastEnabled + '</div></div></div>';
     
