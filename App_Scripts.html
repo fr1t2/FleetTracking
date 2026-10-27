@@ -1,21 +1,34 @@
-<!-- Injecting structural and mobile responsive constraints -->
+<!-- Injecting structural, compact, and mobile responsive constraints -->
 <style>
-  /* --- Base structural constraints --- */
+  /* --- Base structural constraints & COMPACT SCALING --- */
   .mod-sq-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; /* Shrunk from 180px to fit more per row */
+    gap: 10px !important;
     justify-content: start !important;
   }
-  .mod-sq-card { max-width: 250px !important; }
+  .mod-sq-card { 
+    max-width: 100% !important; 
+    padding: 12px !important; /* Shrunk padding */
+    min-height: auto !important; 
+  }
   
   .foc-lanes {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 12px !important;
+    gap: 10px !important;
     align-items: flex-start !important;
   }
-  .foc-card { flex: 0 1 280px !important; max-width: 280px !important; }
+  .foc-card { 
+    flex: 0 1 230px !important; /* Shrunk from 280px */
+    max-width: 230px !important; 
+    padding: 12px !important; /* Shrunk padding */
+  }
+
+  /* --- COMPACT TEXT SCALING --- */
+  .sq-title, .foc-title { font-size: 14px !important; margin-bottom: 2px !important; font-weight: 800 !important; }
+  .sq-sub, .foc-sub { font-size: 10px !important; line-height: 1.3 !important; }
+  .sq-footer { margin-top: 8px !important; padding-top: 6px !important; font-size: 10px !important; }
 
   /* --- NEW: TABLE RESPONSIVENESS --- */
   .cls-panel {
@@ -30,12 +43,16 @@
   /* --- MOBILE RESPONSIVENESS UPGRADES --- */
   @media (max-width: 768px) {
     .mod-layout { grid-template-columns: 1fr !important; }
-    .mod-kpi-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; gap: 12px !important; }
-    .top-nav { flex-direction: column !important; height: auto !important; padding: 16px 12px !important; gap: 16px !important; align-items: stretch !important; }
+    .mod-kpi-row { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important; gap: 8px !important; }
+    .top-nav { flex-direction: column !important; height: auto !important; padding: 12px !important; gap: 12px !important; align-items: stretch !important; }
     .nav-tabs { width: 100%; overflow-x: auto; padding-bottom: 4px; justify-content: flex-start; scrollbar-width: none; -ms-overflow-style: none; }
     .nav-tabs::-webkit-scrollbar { display: none; }
     .system-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; gap: 8px !important; }
-    .system-controls .control-select, .system-controls .btn { flex: 1 1 45%; text-align: center; min-width: 120px; }
+    .system-controls .control-select, .system-controls .btn { flex: 1 1 45%; text-align: center; min-width: 120px; font-size:11px !important; padding:6px !important; }
+    
+    /* On mobile, let the grid flow evenly */
+    .mod-sq-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important; }
+    .foc-card { flex: 1 1 100% !important; max-width: 100% !important; }
   }
 </style>
 
