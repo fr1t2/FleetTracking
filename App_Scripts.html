@@ -184,6 +184,9 @@
     const layoutEl = document.getElementById('layout-selector');
     const layout = layoutEl ? layoutEl.value : 'modern';
     
+    // Check if we are currently looking at the Fleet Registry Tab
+    const isFleetTab = document.getElementById('tab-fleet') && document.getElementById('tab-fleet').classList.contains('active');
+    
     let vans = (globalState.vehicles || []).filter(v => v.status !== 'Decommissioned' && (!q || (v.cleanName||'').toLowerCase().includes(q) || (v.plate||'').toLowerCase().includes(q)));
     
     vans.forEach(v => {
@@ -203,7 +206,10 @@
       html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Unit # / Agency</th><th>Status</th><th>Plate / Service #</th><th>Actions</th></tr></thead><tbody>';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'color:var(--success); border:1px solid var(--success); background:rgba(52,199,89,0.1);' : (v.status === 'Dispatched' ? 'color:var(--veo-cyan-dark); border:1px solid var(--veo-cyan-dark); background:rgba(0,229,255,0.1);' : 'color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,48,0.1);');
-        let phoneHtml = v._driverPhone ? '<br><span style="font-size:11px; color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        
+        // Hides phone number ONLY if we are in the Fleet Registry tab
+        let phoneHtml = (!isFleetTab && v._driverPhone) ? '<br><span style="font-size:11px; color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        
         html += '<tr><td><strong>' + v.cleanName + '</strong>' + phoneHtml + '</td>' +
                 '<td>' + v.rentalId + '<br><span style="font-size:10px; color:var(--text-muted);">' + (v.agency || '--') + '</span></td>' +
                 '<td><span class="cls-badge" style="' + bc + '">' + (v.status === 'Warehouse (Ready)' ? 'Ready' : v.status) + '</span></td>' +
@@ -216,7 +222,9 @@
       html += '<div class="foc-lanes">';
       vans.forEach(v => {
         let bc = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan)' : 'var(--danger)');
-        let phoneHtml = v._driverPhone ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        
+        let phoneHtml = (!isFleetTab && v._driverPhone) ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        
         html += '<div class="foc-card" style="border-left-color:' + bc + ';" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div class="foc-card-top"><div><div class="foc-title">' + v.cleanName + '</div>' +
                 '<div class="foc-sub">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> (' + (v.agency || '--') + ') &bull; Plate: ' + v.plate + ' &bull; Svc: ' + (v.serviceNumber || '--') + phoneHtml + '</div></div></div>' +
                 '<div style="font-weight:800; color:' + bc + '; font-size:11px; margin-top:8px;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
@@ -227,7 +235,9 @@
       vans.forEach(v => {
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-active' : 'st-oos');
         let color = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
-        let phoneHtml = v._driverPhone ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        
+        let phoneHtml = (!isFleetTab && v._driverPhone) ? '<br><span style="color:var(--veo-cyan);">📞 ' + v._driverPhone + '</span>' : '';
+        
         html += '<div class="mod-sq-card ' + bClass + '" onclick="openVanActionModal(\'' + v.rentalId + '\')"><div><div class="sq-title">' + v.cleanName + '</div>' +
                 '<div class="sq-sub">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> (' + (v.agency || '--') + ')<br>Plate: ' + v.plate + '<br>Svc: ' + (v.serviceNumber || '--') + phoneHtml + '</div></div>' +
                 '<div class="sq-footer" style="color:' + color + ';">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div></div>';
@@ -525,7 +535,6 @@
     let html = '<div style="display:flex; flex-direction:column; gap:16px;">';
     let bannerColor = v.status === 'Warehouse (Ready)' ? 'var(--success)' : (v.status === 'Dispatched' ? 'var(--veo-cyan-dark)' : 'var(--danger)');
     
-    // UPDATED HEADER TO INCLUDE RENTAL AGENCY AND SERVICE NUMBER
     html += '<div style="background:rgba(255,255,255,0.02); border-left: 4px solid ' + bannerColor + '; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);"><div style="font-size:18px; font-weight:900;">' + (v.status === 'Warehouse (Ready)' ? 'READY' : v.status.toUpperCase()) + '</div><div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Unit: <strong style="color:var(--text-main);">' + v.rentalId + '</strong> (' + (v.agency || '--') + ') &bull; ' + v.makeModel + ' &bull; Plate: ' + displayPlate + ' &bull; Svc: ' + (v.serviceNumber || '--') + '</div></div>'; 
     
     html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;"><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Lifetime Shifts</div><div style="font-weight:900; font-size:16px; margin-top:4px; color:var(--veo-cyan);">' + vanDeps.length + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">' + driverLabel + '</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + driverDisplay + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Samsara GPS</div><div style="font-weight:800; font-size:14px; margin-top:4px;">' + samsaraHtml + '</div></div><div style="background:var(--bg-panel); padding:12px; border-radius:8px; border:1px solid var(--border-color);"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Coast Card</div><div style="font-weight:800; font-size:14px; margin-top:4px; color:' + (coastEnabled==='Yes'?'var(--success)':'var(--text-muted)') + '">' + coastEnabled + '</div></div></div>';
