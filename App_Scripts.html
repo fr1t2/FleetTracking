@@ -1,5 +1,41 @@
 <!-- Injecting structural, compact, and mobile responsive constraints -->
 <style>
+  /* --- TOP NAVIGATION BAR OVERRIDES --- */
+  .nav-tabs {
+    display: flex !important;
+    gap: 4px !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin-bottom: 20px !important;
+  }
+  .nav-tab {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted) !important;
+    padding: 12px 24px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    border-bottom: 3px solid transparent !important;
+    border-radius: 8px 8px 0 0 !important;
+    transition: all 0.2s ease !important;
+  }
+  .nav-tab:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-main) !important;
+  }
+  .nav-tab.active {
+    color: var(--veo-cyan) !important;
+    border-bottom: 3px solid var(--veo-cyan) !important;
+    background: rgba(0, 229, 255, 0.05) !important;
+  }
+
+  /* --- Base structural constraints & COMPACT SCALING (Keep your existing CSS below this) --- */
+  .mod-sq-grid { 
+    display: grid !important; 
+    /* ... rest of your existing style block ... */
+
   /* --- Base structural constraints & COMPACT SCALING --- */
   .mod-sq-grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; gap: 10px !important; justify-content: start !important; }
   .mod-sq-card { max-width: 100% !important; padding: 12px !important; min-height: auto !important; }
