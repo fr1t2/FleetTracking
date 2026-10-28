@@ -15,6 +15,9 @@
     <div class="logo" style="font-size:24px; font-weight:900; letter-spacing:1px;">VEO</div>    
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="switchTab('dispatch')">📋 Dispatch Control</div>
+
+      <!-- Add this button next to your other nav tabs -->
+      <div class="nav-tab" onclick="switchTab('monitor')">📡 Shift Monitor</div>
       <div class="nav-tab" onclick="switchTab('fleet')">🚚 Fleet Registry</div>
       <div class="nav-tab" onclick="switchTab('techs')">👤 Tech Profiles</div>
       <div class="nav-tab" onclick="switchTab('history')">🕰️ Shift History</div>
@@ -46,6 +49,17 @@
       <div id="layout-classic" style="display:none; height:100%;"><?!= include('Layout_Classic'); ?></div>
       <div id="layout-modern" style="display:none; height:100%;"><?!= include('Layout_Modern'); ?></div>
       <div id="layout-focus" style="display:none; height:100%;"><?!= include('Layout_Focus'); ?></div>
+    </div>
+
+    <!-- NEW SHIFT MONITOR TAB -->
+    <div id="tab-monitor" class="tab-content">
+      <div style="margin-bottom:16px;">
+        <h2 style="font-size:20px; font-weight:900; color:var(--veo-cyan);">High-Density Command Grid</h2>
+        <p style="color:var(--text-muted); font-size:12px;">Live shift status, locations, and quick actions.</p>
+      </div>
+      
+      <!-- The JS Engine will inject the Grid here -->
+      <div id="shift-monitor-grid"></div>
     </div>
 
     <!-- TAB 2: FLEET REGISTRY -->
@@ -100,7 +114,7 @@
     <div id="tech-card-grid"></div>
     
   </div>
-    
+
     <!-- TAB 4: SHIFT HISTORY -->
     <div id="tab-history" class="tab-content">
        <div style="display:flex; justify-content:space-between; margin-bottom:24px; background:var(--bg-surface); padding:16px 24px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow); flex-wrap:wrap; gap:16px;">
