@@ -100,9 +100,9 @@
       if (l === 'focus' && typeof renderFocusOperations === 'function') renderFocusOperations();
       if (l === 'classic' && typeof renderClassicTable === 'function') renderClassicTable();
       if (l === 'modern' && typeof renderModernWidgets === 'function') renderModernWidgets();
+      
       if(typeof renderFleetGrid === 'function') renderFleetGrid();
       if(typeof renderTechGrid === 'function') renderTechGrid();
-      if(typeof renderHistoryTab === 'function') renderHistoryTab();
       if(typeof renderShiftMonitor === 'function') renderShiftMonitor();
     } catch(err) { alert("RENDER CRASH: " + err.message); }
   }
@@ -117,84 +117,127 @@
     return hh + ':' + (parts[1] || '00') + ' ' + ampm;
   }
 
-  /* --- CONCEPT 6: HIGH-DENSITY SHIFT MONITOR GRID --- */
+  /* --- DYNAMIC SHIFT MONITOR (Live Grid vs Historical) --- */
   function renderShiftMonitor() {
-    const container = document.getElementById('shift-monitor-grid'); if(!container) return;
+    const container = document.getElementById('shift-monitor-grid'); 
+    if(!container) return;
+    
+    const dateVal = document.getElementById('hist-date') ? document.getElementById('hist-date').value : ''; 
+    const shiftVal = document.getElementById('hist-shift') ? document.getElementById('hist-shift').value : '';
+    const today = new Date().toISOString().split('T')[0];
     
     let html = '<div class="cls-panel" style="background:var(--bg-panel); border-radius:8px; border:1px solid var(--border-color); padding-bottom:8px;">';
     html += '<table class="cls-table" style="width:100%; border-collapse:collapse; text-align:left;">';
-    html += '<thead><tr style="border-bottom:2px solid #333; color:var(--text-muted); font-size:10px; text-transform:uppercase;">';
-    html += '<th style="padding:16px; width:40px; text-align:center;">Status</th>';
-    html += '<th style="padding:16px;">Vehicle / Unit</th>';
-    html += '<th style="padding:16px;">Assigned Tech / Team</th>';
-    html += '<th style="padding:16px;">Zone(s)</th>';
-    html += '<th style="padding:16px;">Focus / Goals</th>';
-    html += '<th style="padding:16px;">Time Out</th>';
-    html += '<th style="padding:16px; text-align:right;">Quick Actions</th>';
-    html += '</tr></thead><tbody>';
+    
+    // IF VIEWING TODAY: Show the interactive High-Density Live Grid
+    if (dateVal === today) {
+        html += '<thead><tr style="border-bottom:2px solid #333; color:var(--text-muted); font-size:10px; text-transform:uppercase;">';
+        html += '<th style="padding:16px; width:40px; text-align:center;">Status</th>';
+        html += '<th style="padding:16px;">Vehicle / Unit</th>';
+        html += '<th style="padding:16px;">Assigned Tech / Team</th>';
+        html += '<th style="padding:16px;">Zone(s)</th>';
+        html += '<th style="padding:16px;">Focus / Goals</th>';
+        html += '<th style="padding:16px;">Time Out</th>';
+        html += '<th style="padding:16px; text-align:right;">Quick Actions</th>';
+        html += '</tr></thead><tbody>';
 
-    // 1. ACTIVE ROUTES
-    let activeDeps = (globalState.deployments || []).filter(d => d.status === 'Dispatched' || d.status === 'Active');
-    activeDeps.forEach(d => {
-      let techProf = (globalState.techs || []).find(t => t.name === d.tech);
-      let phoneText = (techProf && techProf.phone) ? '<br><span style="color:var(--veo-cyan); font-size:11px;">📞 ' + techProf.phone + '</span>' : '';
-      let coDriverText = d.coDriver ? ' <span style="color:var(--text-muted); font-size:10px;">+ ' + d.coDriver + '</span>' : '';
-      
-      html += '<tr style="border-bottom:1px solid #2a2a2a;">';
-      html += '<td style="padding:16px; text-align:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--veo-cyan); margin:0 auto; box-shadow:0 0 8px var(--veo-cyan);"></div></td>';
-      html += '<td style="padding:16px;"><strong>' + d.vehicle + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + d.rentalId + '</span></td>';
-      html += '<td style="padding:16px;"><strong>' + d.tech + '</strong>' + coDriverText + phoneText + '</td>';
-      html += '<td style="padding:16px; color:var(--veo-cyan); font-weight:800; font-size:12px;">' + (d.zone || '--') + '</td>';
-      html += '<td style="padding:16px; font-size:12px;">' + (d.goals || '--') + '</td>';
-      html += '<td style="padding:16px; font-size:12px;">' + (d.departureTime || '--') + '</td>';
-      html += '<td style="padding:16px; text-align:right;">';
-      html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="openEditDispatchModal(\'' + d.id + '\')">Edit</button>';
-      html += '<button class="btn btn-dark" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="endShift(\'' + d.id + '\', \'' + d.rentalId + '\')">End Shift</button>';
-      html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; color:var(--danger); border-color:var(--danger);" onclick="prefillIncidentVan(\'' + d.vehicle + '\')">OOS</button>';
-      html += '</td></tr>';
-    });
+        // 1. ACTIVE ROUTES
+        let activeDeps = (globalState.deployments || []).filter(d => (d.status === 'Dispatched' || d.status === 'Active') && d.date === today && (shiftVal === '' || d.shift === shiftVal));
+        activeDeps.forEach(d => {
+          let techProf = (globalState.techs || []).find(t => t.name === d.tech);
+          let phoneText = (techProf && techProf.phone) ? '<br><span style="color:var(--veo-cyan); font-size:11px;">📞 ' + techProf.phone + '</span>' : '';
+          let coDriverText = d.coDriver ? ' <span style="color:var(--text-muted); font-size:10px;">+ ' + d.coDriver + '</span>' : '';
+          
+          html += '<tr style="border-bottom:1px solid #2a2a2a;">';
+          html += '<td style="padding:16px; text-align:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--veo-cyan); margin:0 auto; box-shadow:0 0 8px var(--veo-cyan);"></div></td>';
+          html += '<td style="padding:16px;"><strong>' + d.vehicle + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + d.rentalId + '</span></td>';
+          html += '<td style="padding:16px;"><strong>' + d.tech + '</strong>' + coDriverText + phoneText + '</td>';
+          html += '<td style="padding:16px; color:var(--veo-cyan); font-weight:800; font-size:12px;">' + (d.zone || '--') + '</td>';
+          html += '<td style="padding:16px; font-size:12px;">' + (d.goals || '--') + '</td>';
+          html += '<td style="padding:16px; font-size:12px;">' + (d.departureTime || '--') + '</td>';
+          html += '<td style="padding:16px; text-align:right;">';
+          html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="openEditDispatchModal(\'' + d.id + '\')">Edit</button>';
+          html += '<button class="btn btn-dark" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="endShift(\'' + d.id + '\', \'' + d.rentalId + '\')">End Shift</button>';
+          html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; color:var(--danger); border-color:var(--danger);" onclick="prefillIncidentVan(\'' + d.vehicle + '\')">OOS</button>';
+          html += '</td></tr>';
+        });
 
-    // 2. WAREHOUSE (READY)
-    let readyVans = (globalState.vehicles || []).filter(v => v.status === 'Warehouse (Ready)');
-    readyVans.forEach(v => {
-      html += '<tr style="border-bottom:1px solid #2a2a2a; opacity:0.8;">';
-      html += '<td style="padding:16px; text-align:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--success); margin:0 auto;"></div></td>';
-      html += '<td style="padding:16px;"><strong>' + v.cleanName + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + v.rentalId + '</span></td>';
-      html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
-      html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
-      html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
-      html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
-      html += '<td style="padding:16px; text-align:right;">';
-      html += '<button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="prefillDispatchVan(\'' + v.cleanName + '\')">Dispatch</button>';
-      html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; color:var(--danger); border-color:var(--danger);" onclick="prefillIncidentVan(\'' + v.cleanName + '\')">Mark OOS</button>';
-      html += '</td></tr>';
-    });
+        // 2. WAREHOUSE (READY)
+        let readyVans = (globalState.vehicles || []).filter(v => v.status === 'Warehouse (Ready)');
+        readyVans.forEach(v => {
+          html += '<tr style="border-bottom:1px solid #2a2a2a; opacity:0.8;">';
+          html += '<td style="padding:16px; text-align:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--success); margin:0 auto;"></div></td>';
+          html += '<td style="padding:16px;"><strong>' + v.cleanName + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + v.rentalId + '</span></td>';
+          html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
+          html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
+          html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
+          html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
+          html += '<td style="padding:16px; text-align:right;">';
+          html += '<button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="prefillDispatchVan(\'' + v.cleanName + '\')">Dispatch</button>';
+          html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; color:var(--danger); border-color:var(--danger);" onclick="prefillIncidentVan(\'' + v.cleanName + '\')">Mark OOS</button>';
+          html += '</td></tr>';
+        });
 
-    // 3. OUT OF SERVICE
-    let oosVans = (globalState.vehicles || []).filter(v => v.status === 'Out of Service');
-    oosVans.forEach(v => {
-      let vInc = (globalState.incidents || []).find(i => i.rentalId === v.rentalId && !i.dateResolved);
-      let incText = vInc ? vInc.category : 'Needs Repair';
-      let incDate = vInc ? 'Since ' + vInc.dateReported : '--';
-      
-      html += '<tr style="border-bottom:1px solid #2a2a2a; background:rgba(255,59,48,0.05);">';
-      html += '<td style="padding:16px; text-align:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--danger); margin:0 auto;"></div></td>';
-      html += '<td style="padding:16px;"><strong>' + v.cleanName + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + v.rentalId + '</span></td>';
-      html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
-      html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
-      html += '<td style="padding:16px; color:var(--danger); font-size:12px; font-weight:700;">' + incText + '</td>';
-      html += '<td style="padding:16px; color:var(--text-muted); font-size:12px;">' + incDate + '</td>';
-      html += '<td style="padding:16px; text-align:right;">';
-      html += '<button class="btn btn-success" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="prefillCheckInVan(\'' + v.cleanName + '\')">Check In</button>';
-      html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Details</button>';
-      html += '</td></tr>';
-    });
+        // 3. OUT OF SERVICE
+        let oosVans = (globalState.vehicles || []).filter(v => v.status === 'Out of Service');
+        oosVans.forEach(v => {
+          let vInc = (globalState.incidents || []).find(i => i.rentalId === v.rentalId && !i.dateResolved);
+          let incText = vInc ? vInc.category : 'Needs Repair';
+          let incDate = vInc ? 'Since ' + vInc.dateReported : '--';
+          
+          html += '<tr style="border-bottom:1px solid #2a2a2a; background:rgba(255,59,48,0.05);">';
+          html += '<td style="padding:16px; text-align:center;"><div style="width:10px; height:10px; border-radius:50%; background:var(--danger); margin:0 auto;"></div></td>';
+          html += '<td style="padding:16px;"><strong>' + v.cleanName + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + v.rentalId + '</span></td>';
+          html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
+          html += '<td style="padding:16px; color:var(--text-muted);">--</td>';
+          html += '<td style="padding:16px; color:var(--danger); font-size:12px; font-weight:700;">' + incText + '</td>';
+          html += '<td style="padding:16px; color:var(--text-muted); font-size:12px;">' + incDate + '</td>';
+          html += '<td style="padding:16px; text-align:right;">';
+          html += '<button class="btn btn-success" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="prefillCheckInVan(\'' + v.cleanName + '\')">Check In</button>';
+          html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openVanActionModal(\'' + v.rentalId + '\')">Details</button>';
+          html += '</td></tr>';
+        });
+        
+    } else {
+        // IF VIEWING PAST DATE: Show Historical Shift Record Log
+        let deps = (globalState.deployments || []).filter(d => d.date === dateVal && d.shift === shiftVal); 
+        deps.sort((a, b) => String(a.departureTime || '').localeCompare(String(b.departureTime || '')));
 
+        html += '<thead><tr style="border-bottom:2px solid #333; color:var(--text-muted); font-size:10px; text-transform:uppercase;">';
+        html += '<th style="padding:16px;">Van</th>';
+        html += '<th style="padding:16px;">Tech(s)</th>';
+        html += '<th style="padding:16px;">Zone</th>';
+        html += '<th style="padding:16px;">Goals</th>';
+        html += '<th style="padding:16px;">Time Out</th>';
+        html += '<th style="padding:16px;">Time In</th>';
+        html += '<th style="padding:16px;">Status</th>';
+        html += '</tr></thead><tbody>';
+
+        if (deps.length === 0) { 
+          html += '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">No deployment records found for this date and shift.</td></tr>'; 
+        } else {
+          deps.forEach(d => {
+            let techs = d.coDriver ? (d.tech + ' <br><span style="font-size:11px; color:var(--text-muted);">+ ' + d.coDriver + '</span>') : d.tech;
+            let sClass = d.status === 'Completed' ? 'color:var(--success); font-weight:700;' : 
+                         (['Sick','NCNS','Late'].includes(d.status) ? 'color:var(--danger); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;');
+            
+            html += '<tr style="border-bottom:1px solid #2a2a2a;">';
+            html += '<td style="padding:16px;"><strong>' + d.vehicle + '</strong><br><span style="font-size:11px; color:var(--text-muted);">' + d.rentalId + '</span></td>';
+            html += '<td style="padding:16px;">' + techs + '</td>';
+            html += '<td style="padding:16px;"><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">' + d.zone + '</span></td>';
+            html += '<td style="padding:16px; max-width:200px; white-space:normal;">' + (d.goals || '--') + '</td>';
+            html += '<td style="padding:16px;">' + d.departureTime + '</td>';
+            html += '<td style="padding:16px;">' + (d.returnTime || '--') + '</td>';
+            html += '<td style="padding:16px; ' + sClass + '">' + d.status + '</td></tr>';
+          });
+        }
+    }
+    
     html += '</tbody></table></div>';
     container.innerHTML = html;
   }
 
-  /* --- EXISTING TAB RENDERING (Fleet, Tech, History) --- */
+  /* --- EXISTING TAB RENDERING (Fleet, Tech) --- */
   function renderFleetGrid() {
     const container = document.getElementById('fleet-card-grid'); if(!container) return;
     const searchEl = document.getElementById('fleet-search'); const q = searchEl ? searchEl.value.toLowerCase() : '';
@@ -302,7 +345,6 @@
     }
 
     let html = '';
-
     if (layout === 'classic') {
       const renderClassicRow = (t) => {
         let bc = t._isDispatched ? 'color:var(--veo-cyan-dark); background:rgba(0,229,255,0.1); border:1px solid var(--veo-cyan-dark);' : (t.status==='Available' ? 'color:var(--success); background:rgba(52,199,89,0.1); border:1px solid var(--success);' : 'color:var(--text-muted); background:var(--bg-main); border:1px solid var(--border-color);');
@@ -317,7 +359,6 @@
       };
 
       html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Technician</th><th>Status</th><th>Shift & Hours</th><th>Attributes</th><th>Actions</th></tr></thead><tbody>';
-      
       if (sortBy === 'smart') {
         let deployedTechs = techs.filter(t => t._isDispatched); let rosterTechs = techs.filter(t => !t._isDispatched);
         rosterTechs.sort((a,b) => {
@@ -327,7 +368,6 @@
           };
           return w(a) - w(b) || String(a.name||'').localeCompare(String(b.name||''));
         });
-        
         if (deployedTechs.length > 0) { html += '<tr style="background:rgba(0,229,255,0.05);"><td colspan="5" style="color:var(--veo-cyan-dark); font-weight:900; font-size:12px; padding:12px 16px;">🚙 ACTIVE ON ROUTE</td></tr>'; deployedTechs.forEach(t => html += renderClassicRow(t)); }
         if (rosterTechs.length > 0) { html += '<tr style="background:var(--bg-surface);"><td colspan="5" style="color:var(--text-muted); font-weight:900; font-size:12px; padding:12px 16px;">👥 WAREHOUSE ROSTER</td></tr>'; rosterTechs.forEach(t => html += renderClassicRow(t)); }
       } else {
@@ -346,7 +386,6 @@
     } else {
       const layoutClass = layout === 'focus' ? 'foc-lanes' : 'mod-sq-grid';
       const layoutStyle = ''; 
-
       if (sortBy === 'smart') {
         let deployedTechs = techs.filter(t => t._isDispatched); let rosterTechs = techs.filter(t => !t._isDispatched);
         rosterTechs.sort((a,b) => {
@@ -400,24 +439,6 @@
     }
   }
 
-  function renderHistoryTab() {
-    const container = document.getElementById('history-table-body'); if(!container) return;
-    const dateVal = document.getElementById('hist-date') ? document.getElementById('hist-date').value : ''; const shiftVal = document.getElementById('hist-shift') ? document.getElementById('hist-shift').value : '';
-    let deps = (globalState.deployments || []).filter(d => d.date === dateVal && d.shift === shiftVal); deps.sort((a, b) => String(a.departureTime || '').localeCompare(String(b.departureTime || '')));
-    let html = '';
-    if (deps.length === 0) { html = '<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600; width:100%;">No deployment records found.</div>'; } 
-    else {
-      html += '<div class="cls-panel"><table class="cls-table"><thead><tr><th>Van</th><th>Tech(s)</th><th>Zone</th><th>Goals</th><th>Time Out</th><th>Time In</th><th>Status</th></tr></thead><tbody>';
-      deps.forEach(d => {
-        let techs = d.coDriver ? (d.tech + ' <br><span style="font-size:11px; color:var(--text-muted);">+ ' + d.coDriver + '</span>') : d.tech;
-        let sClass = d.status === 'Completed' ? 'color:var(--success); font-weight:700;' : (['Sick','NCNS','Late'].includes(d.status) ? 'color:var(--danger); font-weight:700;' : 'color:var(--veo-cyan-dark); font-weight:700;');
-        html += '<tr><td><strong>' + d.vehicle + '</strong><br><span style="font-size:11px; color:var(--text-muted);">' + d.rentalId + '</span></td><td>' + techs + '</td><td><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">' + d.zone + '</span></td><td style="max-width:200px; white-space:normal;">' + (d.goals || '--') + '</td><td>' + d.departureTime + '</td><td>' + (d.returnTime || '--') + '</td><td style="' + sClass + '">' + d.status + '</td></tr>';
-      });
-      html += '</tbody></table></div>';
-    }
-    container.innerHTML = html;
-  }
-
   /* --- MODAL CONTROLLERS --- */
   function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('active'); }
   function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
@@ -429,9 +450,16 @@
   function prefillCheckInVan(cleanName) { const sel = document.getElementById('ci_van'); if(sel) { sel.value = cleanName.trim(); if (sel.selectedIndex <= 0) { for(let i = 0; i < sel.options.length; i++) { if(sel.options[i].text.includes(cleanName.trim())) { sel.selectedIndex = i; break; } } } } openModal('checkInModal'); }
 
   function openEditDispatchModal(depId) {
-    const dep = (globalState.deployments || []).find(d => d.id === depId); if(!dep) return;
+    const dep = (globalState.deployments || []).find(d => d.id === depId); 
+    if(!dep) return;
+    
     document.getElementById('ed_id').value = dep.id;
-    document.getElementById('ed_zone').value = dep.zone || '';
+    const zoneSelect = document.getElementById('ed_zone');
+    const depZones = (dep.zone || '').split(',').map(z => z.trim());
+    for (let i = 0; i < zoneSelect.options.length; i++) {
+       zoneSelect.options[i].selected = depZones.includes(zoneSelect.options[i].value);
+    }
+    
     document.getElementById('ed_target').value = dep.target || '';
     document.getElementById('ed_goals').value = dep.goals || '';
     openModal('editDispatchModal');
@@ -504,7 +532,7 @@
     } else {
       if(!t.restricted) {
          if(t.trainer) { html += '<button class="btn btn-outline" style="color:#007aff; border-color:#007aff;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', true)">🎓 Training</button><button class="btn btn-primary" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch</button>'; } 
-         else { html += '<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch as Tech</button>'; }
+         else { html += '<button class="btn btn-primary" style="grid-column:1/-1;" onclick="closeModal(\'techActionModal\'); prefillDispatchTech(\'' + t.name + '\', false)">📋 Dispatch</button>'; }
       } else { html += '<button class="btn btn-outline" style="grid-column:1/-1; border-color:var(--veo-cyan); color:var(--veo-cyan);" onclick="closeModal(\'techActionModal\'); document.getElementById(\'dp_codriver\').value=\'' + t.name + '\'; openModal(\'dispatchModal\');">📋 Dispatch as Co-Driver</button>'; }
     }
     html += '</div><button class="btn btn-outline" style="width:100%; font-size:11px; margin-top:8px;" onclick="closeModal(\'techActionModal\'); openTechEditModal(\'' + t.name + '\')">⚙️ Edit Profile Stats</button></div>';
@@ -582,10 +610,10 @@
     if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
     if(document.getElementById('te_shift')) document.getElementById('te_shift').innerHTML = sOpts;
 
-	const zones = cfg.zones || [];
+    const zones = cfg.zones || [];
     let zOpts = zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
     if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts; 
-    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts; 
+    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts; // Both are multi-select now
     
     if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>'<option value="' + f + '">' + f + '</option>').join('');
     let aOpts = '<option value="">-- Select Agency --</option>' + (cfg.rentalAgencies || []).map(a=>'<option value="' + a + '">' + a + '</option>').join('');
@@ -616,7 +644,6 @@
   function removeRoster(name) { if(!confirm("Remove "+name+"?")) return; document.getElementById('roster-input').value = ''; globalState.config.techRoster = globalState.config.techRoster.filter(r => r.toLowerCase() !== name.toLowerCase()); populateModals(); refreshActiveViews(); google.script.run.removeTechFromRoster(name); }
 
   /* --- DATA SUBMISSION FUNCTIONS --- */
-  
   function submitTechEdit(e) {
     e.preventDefault();
     const p = { origName: document.getElementById('te_orig_name').value, name: document.getElementById('te_name').value, phone: document.getElementById('te_phone').value, shift: document.getElementById('te_shift').value, hrStatus: document.getElementById('te_hr').value, startTime: document.getElementById('te_start').value, endTime: document.getElementById('te_end').value, workDays: document.getElementById('te_days').value, passedTest: document.getElementById('te_test').checked, trainer: document.getElementById('te_trainer').checked, goFast: document.getElementById('te_gofast').checked, coastFuel: document.getElementById('te_coast').checked, evGo: document.getElementById('te_evgo').checked, restricted: document.getElementById('te_restricted').checked };
@@ -717,37 +744,16 @@
     google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
   }
 
-function submitEditDispatch(e) {
+  function submitEditDispatch(e) {
     e.preventDefault();
-    
-    // NEW: Gather multiple selected zones and join them
     const zoneSelect = document.getElementById('ed_zone');
     const selectedZones = Array.from(zoneSelect.selectedOptions).map(option => option.value).join(', ');
-    
-    const p = { 
-      id: document.getElementById('ed_id').value, 
-      zone: selectedZones, 
-      target: document.getElementById('ed_target').value, 
-      goals: document.getElementById('ed_goals').value 
-    };
-    
+    const p = { id: document.getElementById('ed_id').value, zone: selectedZones, target: document.getElementById('ed_target').value, goals: document.getElementById('ed_goals').value };
     closeModal('editDispatchModal');
-    
-    const dIdx = (globalState.deployments || []).findIndex(d=>d.id===p.id); 
-    if(dIdx > -1) { 
-      globalState.deployments[dIdx].zone = p.zone; 
-      globalState.deployments[dIdx].target = p.target; 
-      globalState.deployments[dIdx].goals = p.goals; 
-    }
-    
+    const dIdx = (globalState.deployments || []).findIndex(d=>d.id===p.id); if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
     refreshActiveViews();
-    
-    const loader = document.getElementById('global-loader'); 
-    if(loader) loader.style.display='block';
-    
-    google.script.run
-      .withSuccessHandler(()=>loadPortalData())
-      .updateDeploymentRecord(p);
+    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
+    google.script.run.withSuccessHandler(()=>loadPortalData()).updateDeploymentRecord(p);
   }
 
   function endShift(depId, rentId) {
