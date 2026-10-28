@@ -189,7 +189,17 @@
           html += '<td style="padding:16px;"><strong>' + d.vehicle + '</strong><br><span style="color:var(--text-muted); font-size:11px;">Unit: ' + d.rentalId + '</span></td>';
           html += '<td style="padding:16px;"><strong>' + d.tech + '</strong>' + coDriverText + phoneText + '</td>';
           html += '<td style="padding:16px; color:var(--veo-cyan); font-weight:800; font-size:12px;">' + (d.zone || '--') + '</td>';
-          html += '<td style="padding:16px; font-size:12px;">' + (d.goals || '--') + '</td>';
+		let displayGoals = d.goals || '--';
+		      // If the backend sent them as separate fields (from a fresh page load), merge them cleanly
+		      if (d.focusCategory || d.batteryTarget) {
+		          displayGoals = '';
+		          if (d.focusCategory) displayGoals += '[' + d.focusCategory + '] ';
+		          if (d.batteryTarget) displayGoals += '(Bat: ' + d.batteryTarget + ') ';
+		          if (d.goals && d.goals !== '--') displayGoals += d.goals;
+		      }
+		      
+		      html += '<td style="padding:16px; font-size:12px;">' + (displayGoals || '--') + '</td>';
+
           html += '<td style="padding:16px; font-size:12px;">' + (d.departureTime || '--') + '</td>';
           html += '<td style="padding:16px; text-align:right;">';
           html += '<button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-right:4px;" onclick="openEditDispatchModal(\'' + d.id + '\')">Edit</button>';
@@ -261,7 +271,19 @@
             html += '<td style="padding:16px;"><strong>' + d.vehicle + '</strong><br><span style="font-size:11px; color:var(--text-muted);">' + d.rentalId + '</span></td>';
             html += '<td style="padding:16px;">' + techs + '</td>';
             html += '<td style="padding:16px;"><span class="cls-badge" style="background:rgba(0,229,255,0.1); color:var(--veo-cyan-dark);">' + d.zone + '</span></td>';
-            html += '<td style="padding:16px; max-width:200px; white-space:normal;">' + (d.goals || '--') + '</td>';
+
+		let displayGoals = d.goals || '--';
+		      // If the backend sent them as separate fields (from a fresh page load), merge them cleanly
+		      if (d.focusCategory || d.batteryTarget) {
+		          displayGoals = '';
+		          if (d.focusCategory) displayGoals += '[' + d.focusCategory + '] ';
+		          if (d.batteryTarget) displayGoals += '(Bat: ' + d.batteryTarget + ') ';
+		          if (d.goals && d.goals !== '--') displayGoals += d.goals;
+		      }
+		      
+		      html += '<td style="padding:16px; font-size:12px;">' + (displayGoals || '--') + '</td>';
+
+
             html += '<td style="padding:16px;">' + d.departureTime + '</td>';
             html += '<td style="padding:16px;">' + (d.returnTime || '--') + '</td>';
             html += '<td style="padding:16px; ' + sClass + '">' + d.status + '</td></tr>';
@@ -773,7 +795,30 @@
     closeModal('dispatchModal');
     const now = new Date(); const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     conflicts.forEach(c => { c.status = 'Completed'; c.returnTime = timeString; if (c.rentalId !== rentalId) { const oldV = (globalState.vehicles || []).find(v => v.rentalId === c.rentalId); if (oldV) { oldV.status = 'Warehouse (Ready)'; oldV.zone = '—'; oldV.driver = '—'; } } });
-    globalState.deployments.unshift({ id:'...', date: now.toISOString().split('T')[0], shift: p.shift, vehicle: p.cleanName, rentalId: p.rentalId, tech: p.assignedTech, zone: p.workZone, status: 'Dispatched', departureTime: timeString, coDriver: p.coDriver, isTraining: p.isTraining });
+    
+// Format the Focus / Goals / Battery into a clean string for the frontend cache
+    let combinedGoals = '';
+    if (p.focusCategory) combinedGoals += '[' + p.focusCategory + '] ';
+    if (p.batteryTarget) combinedGoals += '(Bat: ' + p.batteryTarget + ') ';
+    if (p.goals) combinedGoals += p.goals;
+    if (combinedGoals.trim() === '') combinedGoals = '--';
+
+    globalState.deployments.unshift({ 
+      id:'...', 
+      date: now.toISOString().split('T')[0], 
+      shift: p.shift, 
+      vehicle: p.cleanName, 
+      rentalId: p.rentalId, 
+      tech: p.assignedTech, 
+      zone: p.workZone, 
+      status: 'Dispatched', 
+      departureTime: timeString, 
+      coDriver: p.coDriver, 
+      isTraining: p.isTraining,
+      goals: combinedGoals.trim() // <--- NEW: Injects the combined string
+    });
+
+
     const vIdx = (globalState.vehicles || []).findIndex(v=>v.rentalId===p.rentalId); if(vIdx > -1) { globalState.vehicles[vIdx].status = 'Dispatched'; globalState.vehicles[vIdx].zone = p.workZone; globalState.vehicles[vIdx].driver = p.coDriver ? (p.assignedTech + ' & ' + p.coDriver) : p.assignedTech; }
     populateModals(); refreshActiveViews();
     const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
