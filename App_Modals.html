@@ -105,24 +105,38 @@
 <!-- EDIT DISPATCH MODAL -->
 <div id="editDispatchModal" class="modal-overlay">
   <div class="modal-box">
-    <div class="modal-header"><div>✏️ Edit Active Dispatch</div><button class="modal-close" onclick="closeModal('editDispatchModal')">&times;</button></div>
+    <div class="modal-header">
+      <div>✏️ Edit Active Dispatch</div>
+      <button type="button" class="modal-close" onclick="closeModal('editDispatchModal')">&times;</button>
+    </div>
     <form onsubmit="submitEditDispatch(event)">
       <div class="modal-body">
-
-        <input type="hidden" id="ed_id" /><input type="hidden" id="ed_vehicle" /><input type="hidden" id="ed_rental" />
-
-        <!-- Inside the EDIT DISPATCH MODAL form -->
+        <input type="hidden" id="ed_id">
+        
+        <!-- Multi-Select Work Zone -->
         <div class="form-group">
           <label>Work Zone(s) *</label>
           <select id="ed_zone" multiple required style="height:auto; min-height:80px;"></select>
           <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Hold Ctrl/Cmd to select multiple</div>
         </div>
-
-        <div class="form-row"><div class="form-group"><label>Work Zone</label><select id="ed_zone"></select></div><div class="form-group"><label>Battery Target</label><input type="text" id="ed_target"></div></div>
-
-        <div class="form-group"><label>Goals & Directives</label><textarea id="ed_goals" rows="2"></textarea></div>
+        
+        <!-- Battery Count -->
+        <div class="form-group">
+          <label>Battery Count</label>
+          <input type="number" id="ed_target" placeholder="e.g. 30">
+        </div>
+        
+        <!-- Shift Notes -->
+        <div class="form-group">
+          <label>Goals & Directives</label>
+          <textarea id="ed_goals" rows="3" placeholder="Update shift instructions..."></textarea>
+        </div>
       </div>
-      <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('editDispatchModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('editDispatchModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="background:var(--veo-cyan); color:#000;">Save Changes</button>
+      </div>
     </form>
   </div>
 </div>

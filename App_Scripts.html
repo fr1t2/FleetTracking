@@ -585,7 +585,7 @@
 	const zones = cfg.zones || [];
     let zOpts = zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
     if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts; 
-    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts; // Both are now multi-select
+    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts; 
     
     if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>'<option value="' + f + '">' + f + '</option>').join('');
     let aOpts = '<option value="">-- Select Agency --</option>' + (cfg.rentalAgencies || []).map(a=>'<option value="' + a + '">' + a + '</option>').join('');
