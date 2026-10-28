@@ -108,8 +108,18 @@
     <div class="modal-header"><div>✏️ Edit Active Dispatch</div><button class="modal-close" onclick="closeModal('editDispatchModal')">&times;</button></div>
     <form onsubmit="submitEditDispatch(event)">
       <div class="modal-body">
+
         <input type="hidden" id="ed_id" /><input type="hidden" id="ed_vehicle" /><input type="hidden" id="ed_rental" />
+
+        <!-- Inside the EDIT DISPATCH MODAL form -->
+        <div class="form-group">
+          <label>Work Zone(s) *</label>
+          <select id="ed_zone" multiple required style="height:auto; min-height:80px;"></select>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Hold Ctrl/Cmd to select multiple</div>
+        </div>
+
         <div class="form-row"><div class="form-group"><label>Work Zone</label><select id="ed_zone"></select></div><div class="form-group"><label>Battery Target</label><input type="text" id="ed_target"></div></div>
+
         <div class="form-group"><label>Goals & Directives</label><textarea id="ed_goals" rows="2"></textarea></div>
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('editDispatchModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>

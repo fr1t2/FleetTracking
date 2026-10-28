@@ -582,11 +582,10 @@
     if(document.getElementById('hist-shift')) document.getElementById('hist-shift').innerHTML = sOpts;
     if(document.getElementById('te_shift')) document.getElementById('te_shift').innerHTML = sOpts;
 
-    const zones = cfg.zones || [];
+	const zones = cfg.zones || [];
     let zOpts = zones.map(z=>'<option value="' + z + '">' + z + '</option>').join('');
     if(document.getElementById('dp_zone')) document.getElementById('dp_zone').innerHTML = zOpts; 
-    let zOptsWithEmpty = '<option value="">-- Zone --</option>' + zOpts;
-    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOptsWithEmpty;
+    if(document.getElementById('ed_zone')) document.getElementById('ed_zone').innerHTML = zOpts; // Both are now multi-select
     
     if(document.getElementById('dp_focus')) document.getElementById('dp_focus').innerHTML = '<option value="">-- Focus --</option>' + (cfg.focusOptions || []).map(f=>'<option value="' + f + '">' + f + '</option>').join('');
     let aOpts = '<option value="">-- Select Agency --</option>' + (cfg.rentalAgencies || []).map(a=>'<option value="' + a + '">' + a + '</option>').join('');
@@ -718,14 +717,37 @@
     google.script.run.withSuccessHandler(()=>loadPortalData()).processDispatchCheckout(p);
   }
 
-  function submitEditDispatch(e) {
+function submitEditDispatch(e) {
     e.preventDefault();
-    const p = { id: document.getElementById('ed_id').value, zone: document.getElementById('ed_zone').value, target: document.getElementById('ed_target').value, goals: document.getElementById('ed_goals').value };
+    
+    // NEW: Gather multiple selected zones and join them
+    const zoneSelect = document.getElementById('ed_zone');
+    const selectedZones = Array.from(zoneSelect.selectedOptions).map(option => option.value).join(', ');
+    
+    const p = { 
+      id: document.getElementById('ed_id').value, 
+      zone: selectedZones, 
+      target: document.getElementById('ed_target').value, 
+      goals: document.getElementById('ed_goals').value 
+    };
+    
     closeModal('editDispatchModal');
-    const dIdx = (globalState.deployments || []).findIndex(d=>d.id===p.id); if(dIdx > -1) { globalState.deployments[dIdx].zone = p.zone; globalState.deployments[dIdx].target = p.target; globalState.deployments[dIdx].goals = p.goals; }
+    
+    const dIdx = (globalState.deployments || []).findIndex(d=>d.id===p.id); 
+    if(dIdx > -1) { 
+      globalState.deployments[dIdx].zone = p.zone; 
+      globalState.deployments[dIdx].target = p.target; 
+      globalState.deployments[dIdx].goals = p.goals; 
+    }
+    
     refreshActiveViews();
-    const loader = document.getElementById('global-loader'); if(loader) loader.style.display='block';
-    google.script.run.withSuccessHandler(()=>loadPortalData()).updateDeploymentRecord(p);
+    
+    const loader = document.getElementById('global-loader'); 
+    if(loader) loader.style.display='block';
+    
+    google.script.run
+      .withSuccessHandler(()=>loadPortalData())
+      .updateDeploymentRecord(p);
   }
 
   function endShift(depId, rentId) {
