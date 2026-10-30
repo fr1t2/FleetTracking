@@ -47,15 +47,31 @@
     .btn-primary { background: var(--veo-cyan); color: #000; border: none; }
     .btn-danger { background: var(--status-oos); color: #fff; border: none; }
     .btn-success { background: var(--status-ready); color: #fff; border: none; }
+    
     dialog { padding: 0; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin: auto; max-width: 600px; width: 100%; }
     dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
-    .modal-content { padding: 24px; max-height: 85vh; overflow-y: auto; }
-    .modal-header { border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; }
-    .modal-footer { border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc; margin: 16px -24px -24px -24px; padding: 16px 24px; border-radius: 0 0 12px 12px; flex-wrap: wrap;}
+    .modal-content { padding: 24px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-header { border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px; flex-shrink: 0; }
+    
+    /* MODAL TABS STYLING */
+    .modal-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px; overflow-x: auto; flex-shrink: 0; }
+    .modal-tab { background: none; border: none; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; padding: 6px 12px; border-radius: 6px; white-space: nowrap; transition: 0.2s; }
+    .modal-tab.active { color: var(--veo-cyan-dark); background: rgba(0,229,255,0.1); }
+    .tab-pane { display: none; overflow-y: auto; flex: 1; padding-bottom: 16px; }
+    
+    .modal-footer { border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc; margin: 0 -24px -24px -24px; padding: 16px 24px; border-radius: 0 0 12px 12px; flex-wrap: wrap; flex-shrink: 0;}
     .history-table { width: 100%; text-align: left; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
     .history-table th, .history-table td { padding: 8px; border-bottom: 1px solid var(--border-color); }
     .form-group { margin-bottom: 12px; } .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; }
+
+    /* MOBILE RESPONSIVENESS OVERRIDES */
+    @media (max-width: 768px) {
+      .sidebar { display: none; /* Can be toggled if needed, keeping simple for now */ }
+      .modal-footer { flex-direction: column; }
+      .modal-footer .btn { width: 100%; padding: 12px; text-align: center; font-size: 14px; margin-bottom: 4px; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -73,10 +89,9 @@
     <header class="topbar">
       <h2>VEO Command Center</h2>
       <div class="flex-center">
-        <!-- New Toggle for Historical Fleet -->
         <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; margin-right: 12px;">
           <input type="checkbox" id="toggle-decom" onchange="renderFleet()" style="vertical-align: middle; margin-right: 4px;"> 
-          Show Retired Fleet
+          Show Retired
         </label>
         <button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="openMaintenanceModal()">🚨 Open Maintenance</button>
         <button class="btn" onclick="openAddVanModal()">➕ Add Fleet Unit</button>
@@ -94,19 +109,21 @@
 <dialog id="quick-dispatch-modal">
   <div class="modal-content">
     <div class="modal-header"><h3 class="bold">Deploy Vehicle</h3></div>
-    <form method="dialog">
-      <p class="text-sm mt-3">Assigning <strong id="qd-tech-name"></strong> to Unit <strong id="qd-van-id"></strong></p>
-      <div class="form-group mt-3"><label>Work Zone(s) (Ctrl/Cmd to multi-select):</label><select id="qd-zones" multiple style="height: 80px;"></select></div>
-      <div class="form-group"><label>Battery Count:</label><input type="number" id="qd-battery" placeholder="e.g. 10"></div>
-      <div class="modal-footer">
-        <button type="button" class="btn" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="submitQuickDispatch()">Deploy (Start Shift)</button>
-      </div>
-    </form>
+    <div class="tab-pane" style="display:block;">
+      <form method="dialog">
+        <p class="text-sm mt-3">Assigning <strong id="qd-tech-name"></strong> to Unit <strong id="qd-van-id"></strong></p>
+        <div class="form-group mt-3"><label>Work Zone(s) (Ctrl/Cmd to multi-select):</label><select id="qd-zones" multiple style="height: 80px;"></select></div>
+        <div class="form-group"><label>Battery Count:</label><input type="number" id="qd-battery" placeholder="e.g. 10"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="submitQuickDispatch()">Deploy (Start Shift)</button>
+        </div>
+      </form>
+    </div>
   </div>
 </dialog>
 
-<!-- Van 360° Profile Modal -->
+<!-- TABBED Van 360° Profile Modal -->
 <dialog id="van-profile-modal">
   <div class="modal-content">
     <div class="modal-header flex-between">
@@ -114,39 +131,58 @@
       <span id="vp-status" class="badge">Status</span>
     </div>
     
-    <div class="grid-2 text-sm mt-3">
-      <div><strong>Agency:</strong> <span id="vp-agency"></span></div>
-      <div><strong>VIN:</strong> <span id="vp-vin"></span></div>
-      <div><strong>Plate:</strong> <span id="vp-plate"></span></div>
-      <div><strong>Tag Exp:</strong> <span id="vp-plate-exp"></span></div>
-      <div><strong>Coast Enabled:</strong> <span id="vp-coast"></span></div>
-      <div><strong>Service Num:</strong> <span id="vp-service-num"></span></div>
-      <div id="vp-samsara-container" style="grid-column: span 2;"></div>
-      <div id="vp-addons-container" style="grid-column: span 2;"></div>
+    <!-- Navigation Tabs -->
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="overview" onclick="setVanTab('overview')">Live Route</button>
+      <button class="modal-tab" data-tab="specs" onclick="setVanTab('specs')">Van Specs</button>
+      <button class="modal-tab" data-tab="history" onclick="setVanTab('history')">History & Logs</button>
     </div>
 
-    <div id="vp-dispatch-details" style="display:none; background:#f8fafc; padding:12px; border-radius:8px; margin-top:16px; border:1px solid var(--border-color);">
-      <h4 class="text-sm bold" style="margin-bottom:8px; color:var(--veo-cyan-dark);">Current Dispatch Details</h4>
-      <div class="grid-2 text-sm">
-        <div><strong>Driver:</strong> <span id="vp-driver"></span></div>
-        <div><strong>Time Out:</strong> <span id="vp-timeout"></span></div>
-        <div><strong>Zone:</strong> <span id="vp-zone"></span></div>
-        <div><strong>Focus:</strong> <span id="vp-focus"></span></div>
-        <div style="grid-column: span 2;"><strong>Goals:</strong> <span id="vp-goals"></span></div>
+    <!-- TAB 1: Live Overview -->
+    <div id="vt-overview" class="tab-pane" style="display: block;">
+      <div id="vp-dispatch-details" style="background:#f8fafc; padding:16px; border-radius:8px; border:1px solid var(--border-color);">
+        <h4 class="text-sm bold" style="margin-bottom:12px; color:var(--veo-cyan-dark);">Current Dispatch Details</h4>
+        <div class="grid-2 text-sm">
+          <div><strong>Driver:</strong> <span id="vp-driver"></span></div>
+          <div><strong>Time Out:</strong> <span id="vp-timeout"></span></div>
+          <div><strong>Zone:</strong> <span id="vp-zone"></span></div>
+          <div><strong>Focus:</strong> <span id="vp-focus"></span></div>
+          <div style="grid-column: span 2;"><strong>Goals:</strong> <span id="vp-goals"></span></div>
+        </div>
+      </div>
+      <div id="vp-dispatch-empty" style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 14px; display: none;">
+        This vehicle is currently parked and ready for dispatch.
       </div>
     </div>
 
-    <!-- Historical Tabs -->
-    <h4 class="text-sm bold text-muted mt-3">Recent Deployments</h4>
-    <div style="max-height: 120px; overflow-y:auto; margin-bottom:16px;">
-      <table class="history-table" id="vp-deployments-table"></table>
+    <!-- TAB 2: Van Specs -->
+    <div id="vt-specs" class="tab-pane">
+      <div class="grid-2 text-sm">
+        <div><strong>Agency:</strong> <span id="vp-agency"></span></div>
+        <div><strong>VIN:</strong> <span id="vp-vin"></span></div>
+        <div><strong>Plate:</strong> <span id="vp-plate"></span></div>
+        <div><strong>Tag Exp:</strong> <span id="vp-plate-exp"></span></div>
+        <div><strong>Coast Enabled:</strong> <span id="vp-coast"></span></div>
+        <div><strong>Service Num:</strong> <span id="vp-service-num"></span></div>
+        <div id="vp-samsara-container" style="grid-column: span 2;"></div>
+        <div id="vp-addons-container" style="grid-column: span 2;"></div>
+      </div>
     </div>
 
-    <h4 class="text-sm bold text-muted mt-3">Maintenance History</h4>
-    <div style="max-height: 120px; overflow-y:auto;">
-      <table class="history-table" id="vp-incidents-table"></table>
+    <!-- TAB 3: History & Logs -->
+    <div id="vt-history" class="tab-pane">
+      <h4 class="text-sm bold text-muted">Recent Deployments</h4>
+      <div style="margin-bottom:16px;">
+        <table class="history-table" id="vp-deployments-table"></table>
+      </div>
+
+      <h4 class="text-sm bold text-muted mt-3">Maintenance History</h4>
+      <div>
+        <table class="history-table" id="vp-incidents-table"></table>
+      </div>
     </div>
 
+    <!-- Persistent Action Footer -->
     <div class="modal-footer" id="vp-actions">
       <!-- Buttons Injected via JS -->
     </div>
@@ -157,7 +193,7 @@
 <dialog id="maintenance-modal">
   <div class="modal-content" style="max-width: 800px;">
     <div class="modal-header"><h3 class="bold">🚨 Open Maintenance Issues</h3></div>
-    <div style="max-height: 400px; overflow-y:auto;">
+    <div class="tab-pane" style="display:block;">
       <table class="history-table">
         <thead><tr><th>Van</th><th>Unit #</th><th>Reported</th><th>Category</th><th>Details</th></tr></thead>
         <tbody id="maintenance-table-body"></tbody>
@@ -171,29 +207,31 @@
 <dialog id="van-config-modal">
   <div class="modal-content">
     <div class="modal-header"><h3 class="bold" id="vcfg-title">⚙️ Vehicle Config</h3></div>
-    <form method="dialog">
-      <input type="hidden" id="vcfg-mode">
-      <div class="grid-2">
-        <div class="form-group"><label>Clean Name *</label><input type="text" id="vcfg-name" required></div>
-        <div class="form-group"><label>Rental Unit # *</label><input type="text" id="vcfg-rental" required></div>
-        <div class="form-group"><label>Rental Agency</label><input type="text" id="vcfg-agency"></div>
-        <div class="form-group"><label>Make & Model</label><input type="text" id="vcfg-model"></div>
-        <div class="form-group"><label>VIN</label><input type="text" id="vcfg-vin"></div>
-        <div class="form-group"><label>License Plate</label><input type="text" id="vcfg-plate"></div>
-        <div class="form-group"><label>Tag Expiration Date</label><input type="date" id="vcfg-exp"></div>
-        <div class="form-group"><label>Service Number</label><input type="text" id="vcfg-service"></div>
-        <div class="form-group"><label>Samsara Gateway Serial</label><input type="text" id="vcfg-samsara"></div>
-        <div class="form-group"><label>Samsara View Link</label><input type="url" id="vcfg-samlink"></div>
-        <div class="form-group"><label>Coast Enabled?</label><select id="vcfg-coast"><option>No</option><option>Yes</option></select></div>
-        <div class="form-group"><label>Pick-Up Date</label><input type="date" id="vcfg-pickup"></div>
-      </div>
-      <div class="form-group mt-2"><label>Addons & Interior Builds</label><input type="text" id="vcfg-addons"></div>
-      
-      <div class="modal-footer">
-        <button type="button" class="btn" onclick="document.getElementById('van-config-modal').close()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="submitVanConfig()">Save to Registry</button>
-      </div>
-    </form>
+    <div class="tab-pane" style="display:block;">
+      <form method="dialog">
+        <input type="hidden" id="vcfg-mode">
+        <div class="grid-2">
+          <div class="form-group"><label>Clean Name *</label><input type="text" id="vcfg-name" required></div>
+          <div class="form-group"><label>Rental Unit # *</label><input type="text" id="vcfg-rental" required></div>
+          <div class="form-group"><label>Rental Agency</label><input type="text" id="vcfg-agency"></div>
+          <div class="form-group"><label>Make & Model</label><input type="text" id="vcfg-model"></div>
+          <div class="form-group"><label>VIN</label><input type="text" id="vcfg-vin"></div>
+          <div class="form-group"><label>License Plate</label><input type="text" id="vcfg-plate"></div>
+          <div class="form-group"><label>Tag Expiration Date</label><input type="date" id="vcfg-exp"></div>
+          <div class="form-group"><label>Service Number</label><input type="text" id="vcfg-service"></div>
+          <div class="form-group"><label>Samsara Gateway Serial</label><input type="text" id="vcfg-samsara"></div>
+          <div class="form-group"><label>Samsara View Link</label><input type="url" id="vcfg-samlink"></div>
+          <div class="form-group"><label>Coast Enabled?</label><select id="vcfg-coast"><option>No</option><option>Yes</option></select></div>
+          <div class="form-group"><label>Pick-Up Date</label><input type="date" id="vcfg-pickup"></div>
+        </div>
+        <div class="form-group mt-2"><label>Addons & Interior Builds</label><input type="text" id="vcfg-addons"></div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn" onclick="document.getElementById('van-config-modal').close()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="submitVanConfig()">Save to Registry</button>
+        </div>
+      </form>
+    </div>
   </div>
 </dialog>
 
@@ -219,6 +257,18 @@
       if (e.clientY < rect.top || e.clientY > rect.bottom || e.clientX < rect.left || e.clientX > rect.right) e.target.close();
     }
   });
+
+  // TABS LOGIC
+  function setVanTab(tabId) {
+    document.querySelectorAll('.modal-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.tab-pane').forEach(c => {
+      if (c.id.startsWith('vt-')) {
+        c.style.display = (c.id === 'vt-' + tabId) ? 'block' : 'none';
+      }
+    });
+  }
 
   function populateZones() {
     const zs = document.getElementById('qd-zones');
@@ -296,6 +346,9 @@
     selectedVan = globalState.vehicles.find(v => v.rentalId === rentalId);
     if(!selectedVan) return;
 
+    // Reset Tabs to Overview
+    setVanTab('overview');
+
     document.getElementById('vp-name').innerText = selectedVan.cleanName;
     document.getElementById('vp-unit').innerText = selectedVan.rentalId;
     document.getElementById('vp-agency').innerText = selectedVan.agency || '--';
@@ -319,6 +372,7 @@
     sEl.className = 'badge ' + sc;
 
     const depBlock = document.getElementById('vp-dispatch-details');
+    const emptyBlock = document.getElementById('vp-dispatch-empty');
     if (selectedVan.status.includes('Dispatched')) {
       const activeDep = globalState.deployments.find(d => d.rentalId === rentalId && d.status === 'Dispatched');
       if (activeDep) {
@@ -328,9 +382,11 @@
         document.getElementById('vp-focus').innerText = activeDep.goals ? activeDep.goals.split(']')[0] + ']' : '--';
         document.getElementById('vp-goals').innerText = activeDep.goals ? activeDep.goals.replace(/^\[.*?\]\s*/, '') : '--';
         depBlock.style.display = 'block';
+        emptyBlock.style.display = 'none';
       }
     } else {
       depBlock.style.display = 'none';
+      emptyBlock.style.display = 'block';
     }
 
     // Historical History View 
@@ -349,13 +405,13 @@
     }
 
     if (selectedVan.status === 'Warehouse (Ready)') {
-      actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Decommission</button> <button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerManualDispatch()">🚀 Dispatch (Start Shift)</button>`;
+      actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Retire</button> <button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerManualDispatch()">🚀 Dispatch (Start Shift)</button>`;
     } else if (selectedVan.status.includes('Dispatched')) {
       actionsHtml += `<button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerCheckIn()">📥 End Shift (Return)</button>`;
     } else if (selectedVan.status === 'Out of Service') {
-      actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Decommission</button> <button class="btn btn-success" onclick="resolveIssue()">🛠️ Resolve Issue & Return to Service</button>`;
+      actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Retire</button> <button class="btn btn-success" onclick="resolveIssue()">🛠️ Fix & Return to Service</button>`;
     } else if (selectedVan.status === 'Decommissioned') {
-      actionsHtml += `<div class="text-sm bold text-muted" style="margin-right:auto;">This vehicle is retired. Action disabled.</div>`;
+      actionsHtml += `<div class="text-sm bold text-muted" style="margin-right:auto; padding-top:12px;">This vehicle is retired. Action disabled.</div>`;
     }
     
     actionsHtml += `<button class="btn" onclick="document.getElementById('van-profile-modal').close()">Close</button>`;
