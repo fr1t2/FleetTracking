@@ -241,8 +241,16 @@
   function loadState() {
     google.script.run
       .withSuccessHandler(data => { globalState = JSON.parse(data); populateZones(); renderTechs(); renderFleet(); })
-      .withFailureHandler(err => alert("Backend Error: " + err.message))
+      .withFailureHandler(err => alert("Critical Network Error: " + err.message))
       .getDashboardState();
+  }
+
+  // --- NEW: UNIVERSAL ERROR CATCHER ---
+  function handleBackendResponse(res) {
+    if (res && res.success === false) {
+      alert("🚨 Backend Database Alert:\n" + res.message);
+    }
+    loadState(); // Always refresh to sync visual state with the true sheet data
   }
 
   function updateVanState(rentalId, updates) {
@@ -258,15 +266,10 @@
     }
   });
 
-  // TABS LOGIC
   function setVanTab(tabId) {
-    document.querySelectorAll('.modal-tab').forEach(b => {
-      b.classList.toggle('active', b.dataset.tab === tabId);
-    });
+    document.querySelectorAll('.modal-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
     document.querySelectorAll('.tab-pane').forEach(c => {
-      if (c.id.startsWith('vt-')) {
-        c.style.display = (c.id === 'vt-' + tabId) ? 'block' : 'none';
-      }
+      if (c.id.startsWith('vt-')) c.style.display = (c.id === 'vt-' + tabId) ? 'block' : 'none';
     });
   }
 
@@ -309,7 +312,6 @@
 
   function renderFleet() {
     const showDecom = document.getElementById('toggle-decom').checked;
-    
     document.getElementById('fleet-grid-container').innerHTML = globalState.vehicles
       .filter(v => showDecom ? true : v.status !== 'Decommissioned')
       .map(v => {
@@ -319,7 +321,6 @@
         
         let sc = isAct ? 'badge-active' : (isOos ? 'badge-oos' : 'badge-ready');
         if (isDecom) sc = 'badge-decom';
-        
         const cardClass = isDecom ? 'van-card decommissioned' : 'van-card';
         const activeDep = isAct ? globalState.deployments.find(d => d.rentalId === v.rentalId && d.status === 'Dispatched') : null;
         const focusHtml = (activeDep && activeDep.goals) ? `<div class="mt-1"><span class="badge-focus">${activeDep.goals.split(' ')[0]}</span></div>` : '';
@@ -340,15 +341,12 @@
     attachDragEvents();
   }
 
-  // --- VAN PROFILE & ACTIONS ---
   let selectedVan = null;
   function openVanProfile(rentalId) {
     selectedVan = globalState.vehicles.find(v => v.rentalId === rentalId);
     if(!selectedVan) return;
 
-    // Reset Tabs to Overview
     setVanTab('overview');
-
     document.getElementById('vp-name').innerText = selectedVan.cleanName;
     document.getElementById('vp-unit').innerText = selectedVan.rentalId;
     document.getElementById('vp-agency').innerText = selectedVan.agency || '--';
@@ -366,7 +364,6 @@
     
     const sEl = document.getElementById('vp-status');
     sEl.innerText = selectedVan.status;
-    
     let sc = selectedVan.status.includes('Dispatched') ? 'badge-active' : (selectedVan.status === 'Out of Service' ? 'badge-oos' : 'badge-ready');
     if (selectedVan.status === 'Decommissioned') sc = 'badge-decom';
     sEl.className = 'badge ' + sc;
@@ -389,7 +386,6 @@
       emptyBlock.style.display = 'block';
     }
 
-    // Historical History View 
     const myDeps = globalState.deployments.filter(d => d.rentalId === rentalId).slice(0, 5);
     document.getElementById('vp-deployments-table').innerHTML = `<thead><tr><th>Date</th><th>Driver</th><th>Zone</th><th>Status</th></tr></thead>` + 
       (myDeps.length ? myDeps.map(d => `<tr><td>${d.date}</td><td>${d.tech}</td><td>${d.zone}</td><td>${d.status}</td></tr>`).join('') : `<tr><td colspan="4" class="text-muted text-center">No recent deployments</td></tr>`);
@@ -405,7 +401,6 @@
     if (selectedVan.status !== 'Decommissioned') {
        actionsHtml += `<button class="btn" style="margin-right:auto; border-color:var(--text-secondary); color:var(--text-secondary);" onclick="openEditVanModal()">⚙️ Edit Specs</button>`;
     }
-
     if (selectedVan.status === 'Warehouse (Ready)') {
       actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Retire</button> <button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerManualDispatch()">🚀 Dispatch (Start Shift)</button>`;
     } else if (selectedVan.status.includes('Dispatched')) {
@@ -415,24 +410,31 @@
     } else if (selectedVan.status === 'Decommissioned') {
       actionsHtml += `<div class="text-sm bold text-muted" style="margin-right:auto; padding-top:12px;">This vehicle is retired. Action disabled.</div>`;
     }
-    
     actionsHtml += `<button class="btn" onclick="document.getElementById('van-profile-modal').close()">Close</button>`;
-    
     document.getElementById('vp-actions').innerHTML = actionsHtml;
     document.getElementById('van-profile-modal').showModal();
   }
 
-  // --- CONFIG (ADD / EDIT) FORMS ---
+  function promptResolveIssue(incidentId, rentalId) {
+    const notes = prompt(`Enter repair details to resolve issue ${incidentId}:`);
+    if (!notes) return;
+    const inc = globalState.incidents.find(i => i.id === incidentId);
+    if (inc) { inc.resolved = true; inc.resolution = notes; }
+    openVanProfile(rentalId);
+    google.script.run
+      .withSuccessHandler(handleBackendResponse)
+      .withFailureHandler(err => { alert("Error: " + err.message); loadState(); })
+      .resolveSpecificIncident({ incidentId: incidentId, resolutionNotes: notes, rentalId: rentalId });
+  }
+
   function openAddVanModal() {
     document.getElementById('vcfg-title').innerText = '➕ Add Fleet Unit';
     document.getElementById('vcfg-mode').value = 'add';
     document.getElementById('vcfg-rental').readOnly = false;
     document.getElementById('vcfg-rental').style.background = '#fff';
-    
     ['name','rental','agency','model','vin','plate','exp','service','samsara','samlink','addons','pickup'].forEach(k => document.getElementById('vcfg-'+k).value = '');
     document.getElementById('vcfg-coast').value = 'No';
     document.getElementById('vcfg-pickup').value = new Date().toISOString().split('T')[0];
-    
     document.getElementById('van-config-modal').showModal();
   }
 
@@ -440,11 +442,9 @@
     document.getElementById('van-profile-modal').close();
     document.getElementById('vcfg-title').innerText = '⚙️ Edit Vehicle Config';
     document.getElementById('vcfg-mode').value = 'edit';
-    
     document.getElementById('vcfg-rental').value = selectedVan.rentalId;
     document.getElementById('vcfg-rental').readOnly = true;
     document.getElementById('vcfg-rental').style.background = '#f8fafc';
-    
     document.getElementById('vcfg-name').value = selectedVan.cleanName;
     document.getElementById('vcfg-agency').value = selectedVan.agency || '';
     document.getElementById('vcfg-model').value = selectedVan.makeModel || '';
@@ -457,40 +457,27 @@
     document.getElementById('vcfg-addons').value = selectedVan.addons || '';
     document.getElementById('vcfg-coast').value = selectedVan.coast || 'No';
     document.getElementById('vcfg-pickup').value = (selectedVan.pickupDate !== '—') ? selectedVan.pickupDate : '';
-
     document.getElementById('van-config-modal').showModal();
   }
 
   function submitVanConfig() {
     const mode = document.getElementById('vcfg-mode').value;
     const payload = {
-      cleanName: document.getElementById('vcfg-name').value,
-      rentalId: document.getElementById('vcfg-rental').value,
-      agency: document.getElementById('vcfg-agency').value,
-      makeModel: document.getElementById('vcfg-model').value,
-      vin: document.getElementById('vcfg-vin').value,
-      plate: document.getElementById('vcfg-plate').value,
-      plateExpDate: document.getElementById('vcfg-exp').value,
-      serviceNum: document.getElementById('vcfg-service').value,
-      samsaraSerial: document.getElementById('vcfg-samsara').value,
-      samsaraLink: document.getElementById('vcfg-samlink').value,
-      addons: document.getElementById('vcfg-addons').value,
-      coast: document.getElementById('vcfg-coast').value,
+      cleanName: document.getElementById('vcfg-name').value, rentalId: document.getElementById('vcfg-rental').value,
+      agency: document.getElementById('vcfg-agency').value, makeModel: document.getElementById('vcfg-model').value,
+      vin: document.getElementById('vcfg-vin').value, plate: document.getElementById('vcfg-plate').value,
+      plateExpDate: document.getElementById('vcfg-exp').value, serviceNum: document.getElementById('vcfg-service').value,
+      samsaraSerial: document.getElementById('vcfg-samsara').value, samsaraLink: document.getElementById('vcfg-samlink').value,
+      addons: document.getElementById('vcfg-addons').value, coast: document.getElementById('vcfg-coast').value,
       pickupDate: document.getElementById('vcfg-pickup').value
     };
-
     document.getElementById('van-config-modal').close();
 
     if (mode === 'add') {
-      payload.status = 'Warehouse (Ready)';
-      payload.zone = '—';
-      payload.driver = '—';
-      globalState.vehicles.push(payload);
-      renderFleet();
-      google.script.run.withFailureHandler(err => { alert("Add Failed: "+err.message); loadState(); }).processAddVehicle(payload);
+      google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err => { alert(err.message); loadState(); }).processAddVehicle(payload);
     } else {
       updateVanState(payload.rentalId, payload);
-      google.script.run.withFailureHandler(err => { alert("Update Failed: "+err.message); loadState(); }).updateVehicleDetails(payload);
+      google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err => { alert(err.message); loadState(); }).updateVehicleDetails(payload);
     }
   }
 
@@ -499,18 +486,30 @@
     if (!reason) return;
     document.getElementById('van-profile-modal').close();
     updateVanState(selectedVan.rentalId, { status: 'Decommissioned', zone: '—', driver: '—' });
-    google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).decommissionVehicle(selectedVan.rentalId, reason);
+    google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert(err.message)).decommissionVehicle(selectedVan.rentalId, reason);
   }
 
-  // --- STANDARD WORKFLOWS ---
   function triggerOOS() {
     const desc = prompt(`Log issue description to mark Unit ${selectedVan.rentalId} Out of Service:`);
     if (!desc) return;
     document.getElementById('van-profile-modal').close();
     updateVanState(selectedVan.rentalId, { status: 'Out of Service', zone: '—', driver: '—' });
-    google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processReportIncident({
+    
+    const payload = {
       cleanName: selectedVan.cleanName, rentalId: selectedVan.rentalId, issueCategory: 'General Issue', triggerOos: true, description: desc
-    });
+    };
+    google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert("Failed: "+err.message)).processReportIncident(payload);
+  }
+
+  function submitReportIssue() {
+    const payload = {
+      cleanName: document.getElementById('ri-van').value, rentalId: selectedVan.rentalId,
+      issueCategory: document.getElementById('ri-cat').value, description: document.getElementById('ri-desc').value,
+      triggerOos: document.getElementById('ri-oos').checked
+    };
+    document.getElementById('report-issue-modal').close();
+    if (payload.triggerOos) updateVanState(payload.rentalId, { status: 'Out of Service', zone: '—', driver: '—' });
+    google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert(err.message)).processReportIncident(payload);
   }
 
   function resolveIssue() {
@@ -518,7 +517,7 @@
     if (!notes) return;
     document.getElementById('van-profile-modal').close();
     updateVanState(selectedVan.rentalId, { status: 'Warehouse (Ready)' });
-    google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processCheckInVehicle({
+    google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert(err.message)).processCheckInVehicle({
       cleanName: selectedVan.cleanName, rentalId: selectedVan.rentalId, resolutionNotes: notes
     });
   }
@@ -527,7 +526,7 @@
     if(confirm(`End active shift for Unit ${selectedVan.rentalId}?`)) {
       document.getElementById('van-profile-modal').close();
       updateVanState(selectedVan.rentalId, { status: 'Warehouse (Ready)', zone: '—', driver: '—' });
-      google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processCheckInVehicle({ rentalId: selectedVan.rentalId });
+      google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert(err.message)).processCheckInVehicle({ rentalId: selectedVan.rentalId });
     }
   }
 
@@ -536,7 +535,6 @@
     alert("Please drag a Tech card onto this Van card on the dashboard to dispatch.");
   }
 
-  // --- DISPATCH FLOW ---
   let pendingDispatch = {};
   function openQuickDispatch(vanId, techName) {
     pendingDispatch = { vanId, techName };
@@ -550,7 +548,7 @@
     const payload = { rentalId: pendingDispatch.vanId, tech: pendingDispatch.techName, zones: zones, batteryCount: document.getElementById('qd-battery').value };
     document.getElementById('quick-dispatch-modal').close();
     updateVanState(payload.rentalId, { status: 'Dispatched', zone: payload.zones, driver: payload.tech });
-    google.script.run.withFailureHandler(err=>alert("Dispatch failed: "+err.message)).processDispatchCheckout(payload);
+    google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert(err.message)).processDispatchCheckout(payload);
   }
 
   function openMaintenanceModal() {
@@ -561,7 +559,6 @@
     document.getElementById('maintenance-modal').showModal();
   }
 
-  // --- DRAG & DROP ---
   let draggedTech = null;
   function attachDragEvents() {
     document.querySelectorAll('.tech-card[draggable="true"]').forEach(c => {
@@ -586,33 +583,12 @@
       e.preventDefault(); dock.classList.remove('drag-over'); const vanId = e.dataTransfer.getData('text/vanid'); 
       if(vanId && confirm(`End shift?`)) {
         updateVanState(vanId, { status: 'Warehouse (Ready)', zone: '—', driver: '—' });
-        google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processCheckInVehicle({ rentalId: vanId });
+        google.script.run.withSuccessHandler(handleBackendResponse).withFailureHandler(err=>alert(err.message)).processCheckInVehicle({ rentalId: vanId });
       }
     });
   }
 
   window.onload = loadState;
-
-  function promptResolveIssue(incidentId, rentalId) {
-    const notes = prompt(`Enter repair details to resolve issue ${incidentId}:\n(Your email and the timestamp will be automatically logged)`);
-    if (!notes) return;
-    
-    // Optimistic UI Update
-    const inc = globalState.incidents.find(i => i.id === incidentId);
-    if (inc) {
-      inc.resolved = true;
-      inc.resolution = notes;
-    }
-    
-    // Refresh the modal to instantly show it as 'Closed'
-    openVanProfile(rentalId);
-    
-    // Send to backend
-    google.script.run
-      .withFailureHandler(err => { alert("Failed to resolve issue: " + err.message); loadState(); })
-      .resolveSpecificIncident({ incidentId: incidentId, resolutionNotes: notes, rentalId: rentalId });
-  }
-  
 </script>
 </body>
 </html>

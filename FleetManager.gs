@@ -138,3 +138,74 @@ function resolveSpecificIncident(data) {
     return { success: false, message: 'Failed to resolve incident: ' + err.toString() };
   }
 }
+
+function processReportIncident(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const incSheet = ss.getSheetByName('Incidents_Service');
+    const vSheet = ss.getSheetByName('Vehicles');
+    const dSheet = ss.getSheetByName('Deployments');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+    
+    // Safety Checks
+    if (!incSheet) throw new Error("Could not find the 'Incidents_Service' tab.");
+    if (!vSheet) throw new Error("Could not find the 'Vehicles' tab.");
+    if (!data.rentalId && !data.cleanName) throw new Error("No Vehicle identifier was provided.");
+    
+    const incId = 'INC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
+
+    // 1. Log the Incident
+    incSheet.appendRow([
+      incId, now, data.cleanName || '', data.rentalId || '', data.issueCategory || 'General', 
+      data.description || '', data.triggerOos ? 'YES' : 'NO', data.statusImpact || '', 
+      '', '', '', user, now, data.driverInvolved || ''
+    ]);
+
+    if (data.triggerOos) {
+      // 2. Update Vehicle Sheet (Aggressively overwrite Zone and Tech)
+      let vFound = false;
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        const rowRentalId = String(vData[i][1]).trim().toLowerCase();
+        const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+
+        if (targetRentalId && rowRentalId === targetRentalId) {
+          const row = i + 1;
+          vSheet.getRange(row, 10).setValue('Out of Service'); // Status is Col 10
+          vSheet.getRange(row, 13).clearContent(); // Zone is Col 13
+          vSheet.getRange(row, 14).clearContent(); // Tech is Col 14
+          vSheet.getRange(row, 17).setValue(user); // Updated By
+          vSheet.getRange(row, 18).setValue(now);  // Updated At
+          vFound = true;
+          break;
+        }
+      }
+      if (!vFound) throw new Error(`Vehicle Unit ${data.rentalId} not found in Vehicles tab.`);
+      
+      // 3. Auto-End Active Deployments
+      if (dSheet) {
+        const dData = dSheet.getDataRange().getValues();
+        for (let j = 1; j < dData.length; j++) {
+          const depStatus = String(dData[j][9]).trim().toLowerCase();
+          const rowRentalId = String(dData[j][4]).trim().toLowerCase();
+          const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+
+          if ((depStatus === 'dispatched' || depStatus === 'active') && targetRentalId && rowRentalId === targetRentalId) {
+            const row = j + 1;
+            dSheet.getRange(row, 10).clearDataValidations(); 
+            dSheet.getRange(row, 10).setValue('Completed'); // End shift
+            dSheet.getRange(row, 12).setValue(now); // Return time
+          }
+        }
+      }
+    }
+    
+    if (typeof logAudit === 'function') logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
+    return { success: true, message: 'Incident reported successfully.' };
+    
+  } catch (err) {
+    // If it fails, bundle the exact error string so the UI can show it
+    return { success: false, message: 'Failed to report incident: ' + err.message };
+  }
+}
