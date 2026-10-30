@@ -190,10 +190,13 @@
 </dialog>
 
 <!-- Open Maintenance Modal -->
-<dialog id="maintenance-modal">
+<dialog id="maintenance-modal" class="modal-overlay">
   <div class="modal-content" style="max-width: 800px;">
-    <div class="modal-header"><h3 class="bold">🚨 Open Maintenance Issues</h3></div>
-    <div class="tab-pane" style="display:block;">
+    <div class="modal-header flex-between">
+      <h3 class="bold">🚨 Open Maintenance Issues</h3>
+      <button class="btn btn-danger text-sm" onclick="document.getElementById('maintenance-modal').close(); openModal('incidentModal');">➕ Report New Issue</button>
+    </div>
+    <div class="tab-pane" style="display:block; max-height: 400px; overflow-y: auto;">
       <table class="history-table">
         <thead><tr><th>Van</th><th>Unit #</th><th>Reported</th><th>Category</th><th>Details</th></tr></thead>
         <tbody id="maintenance-table-body"></tbody>
@@ -401,18 +404,46 @@
     if (selectedVan.status !== 'Decommissioned') {
        actionsHtml += `<button class="btn" style="margin-right:auto; border-color:var(--text-secondary); color:var(--text-secondary);" onclick="openEditVanModal()">⚙️ Edit Specs</button>`;
     }
+
     if (selectedVan.status === 'Warehouse (Ready)') {
-      actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Retire</button> <button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerManualDispatch()">🚀 Dispatch (Start Shift)</button>`;
+      actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Retire</button> <button class="btn btn-danger" onclick="openIncidentModalForVan(selectedVan)">🔧 Open Maint</button> <button class="btn btn-primary" onclick="triggerManualDispatch()">🚀 Dispatch (Start Shift)</button>`;
     } else if (selectedVan.status.includes('Dispatched')) {
-      actionsHtml += `<button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerCheckIn()">📥 End Shift (Return)</button>`;
+      actionsHtml += `<button class="btn btn-danger" onclick="openIncidentModalForVan(selectedVan)">🔧 Open Maint</button> <button class="btn btn-primary" onclick="triggerCheckIn()">📥 End Shift (Return)</button>`;
     } else if (selectedVan.status === 'Out of Service') {
       actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Retire</button> <button class="btn btn-success" onclick="resolveIssue()">🛠️ Fix & Return to Service</button>`;
     } else if (selectedVan.status === 'Decommissioned') {
       actionsHtml += `<div class="text-sm bold text-muted" style="margin-right:auto; padding-top:12px;">This vehicle is retired. Action disabled.</div>`;
     }
+    
     actionsHtml += `<button class="btn" onclick="document.getElementById('van-profile-modal').close()">Close</button>`;
     document.getElementById('vp-actions').innerHTML = actionsHtml;
     document.getElementById('van-profile-modal').showModal();
+  }
+
+
+function openIncidentModalForVan(van) {
+    document.getElementById('van-profile-modal').close();
+    
+    // Populate dropdown if needed or pre-select the van
+    const vanSelect = document.getElementById('inc_van');
+    if (vanSelect) {
+      vanSelect.value = van.cleanName;
+      if (vanSelect.selectedIndex <= 0) {
+        for (let i = 0; i < vanSelect.options.length; i++) {
+          if (vanSelect.options[i].text.includes(van.cleanName) || vanSelect.options[i].value === van.cleanName) {
+            vanSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Default check OOS checkbox
+    const oosCb = document.getElementById('inc_oos');
+    if (oosCb) oosCb.checked = true;
+
+    // Open the rich form modal instead of system prompt
+    openModal('incidentModal'); // or document.getElementById('incidentModal').showModal();
   }
 
   function promptResolveIssue(incidentId, rentalId) {
