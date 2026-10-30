@@ -127,7 +127,8 @@
 function loadState() {
     google.script.run
       .withSuccessHandler(data => {
-        globalState = data;
+        // Parse the safe JSON string back into a usable object
+        globalState = JSON.parse(data); 
         renderTechs();
         renderFleet();
       })

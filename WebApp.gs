@@ -70,7 +70,8 @@ function getDashboardState() {
     }
   }
 
-  return { vehicles: vehicles, techs: techs };
+// Wrap the return in JSON.stringify to instantly neutralize any rogue Date objects
+  return JSON.stringify({ vehicles: vehicles, techs: techs });
 }
 /**
  * Helper function to include modular HTML files into the main Dashboard_App.
