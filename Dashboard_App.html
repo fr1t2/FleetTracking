@@ -18,210 +18,170 @@
     }
     
     * { box-sizing: border-box; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
-    body { background-color: var(--bg-main); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+    body { background-color: var(--bg-main); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-    /* Layout Shell */
-    .app-container { display: flex; width: 100%; height: 100%; }
+    .app-container { display: flex; width: 100%; flex: 1; overflow: hidden; }
     
     /* Left Sidebar: Tech Roster */
-    .sidebar { width: 320px; background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .sidebar { width: 340px; background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
     .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #f8fafc; font-weight: 600; }
     .tech-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
     
-    /* Tech Cards & Drag/Drop */
-    .tech-card {
-      background: #fff; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;
-      cursor: grab; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
+    /* Tech Cards */
+    .tech-card { background: #fff; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; cursor: grab; display: flex; flex-direction: column; gap: 4px; }
     .tech-card:active { cursor: grabbing; }
     .tech-card.deployed { border-left: 4px solid var(--status-dispatched); }
-    .tech-card.muted { opacity: 0.4; filter: grayscale(100%); pointer-events: none; }
-    .tech-card.training { border: 1px dashed #f59e0b; background: #fffbeb; }
-    .tech-name { font-weight: 600; font-size: 14px; }
-    .tech-meta { font-size: 11px; color: var(--text-secondary); }
+    .tech-card.muted { opacity: 0.5; filter: grayscale(80%); pointer-events: none; }
+    .tech-name { font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; }
+    .tech-meta { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    .tech-badges { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge-pill { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: #f1f5f9; }
 
     /* Main Canvas: Vehicles */
     .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .topbar { height: 60px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 24px; justify-content: space-between; }
     .canvas { flex: 1; overflow-y: auto; padding: 24px; }
     
-    /* Vehicle Grid - Fixed Stretch Issue */
-    .fleet-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 320px));
-      gap: 16px;
-      align-items: start;
-    }
+    .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 320px)); gap: 16px; align-items: start; }
     
     /* Vehicle Cards */
-    .van-card {
-      background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius);
-      padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); transition: transform 0.2s;
-    }
+    .van-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    .van-card[draggable="true"] { cursor: grab; border-left: 4px solid var(--status-dispatched); }
+    .van-card[draggable="true"]:active { cursor: grabbing; }
     .van-card.drop-zone { border: 2px dashed var(--status-dispatched); background: #eff6ff; }
+    
     .van-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
     .van-name { font-size: 16px; font-weight: 700; }
     .van-unit { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-    .plate-badge { display: inline-block; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
-    .plate-state { color: #94a3b8; margin-right: 4px; }
     
     .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .status-ready { background: #d1fae5; color: #065f46; }
     .status-active { background: #dbeafe; color: #1e40af; }
     .status-oos { background: #fee2e2; color: #991b1b; }
-
     .van-meta { font-size: 12px; color: var(--text-secondary); margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
-    .samsara-link { color: var(--status-dispatched); text-decoration: none; font-weight: 500; }
-    .samsara-link:hover { text-decoration: underline; }
 
-    /* Utilities */
+    /* Bottom Dock Drop Zone */
+    .bottom-dock { height: 70px; background: #1e293b; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; border-top: 2px solid #0f172a; transition: all 0.2s; }
+    .bottom-dock.drag-over { background: var(--status-oos); color: #fff; border-top: 2px dashed #fca5a5; }
+
     .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
     .btn-primary { background: var(--veo-cyan); color: #000; }
-    .hidden { display: none; }
-    
-    /* Section Headers */
-    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin: 12px 0 4px 0; letter-spacing: 0.5px; }
+    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin: 12px 0 4px 0; }
   </style>
 </head>
 <body>
 
 <div class="app-container">
-  <!-- LEFT SIDEBAR: TECH ROSTER -->
   <aside class="sidebar">
-    <div class="sidebar-header">
-      Shift Dispatch
-      <div id="current-time-display" style="font-size:11px; color:var(--text-secondary); margin-top:4px; font-weight:400;">Loading time...</div>
-    </div>
-    <div class="tech-list" id="tech-roster-container">
-      <!-- Populated via JS -->
-    </div>
+    <div class="sidebar-header">Tech Roster</div>
+    <div class="tech-list" id="tech-roster-container">Loading...</div>
   </aside>
 
-  <!-- MAIN CANVAS: FLEET -->
   <main class="main-content">
     <header class="topbar">
       <h2>VEO Command Center</h2>
-      <div>
-        <button class="btn btn-primary" onclick="google.script.run.withSuccessHandler(loadState).getDashboardState()">🔄 Refresh</button>
-      </div>
+      <button class="btn btn-primary" onclick="loadState()">🔄 Refresh</button>
     </header>
     <div class="canvas">
-      <div class="fleet-grid" id="fleet-grid-container">
-        <!-- Populated via JS -->
-      </div>
+      <div class="fleet-grid" id="fleet-grid-container"></div>
     </div>
   </main>
 </div>
 
+<!-- Check-In Drop Zone -->
+<div id="checkin-dock" class="bottom-dock">
+  📥 DRAG ACTIVE VAN HERE TO END SHIFT & CLEAR
+</div>
+
+<!-- Quick Dispatch Modal -->
+<dialog id="quick-dispatch-modal" style="padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin: auto; width: 350px;">
+  <h3 style="margin-bottom:12px;">Deploy Vehicle</h3>
+  <form id="dispatch-form" method="dialog">
+    <p style="font-size:14px; margin-bottom:16px;">Assigning <strong><span id="qd-tech-name"></span></strong> to Unit <strong><span id="qd-van-id"></span></strong></p>
+    
+    <div style="margin-bottom: 12px;">
+      <label style="display:block; margin-bottom:4px; font-size:12px; font-weight:600;">Work Zone(s) (Ctrl/Cmd to multi-select):</label>
+      <select id="qd-zones" multiple style="width: 100%; height: 80px; border-radius:4px; padding:4px;">
+        <option value="Zone 1A">Zone 1A</option>
+        <option value="Zone 1B">Zone 1B</option>
+        <option value="Zone 2A">Zone 2A</option>
+        <option value="Zone 2B">Zone 2B</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label style="display:block; margin-bottom:4px; font-size:12px; font-weight:600;">Battery Count:</label>
+      <input type="number" id="qd-battery" placeholder="e.g. 10" style="width: 100%; padding: 6px; border-radius:4px; border:1px solid #ccc;">
+    </div>
+
+    <div style="text-align: right;">
+      <button type="button" class="btn" style="background:#e2e8f0;" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitQuickDispatch()">Deploy</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
-  let globalState = { vehicles: [], techs: [], deployments: [] };
+  let globalState = { vehicles: [], techs: [] };
 
-  // 1. Time-Aware Shift Logic
-  function determineActiveShift() {
-    const now = new Date();
-    const hour = now.getHours();
-    if (hour >= 5 && hour < 13) return "First Shift";   // 5am - 1pm
-    if (hour >= 13 && hour < 21) return "Second Shift"; // 1pm - 9pm
-    return "Third Shift";                               // 9pm - 5am
-  }
-
-  function updateClock() {
-    const now = new Date();
-    const shift = determineActiveShift();
-    document.getElementById('current-time-display').innerText = `${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • ${shift} Active`;
-  }
-  setInterval(updateClock, 60000);
-
-  // 2. Load Data
   function loadState() {
     google.script.run.withSuccessHandler(data => {
       globalState = data;
-      renderDashboard();
-      updateClock();
+      renderTechs();
+      renderFleet();
     }).getDashboardState();
   }
 
-  // 3. Render Dashboard
-  function renderDashboard() {
-    renderTechs();
-    renderFleet();
-  }
-
-  // 4. Render Techs (Time-Aware & Segregated)
   function renderTechs() {
     const container = document.getElementById('tech-roster-container');
-    const activeShift = determineActiveShift();
-    
-    // Grouping
     const deployedTechs = [];
-    const activeShiftTechs = [];
-    const offlineTechs = [];
+    const activeTechs = [];
 
     globalState.techs.forEach(t => {
-      // Check if tech is currently deployed
-      const isDeployed = globalState.vehicles.some(v => v.driver === t.name || (v.notes && v.notes.includes(t.name)));
-      
-      if (isDeployed) {
-        deployedTechs.push(t);
-      } else if (t.shift === activeShift) {
-        activeShiftTechs.push(t);
-      } else {
-        // Mute off-shift techs
-        offlineTechs.push(t);
-      }
+      const isDeployed = globalState.vehicles.some(v => v.driver.includes(t.name));
+      if (isDeployed) deployedTechs.push(t);
+      else activeTechs.push(t);
     });
 
     let html = '';
-    
     if (deployedTechs.length > 0) {
       html += `<div class="section-title">Active On Route</div>`;
       html += deployedTechs.map(t => createTechCard(t, 'deployed')).join('');
     }
     
-    html += `<div class="section-title">${activeShift} (Available)</div>`;
-    html += activeShiftTechs.map(t => createTechCard(t, '')).join('');
-    
-    html += `<div class="section-title">Off Shift</div>`;
-    html += offlineTechs.map(t => createTechCard(t, 'muted')).join('');
+    html += `<div class="section-title">Available / Roster</div>`;
+    html += activeTechs.map(t => createTechCard(t, t.status !== 'Available' ? 'muted' : '')).join('');
 
     container.innerHTML = html;
-    attachDragEvents();
+    attachTechDragEvents();
   }
 
   function createTechCard(tech, stateClass) {
     let flags = '';
-    if (tech.restricted) flags += ' 🛑 Restricted';
-    if (!tech.passedTest) flags += ' ⚠️ No Test';
+    if (tech.restricted) flags += `<span class="badge-pill" style="color:#dc2626; background:#fef2f2;">🛑 Restricted</span>`;
+    if (!tech.passedTest) flags += `<span class="badge-pill" style="color:#d97706; background:#fffbeb;">⚠️ No Test</span>`;
+    else flags += `<span class="badge-pill" style="color:#059669; background:#d1fae5;">✅ Passed Test</span>`;
 
     return `
       <div class="tech-card ${stateClass}" draggable="${stateClass !== 'muted'}" data-tech="${tech.name}">
-        <div class="tech-name">${tech.name}</div>
-        <div class="tech-meta">${tech.shift} ${flags}</div>
+        <div class="tech-name"><span>${tech.name}</span> <span style="font-weight:400; font-size:12px;">📞 ${tech.phone}</span></div>
+        <div class="tech-meta">
+          <div>${tech.shift} &bull; ${tech.startTime} - ${tech.endTime}</div>
+          <div>${tech.workDays}</div>
+        </div>
+        <div class="tech-badges">${flags}</div>
       </div>
     `;
   }
 
-  // 5. Render Fleet Grid
   function renderFleet() {
     const container = document.getElementById('fleet-grid-container');
-    
     container.innerHTML = globalState.vehicles.map(v => {
-      const statusClass = (v.status === 'Active' || v.status === 'In Service') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-ready');
+      const statusClass = (v.status === 'Dispatched' || v.status === 'Active') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-ready');
+      const isDraggable = (statusClass === 'status-active');
       
-      // Format License Plate with State prefix if standard format
-      let plateDisplay = v.plate || 'No Plate';
-      if (plateDisplay.length === 7 || plateDisplay.length === 6) { // Heuristic for formatting
-         plateDisplay = `<span class="plate-state">CO</span> ${plateDisplay}`;
-      }
-
-      // Format Samsara Link
-      let samsaraHtml = v.samsaraSerial ? `Samsara: ${v.samsaraSerial}` : 'Samsara: Unassigned';
-      if (v.samsaraLink) {
-        samsaraHtml = `<a href="${v.samsaraLink}" target="_blank" class="samsara-link">📡 Live View ↗</a>`;
-      }
-
       return `
-        <div class="van-card" data-van="${v.rentalId}" data-status="${v.status}">
+        <div class="van-card" draggable="${isDraggable}" data-van="${v.rentalId}" data-status="${v.status}">
           <div class="van-header">
             <div>
               <div class="van-name">${v.cleanName}</div>
@@ -229,29 +189,26 @@
             </div>
             <span class="status-badge ${statusClass}">${v.status}</span>
           </div>
-          <div style="margin-bottom:8px;">
-            <div class="plate-badge">${plateDisplay}</div>
-          </div>
           <div class="van-meta">
             <div>Driver: <strong>${v.driver || '—'}</strong></div>
             <div>Zone: <strong>${v.zone || '—'}</strong></div>
-            <div style="margin-top:4px;">${samsaraHtml}</div>
           </div>
         </div>
       `;
     }).join('');
     
-    attachDropEvents();
+    attachVanDragEvents();
+    attachVanDropZones();
   }
 
-  // 6. HTML5 Drag and Drop Engine
+  // --- DRAG & DROP ENGINE ---
   let draggedTech = null;
 
-  function attachDragEvents() {
+  function attachTechDragEvents() {
     document.querySelectorAll('.tech-card[draggable="true"]').forEach(card => {
       card.addEventListener('dragstart', (e) => {
         draggedTech = e.target.getAttribute('data-tech');
-        e.dataTransfer.setData('text/plain', draggedTech);
+        e.dataTransfer.setData('text/tech', draggedTech);
         e.target.style.opacity = '0.5';
       });
       card.addEventListener('dragend', (e) => {
@@ -261,72 +218,65 @@
     });
   }
 
-  function attachDropEvents() {
-    document.querySelectorAll('.van-card').forEach(card => {
-      card.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const status = card.getAttribute('data-status');
-        if (status !== 'Out of Service' && status !== 'Decommissioned') {
-          card.classList.add('drop-zone');
-        }
+  function attachVanDragEvents() {
+    document.querySelectorAll('.van-card[draggable="true"]').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/vanid', card.getAttribute('data-van'));
+        card.style.opacity = '0.5';
       });
-      card.addEventListener('dragleave', (e) => {
-        card.classList.remove('drop-zone');
-      });
-      card.addEventListener('drop', (e) => {
-        e.preventDefault();
-        card.classList.remove('drop-zone');
-        
-        const vanId = card.getAttribute('data-van');
-        const status = card.getAttribute('data-status');
-        
-        if (status === 'Out of Service' || status === 'Decommissioned') {
-          alert('Cannot dispatch an Out of Service vehicle.');
-          return;
-        }
-
-        if (draggedTech && vanId) {
-          // Trigger the actual dispatch logic instead of the alert
-          openQuickDispatch(vanId, draggedTech);
-        }
+      card.addEventListener('dragend', (e) => {
+        card.style.opacity = '1';
+        document.getElementById('checkin-dock').classList.remove('drag-over');
       });
     });
   }
 
-  // Init
-  window.onload = loadState;
-</script>
+  function attachVanDropZones() {
+    // 1. Van Cards accepting Techs
+    document.querySelectorAll('.van-card').forEach(card => {
+      card.addEventListener('dragover', (e) => {
+        if(e.dataTransfer.types.includes('text/tech')) {
+          e.preventDefault();
+          const status = card.getAttribute('data-status');
+          if (status !== 'Out of Service') card.classList.add('drop-zone');
+        }
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drop-zone'));
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drop-zone');
+        const vanId = card.getAttribute('data-van');
+        if (draggedTech && vanId) {
+          openQuickDispatch(vanId, draggedTech);
+        }
+      });
+    });
 
-<!-- Quick Dispatch Modal -->
-<dialog id="quick-dispatch-modal" style="padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin: auto;">
-  <h3>Deploy Vehicle</h3>
-  <form id="dispatch-form" method="dialog">
-    <p>Assigning <strong><span id="qd-tech-name"></span></strong> to Unit <strong><span id="qd-van-id"></span></strong></p>
-    
-    <div style="margin-bottom: 12px;">
-      <label style="display:block; margin-bottom:4px;">Work Zone(s) (Hold Ctrl/Cmd to multi-select):</label>
-      <select id="qd-zones" multiple style="width: 100%; height: 80px;">
-        <option value="Zone 1A">Zone 1A</option>
-        <option value="Zone 1B">Zone 1B</option>
-        <option value="Zone 2A">Zone 2A</option>
-      </select>
-    </div>
+    // 2. Bottom Dock accepting Vans (Check-In)
+    const dock = document.getElementById('checkin-dock');
+    dock.addEventListener('dragover', (e) => {
+      if(e.dataTransfer.types.includes('text/vanid')) {
+        e.preventDefault();
+        dock.classList.add('drag-over');
+      }
+    });
+    dock.addEventListener('dragleave', () => dock.classList.remove('drag-over'));
+    dock.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dock.classList.remove('drag-over');
+      const vanId = e.dataTransfer.getData('text/vanid');
+      if(vanId && confirm(`End shift and check in Unit ${vanId}?`)) {
+        dock.innerText = "Processing Check In...";
+        google.script.run.withSuccessHandler(() => {
+          dock.innerText = "📥 DRAG ACTIVE VAN HERE TO END SHIFT & CLEAR";
+          loadState();
+        }).processCheckIn(vanId);
+      }
+    });
+  }
 
-    <div style="margin-bottom: 12px;">
-      <label style="display:block; margin-bottom:4px;">Battery Count:</label>
-      <input type="number" id="qd-battery" placeholder="e.g. 10" style="width: 100%; padding: 4px;">
-    </div>
-
-    <div style="text-align: right; margin-top: 16px;">
-      <button type="button" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
-      <button type="button" onclick="submitQuickDispatch()" style="background: var(--veo-cyan); font-weight: bold; border: none; padding: 6px 12px; border-radius: 4px;">Deploy</button>
-    </div>
-  </form>
-</dialog>
-
-<script>
+  // --- DISPATCH LOGIC ---
   let pendingDispatch = {};
-
   function openQuickDispatch(vanId, techName) {
     pendingDispatch = { vanId, techName };
     document.getElementById('qd-van-id').innerText = vanId;
@@ -336,26 +286,18 @@
 
   function submitQuickDispatch() {
     const selectedZones = Array.from(document.getElementById('qd-zones').selectedOptions).map(opt => opt.value).join(', ');
-    const batteryCount = document.getElementById('qd-battery').value;
-    
     const payload = {
       rentalId: pendingDispatch.vanId,
       tech: pendingDispatch.techName,
       zones: selectedZones,
-      batteryCount: batteryCount
+      batteryCount: document.getElementById('qd-battery').value
     };
-
     document.getElementById('quick-dispatch-modal').close();
     
-    // Call your backend DispatchManager.gs function
-    google.script.run
-      .withSuccessHandler(() => {
-        alert('Dispatched successfully!');
-        loadState(); // Refresh dashboard
-      })
-      .processDispatchCheckout(payload); // Ensure this function exists in DispatchManager.gs
+    google.script.run.withSuccessHandler(loadState).processDispatchCheckout(payload);
   }
-</script>
 
+  window.onload = loadState;
+</script>
 </body>
 </html>

@@ -20,41 +20,45 @@ function include(filename) {
 function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const vSheet = ss.getSheetByName('Vehicles');
-  const dSheet = ss.getSheetByName('Deployments');
+  const tSheet = ss.getSheetByName('Tech_Profiles');
   
-  // 1. Fetch Vehicles (Mapping all 19 columns)
+  // 1. Fetch Vehicles
   const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
     const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 19).getValues();
     vRows.forEach(r => {
-      if (!r[0] && !r[1]) return; // Skip empty rows
+      if (!r[0] && !r[1]) return; 
       vehicles.push({
         cleanName: r[0],
         rentalId: r[1],
-        agency: r[2],
-        makeModel: r[3],
-        vin: r[4],
         plate: r[5],
-        plateExpDate: r[6],
         samsaraSerial: r[7],
-        samsaraLink: r[8], // NEW COLUMN
+        samsaraLink: r[8],
         status: r[9] || 'Warehouse (Ready)',
-        pickupDate: r[10],
-        serviceNum: r[11],
         zone: r[12] || '—',
-        driver: r[13] || '—',
-        lastService: r[14],
-        notes: r[15]
+        driver: r[13] || '—'
       });
     });
   }
 
-  // 2. Fetch Techs & Deployments (Simplified for the unified view)
-  const techs = []; // Pull from your _Config tab as before
-  const configSheet = ss.getSheetByName('_Config');
-  if (configSheet) {
-    const roster = configSheet.getRange('K2:K' + configSheet.getLastRow()).getValues().flat().filter(String);
-    roster.forEach(name => techs.push({ name: name, shift: "First Shift", restricted: false, passedTest: true }));
+  // 2. Fetch Techs from Tech_Profiles (Extended Attributes)
+  const techs = [];
+  if (tSheet && tSheet.getLastRow() > 1) {
+    const tRows = tSheet.getRange(2, 1, tSheet.getLastRow() - 1, 15).getValues();
+    tRows.forEach(r => {
+      if (!r[0]) return;
+      techs.push({
+        name: r[0],
+        phone: r[1] || 'No Phone',
+        shift: r[2] || 'First Shift',
+        startTime: r[3] || '—',
+        endTime: r[4] || '—',
+        workDays: r[5] || '—',
+        passedTest: String(r[6]).trim().toLowerCase() === 'yes',
+        restricted: String(r[8]).trim().toLowerCase() === 'yes',
+        status: r[9] || 'Available'
+      });
+    });
   }
 
   return { vehicles: vehicles, techs: techs };

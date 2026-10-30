@@ -43,3 +43,44 @@ function processDispatchCheckout(data) {
     return { success: false, message: 'Dispatch failed: ' + err.toString() };
   }
 }
+
+/**
+ * Processes a drag-and-drop End Shift / Check-in.
+ */
+function processCheckIn(rentalId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const dSheet = ss.getSheetByName('Deployments');
+    const now = new Date();
+
+    // 1. Clear the driver and zone, set back to Warehouse
+    const vData = vSheet.getDataRange().getValues();
+    let found = false;
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(rentalId).trim().toLowerCase()) {
+        vSheet.getRange(i + 1, 10).setValue('Warehouse (Ready)');
+        vSheet.getRange(i + 1, 13).clearContent();
+        vSheet.getRange(i + 1, 14).clearContent();
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) throw new Error("Vehicle not found.");
+
+    // 2. Mark the active deployment as Completed
+    const dData = dSheet.getDataRange().getValues();
+    for (let i = 1; i < dData.length; i++) {
+      if (String(dData[i][4]).trim().toLowerCase() === String(rentalId).trim().toLowerCase() && String(dData[i][9]) === 'Dispatched') {
+        dSheet.getRange(i + 1, 10).setValue('Completed');
+        dSheet.getRange(i + 1, 12).setValue(now); // Return Time
+        break;
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
+}
