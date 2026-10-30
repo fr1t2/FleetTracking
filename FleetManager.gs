@@ -103,3 +103,38 @@ function decommissionVehicle(rentalId, reason) {
     return { success: false, message: 'Failed to decommission: ' + err.toString() };
   }
 }
+
+/**
+ * Resolves a specific incident ticket directly from the history logs.
+ */
+function resolveSpecificIncident(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    if (!data.incidentId) throw new Error("No Incident ID provided.");
+
+    const iData = iSheet.getDataRange().getValues();
+    let found = false;
+    for (let j = 1; j < iData.length; j++) {
+      if (String(iData[j][0]).trim() === data.incidentId) {
+        iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes); // Col I: Resolution Notes
+        iSheet.getRange(j + 1, 10).setValue(now);                 // Col J: Date Resolved
+        iSheet.getRange(j + 1, 11).setValue(user);                // Col K: Resolved By
+        found = true;
+        break;
+      }
+    }
+    if (!found) throw new Error("Incident not found.");
+    
+    if (typeof logAudit === 'function') {
+      logAudit('INCIDENT_RESOLVED', 'Incidents_Service', data.incidentId, `Resolved by ${user}: ${data.resolutionNotes}`);
+    }
+    
+    return { success: true, message: `Incident resolved.` };
+  } catch (err) {
+    return { success: false, message: 'Failed to resolve incident: ' + err.toString() };
+  }
+}

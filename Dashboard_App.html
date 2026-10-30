@@ -395,9 +395,11 @@
       (myDeps.length ? myDeps.map(d => `<tr><td>${d.date}</td><td>${d.tech}</td><td>${d.zone}</td><td>${d.status}</td></tr>`).join('') : `<tr><td colspan="4" class="text-muted text-center">No recent deployments</td></tr>`);
 
     const myIncs = globalState.incidents.filter(i => i.rentalId === rentalId);
-    document.getElementById('vp-incidents-table').innerHTML = `<thead><tr><th>Date</th><th>Category</th><th>Resolved?</th></tr></thead>` + 
-      (myIncs.length ? myIncs.map(i => `<tr><td>${i.date}</td><td>${i.category}</td><td>${i.resolved ? '✅ Yes' : '❌ No'}</td></tr>`).join('') : `<tr><td colspan="3" class="text-muted text-center">No recorded incidents</td></tr>`);
-
+    document.getElementById('vp-incidents-table').innerHTML = `<thead><tr><th>Date</th><th>Category</th><th>Resolved?</th><th>Action</th></tr></thead>` + 
+      (myIncs.length ? myIncs.map(i => {
+        let actionBtn = i.resolved ? `<span class="text-muted">Closed</span>` : `<button class="btn btn-success" style="padding: 4px 8px; font-size: 10px;" onclick="promptResolveIssue('${i.id}', '${rentalId}')">Resolve</button>`;
+        return `<tr><td>${i.date}</td><td>${i.category}</td><td>${i.resolved ? '✅ Yes' : '❌ No'}</td><td>${actionBtn}</td></tr>`;
+      }).join('') : `<tr><td colspan="4" class="text-muted text-center">No recorded incidents</td></tr>`);
 
     let actionsHtml = '';
     if (selectedVan.status !== 'Decommissioned') {
@@ -590,6 +592,27 @@
   }
 
   window.onload = loadState;
+
+  function promptResolveIssue(incidentId, rentalId) {
+    const notes = prompt(`Enter repair details to resolve issue ${incidentId}:\n(Your email and the timestamp will be automatically logged)`);
+    if (!notes) return;
+    
+    // Optimistic UI Update
+    const inc = globalState.incidents.find(i => i.id === incidentId);
+    if (inc) {
+      inc.resolved = true;
+      inc.resolution = notes;
+    }
+    
+    // Refresh the modal to instantly show it as 'Closed'
+    openVanProfile(rentalId);
+    
+    // Send to backend
+    google.script.run
+      .withFailureHandler(err => { alert("Failed to resolve issue: " + err.message); loadState(); })
+      .resolveSpecificIncident({ incidentId: incidentId, resolutionNotes: notes, rentalId: rentalId });
+  }
+  
 </script>
 </body>
 </html>
