@@ -25,16 +25,14 @@ function getDashboardState() {
   const dSheet = ss.getSheetByName('Deployments');
   const cSheet = ss.getSheetByName('_Config');
   
-  // 1. Fetch Config Zones (Column E)
   const zones = [];
   if (cSheet && cSheet.getLastRow() > 1) {
     const cData = cSheet.getDataRange().getValues();
     for (let i = 1; i < cData.length; i++) {
-      if (cData[i][4]) zones.push(String(cData[i][4]).trim()); // Col E
+      if (cData[i][4]) zones.push(String(cData[i][4]).trim());
     }
   }
 
-  // 2. Fetch Vehicles
   const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
     const vData = vSheet.getDataRange().getValues();
@@ -44,14 +42,16 @@ function getDashboardState() {
         cleanName: vData[i][0] || '', rentalId: vData[i][1] || '',
         agency: vData[i][2] || '', makeModel: vData[i][3] || '',
         vin: vData[i][4] || '', plate: vData[i][5] || '',
-        samsaraSerial: vData[i][7] || '', status: vData[i][9] || 'Warehouse (Ready)',
+        plateExpDate: vData[i][6] ? new Date(vData[i][6]).toLocaleDateString() : '—', // Col G
+        samsaraSerial: vData[i][7] || '', samsaraLink: vData[i][8] || '',
+        status: vData[i][9] || 'Warehouse (Ready)',
         pickupDate: vData[i][10] ? new Date(vData[i][10]).toLocaleDateString() : '',
-        zone: vData[i][12] || '—', driver: vData[i][13] || '—', notes: vData[i][15] || ''
+        zone: vData[i][12] || '—', driver: vData[i][13] || '—', notes: vData[i][15] || '',
+        coast: vData[i][19] || 'No' // Col T (Index 19)
       });
     }
   }
 
-  // 3. Fetch Techs
   const techs = [];
   if (tSheet && tSheet.getLastRow() > 1) {
     const tData = tSheet.getDataRange().getValues();
@@ -66,7 +66,6 @@ function getDashboardState() {
     }
   }
 
-  // 4. Fetch Incidents (Maintenance History & Open Issues)
   const incidents = [];
   if (iSheet && iSheet.getLastRow() > 1) {
     const iData = iSheet.getDataRange().getValues();
@@ -82,7 +81,6 @@ function getDashboardState() {
     }
   }
 
-  // 5. Fetch Deployments (Last 200 for speed)
   const deployments = [];
   if (dSheet && dSheet.getLastRow() > 1) {
     const dData = dSheet.getDataRange().getValues();
@@ -92,7 +90,7 @@ function getDashboardState() {
         id: dData[i][0], date: dData[i][1] ? new Date(dData[i][1]).toLocaleDateString() : '',
         shift: dData[i][2] || '', cleanName: dData[i][3] || '', rentalId: dData[i][4] || '',
         tech: dData[i][5] || '', zone: dData[i][6] || '', goals: dData[i][7] || '',
-        status: dData[i][9] || ''
+        battery: dData[i][8] || '', status: dData[i][9] || '', departureTime: dData[i][10] ? new Date(dData[i][10]).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''
       });
     }
   }
