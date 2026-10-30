@@ -1,142 +1,73 @@
-function processAddVehicle(data) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('Vehicles');
-    const now = new Date();
-    const user = Session.getActiveUser().getEmail() || 'local-user';
-
-    const row = Array(20).fill('');
-    row[0] = data.cleanName || '';
-    row[1] = data.rentalId || '';
-    row[2] = data.agency || '';
-    row[3] = data.makeModel || '';
-    row[4] = data.vin || '';
-    row[5] = data.plate || '';
-    row[6] = data.plateExpDate || '';
-    row[7] = data.samsaraSerial || '';
-    row[8] = data.samsaraLink || '';
-    row[9] = 'Warehouse (Ready)';
-    row[10] = data.pickupDate || Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-    row[11] = data.serviceNum || '';
-    row[14] = now; 
-    row[16] = user;
-    row[17] = now;
-    row[18] = data.addons || '';
-    row[19] = data.coast || 'No';
-
-    sheet.appendRow(row);
-    return { success: true, message: `Unit ${data.rentalId} added to the fleet.` };
-  } catch (err) {
-    return { success: false, message: 'Failed to add vehicle: ' + err.toString() };
-  }
-}
-
-function updateVehicleDetails(data) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('Vehicles');
-    const rows = sheet.getDataRange().getValues();
-    let rowIndex = -1;
-
-    for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
-        rowIndex = i + 1;
-        break;
-      }
-    }
-    if (rowIndex === -1) throw new Error("Vehicle not found.");
-
-    const now = new Date();
-    const user = Session.getActiveUser().getEmail() || 'local-user';
-
-    // 1-based indexing for getRange(row, column)
-    if(data.cleanName !== undefined) sheet.getRange(rowIndex, 1).setValue(data.cleanName);
-    if(data.agency !== undefined) sheet.getRange(rowIndex, 3).setValue(data.agency);
-    if(data.makeModel !== undefined) sheet.getRange(rowIndex, 4).setValue(data.makeModel);
-    if(data.vin !== undefined) sheet.getRange(rowIndex, 5).setValue(data.vin);
-    if(data.plate !== undefined) sheet.getRange(rowIndex, 6).setValue(data.plate);
-    if(data.plateExpDate !== undefined) sheet.getRange(rowIndex, 7).setValue(data.plateExpDate);
-    if(data.samsaraSerial !== undefined) sheet.getRange(rowIndex, 8).setValue(data.samsaraSerial);
-    if(data.samsaraLink !== undefined) sheet.getRange(rowIndex, 9).setValue(data.samsaraLink);
-    if(data.serviceNum !== undefined) sheet.getRange(rowIndex, 12).setValue(data.serviceNum);
-    if(data.addons !== undefined) sheet.getRange(rowIndex, 19).setValue(data.addons);
-    if(data.coast !== undefined) sheet.getRange(rowIndex, 20).setValue(data.coast);
-
-    sheet.getRange(rowIndex, 17).setValue(user);
-    sheet.getRange(rowIndex, 18).setValue(now);
-
-    return { success: true, message: `Unit ${data.rentalId} updated.` };
-  } catch (err) {
-    return { success: false, message: 'Failed to update vehicle: ' + err.toString() };
-  }
-}
-
-function decommissionVehicle(rentalId, reason) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('Vehicles');
-    const rows = sheet.getDataRange().getValues();
-    let rowIndex = -1;
-
-    for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][1]).trim().toLowerCase() === String(rentalId).trim().toLowerCase()) {
-        rowIndex = i + 1;
-        break;
-      }
-    }
-    if (rowIndex === -1) throw new Error("Vehicle not found.");
-
-    const now = new Date();
-    const user = Session.getActiveUser().getEmail() || 'local-user';
-
-    sheet.getRange(rowIndex, 10).setValue('Decommissioned'); 
-    sheet.getRange(rowIndex, 13).clearContent(); 
-    sheet.getRange(rowIndex, 14).clearContent(); 
-    
-    const curNotes = sheet.getRange(rowIndex, 16).getValue();
-    sheet.getRange(rowIndex, 16).setValue((curNotes ? curNotes + ' | ' : '') + 'Decommissioned: ' + reason);
-    sheet.getRange(rowIndex, 17).setValue(user);
-    sheet.getRange(rowIndex, 18).setValue(now);
-
-    return { success: true, message: `Unit ${rentalId} decommissioned.` };
-  } catch (err) {
-    return { success: false, message: 'Failed to decommission: ' + err.toString() };
-  }
-}
-
 /**
- * Resolves a specific incident ticket directly from the history logs.
+ * @fileoverview Vehicle Registry & Service Operations
  */
-function resolveSpecificIncident(data) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const iSheet = ss.getSheetByName('Incidents_Service');
-    const now = new Date();
-    const user = Session.getActiveUser().getEmail() || 'local-user';
 
-    if (!data.incidentId) throw new Error("No Incident ID provided.");
+function processAddVehicle(formData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Vehicles');
+  const now = new Date();
+  const user = Session.getActiveUser().getEmail() || 'local-user';
+  
+  sheet.appendRow([
+    formData.vanName || '', 
+    formData.rentalId || '', 
+    formData.rentalAgency || 'Enterprise',
+    formData.makeModel || 'Cargo Van', 
+    formData.vin || '', 
+    formData.licensePlate || '',
+    formData.plateExpDate || '', 
+    formData.samsaraSerial || '', 
+    formData.samsaraLink || '',
+    'Warehouse (Ready)', 
+    formData.pickupDate || Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    formData.serviceNumber || '', 
+    '', 
+    '', 
+    '', 
+    '', 
+    user, 
+    now, 
+    formData.addons || '',
+    formData.coast || 'No'
+  ]);
+  
+  if (typeof logAudit === 'function') logAudit('VEHICLE_ADDED', 'Vehicles', formData.rentalId, 'Added to fleet');
+  return { success: true, message: `Vehicle added!` };
+}
 
-    const iData = iSheet.getDataRange().getValues();
-    let found = false;
-    for (let j = 1; j < iData.length; j++) {
-      if (String(iData[j][0]).trim() === data.incidentId) {
-        iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes); // Col I: Resolution Notes
-        iSheet.getRange(j + 1, 10).setValue(now);                 // Col J: Date Resolved
-        iSheet.getRange(j + 1, 11).setValue(user);                // Col K: Resolved By
-        found = true;
-        break;
-      }
+function updateVehicleDetails(formData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Vehicles');
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1]).trim().toLowerCase() === String(formData.rentalId).trim().toLowerCase()) {
+      rowIndex = i + 1; break;
     }
-    if (!found) throw new Error("Incident not found.");
-    
-    if (typeof logAudit === 'function') {
-      logAudit('INCIDENT_RESOLVED', 'Incidents_Service', data.incidentId, `Resolved by ${user}: ${data.resolutionNotes}`);
-    }
-    
-    return { success: true, message: `Incident resolved.` };
-  } catch (err) {
-    return { success: false, message: 'Failed to resolve incident: ' + err.toString() };
   }
+  if (rowIndex === -1) throw new Error(`Vehicle not found.`);
+
+  const now = new Date();
+  const user = Session.getActiveUser().getEmail() || 'local-user';
+
+  sheet.getRange(rowIndex, 1).setValue(formData.vanName);
+  sheet.getRange(rowIndex, 3).setValue(formData.rentalAgency);
+  sheet.getRange(rowIndex, 4).setValue(formData.makeModel);
+  sheet.getRange(rowIndex, 5).setValue(formData.vin);
+  sheet.getRange(rowIndex, 6).setValue(formData.licensePlate);
+  sheet.getRange(rowIndex, 7).setValue(formData.plateExpDate);
+  sheet.getRange(rowIndex, 8).setValue(formData.samsaraSerial);
+  sheet.getRange(rowIndex, 9).setValue(formData.samsaraLink);
+  sheet.getRange(rowIndex, 11).setValue(formData.pickupDate);
+  sheet.getRange(rowIndex, 12).setValue(formData.serviceNumber);
+  sheet.getRange(rowIndex, 17).setValue(user); 
+  sheet.getRange(rowIndex, 18).setValue(now); 
+  sheet.getRange(rowIndex, 19).setValue(formData.addons);
+  if (formData.coast) sheet.getRange(rowIndex, 20).setValue(formData.coast);
+
+  if (typeof logAudit === 'function') logAudit('VEHICLE_UPDATED', 'Vehicles', formData.rentalId, 'Specs updated');
+  return { success: true, message: `Vehicle updated.` };
 }
 
 function processReportIncident(data) {
@@ -147,65 +78,135 @@ function processReportIncident(data) {
     const dSheet = ss.getSheetByName('Deployments');
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
-    
-    // Safety Checks
-    if (!incSheet) throw new Error("Could not find the 'Incidents_Service' tab.");
-    if (!vSheet) throw new Error("Could not find the 'Vehicles' tab.");
     if (!data.rentalId && !data.cleanName) throw new Error("No Vehicle identifier was provided.");
     
     const incId = 'INC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
-
-    // 1. Log the Incident
+    
+    // Columns: Incident ID, Date Reported, Vehicle Clean Name, Rental ID, Issue Category, Description, OOS Triggered, Status Impact, Resolution Notes, Date Resolved, Resolved By, Logged By, Created Timestamp, Driver Involved
     incSheet.appendRow([
-      incId, now, data.cleanName || '', data.rentalId || '', data.issueCategory || 'General', 
-      data.description || '', data.triggerOos ? 'YES' : 'NO', data.statusImpact || '', 
-      '', '', '', user, now, data.driverInvolved || ''
+      incId, now, data.cleanName, data.rentalId, data.issueCategory, data.description, 
+      data.triggerOos ? 'YES' : 'NO', data.statusImpact, '', '', '', user, now, data.driverInvolved || ''
     ]);
 
     if (data.triggerOos) {
-      // 2. Update Vehicle Sheet (Aggressively overwrite Zone and Tech)
       let vFound = false;
       const vData = vSheet.getDataRange().getValues();
       for (let i = 1; i < vData.length; i++) {
         const rowRentalId = String(vData[i][1]).trim().toLowerCase();
+        const rowCleanName = String(vData[i][0]).trim().toLowerCase();
         const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+        const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
 
-        if (targetRentalId && rowRentalId === targetRentalId) {
+        if ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName)) {
           const row = i + 1;
-          vSheet.getRange(row, 10).setValue('Out of Service'); // Status is Col 10
-          vSheet.getRange(row, 13).clearContent(); // Zone is Col 13
-          vSheet.getRange(row, 14).clearContent(); // Tech is Col 14
-          vSheet.getRange(row, 17).setValue(user); // Updated By
-          vSheet.getRange(row, 18).setValue(now);  // Updated At
-          vFound = true;
-          break;
+          vSheet.getRange(row, 10).setValue('Out of Service'); // Status column (Col J)
+          vSheet.getRange(row, 13).setValue('—');              // Clear Assigned Zone (Col M)
+          vSheet.getRange(row, 14).setValue('—');              // Clear Assigned Tech (Col N)
+          vSheet.getRange(row, 17).setValue(user);
+          vSheet.getRange(row, 18).setValue(now);
+          vFound = true; break;
         }
       }
-      if (!vFound) throw new Error(`Vehicle Unit ${data.rentalId} not found in Vehicles tab.`);
+      if (!vFound) throw new Error("Vehicle not found in registry to update status.");
       
-      // 3. Auto-End Active Deployments
-      if (dSheet) {
-        const dData = dSheet.getDataRange().getValues();
-        for (let j = 1; j < dData.length; j++) {
-          const depStatus = String(dData[j][9]).trim().toLowerCase();
-          const rowRentalId = String(dData[j][4]).trim().toLowerCase();
-          const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+      const dData = dSheet.getDataRange().getValues();
+      for (let j = 1; j < dData.length; j++) {
+        const depStatus = String(dData[j][9]).trim().toLowerCase();
+        const rowRentalId = String(dData[j][4]).trim().toLowerCase();
+        const rowCleanName = String(dData[j][3]).trim().toLowerCase();
+        const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+        const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
 
-          if ((depStatus === 'dispatched' || depStatus === 'active') && targetRentalId && rowRentalId === targetRentalId) {
-            const row = j + 1;
-            dSheet.getRange(row, 10).clearDataValidations(); 
-            dSheet.getRange(row, 10).setValue('Completed'); // End shift
-            dSheet.getRange(row, 12).setValue(now); // Return time
+        if ((depStatus === 'dispatched' || depStatus === 'active') && ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName))) {
+          const row = j + 1;
+          dSheet.getRange(row, 10).clearDataValidations(); 
+          dSheet.getRange(row, 10).setValue('Completed'); 
+          dSheet.getRange(row, 12).setValue(now); 
+        }
+      }
+    }
+    if (typeof logAudit === 'function') logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
+    return { success: true, message: 'Incident reported successfully.' };
+  } catch (err) {
+    return { success: false, message: 'Failed to report incident: ' + err.toString() };
+  }
+}
+
+function processCheckInVehicle(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    if (!data.rentalId && !data.cleanName) return { success: false, message: 'No vehicle identifier was provided to the database.' };
+
+    const vData = vSheet.getDataRange().getValues();
+    let found = false;
+    for (let i = 1; i < vData.length; i++) {
+      const rowRentalId = String(vData[i][1]).trim().toLowerCase();
+      const rowCleanName = String(vData[i][0]).trim().toLowerCase();
+      const targetRentalId = String(data.rentalId || '').trim().toLowerCase();
+      const targetCleanName = String(data.cleanName || '').trim().toLowerCase();
+      
+      if ((targetRentalId && rowRentalId === targetRentalId) || (targetCleanName && rowCleanName === targetCleanName)) {
+        vSheet.getRange(i + 1, 10).setValue('Warehouse (Ready)'); 
+        vSheet.getRange(i + 1, 13).clearContent(); // Clear Zone
+        vSheet.getRange(i + 1, 14).clearContent(); // Clear Tech
+        vSheet.getRange(i + 1, 15).clearContent(); // Clear Notes/OOS tag
+        vSheet.getRange(i + 1, 17).setValue(user);
+        vSheet.getRange(i + 1, 18).setValue(now);
+        found = true; break;
+      }
+    }
+
+    if (!found) return { success: false, message: `Vehicle ${data.cleanName || data.rentalId} could not be found in the database.` };
+
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    if (iSheet) {
+      const iData = iSheet.getDataRange().getValues();
+      let targetIncId = data.incidentId;
+      if (!targetIncId) {
+         for (let j = iData.length - 1; j >= 1; j--) {
+           if (String(iData[j][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && !iData[j][9]) { targetIncId = String(iData[j][0]).trim(); break; }
+         }
+      }
+      if (targetIncId) {
+        for (let j = 1; j < iData.length; j++) {
+          if (String(iData[j][0]).trim() === targetIncId) {
+            iSheet.getRange(j + 1, 9).setValue(data.resolutionNotes || 'Checked in via dashboard');
+            iSheet.getRange(j + 1, 10).setValue(now);
+            iSheet.getRange(j + 1, 11).setValue(user); break;
           }
         }
       }
     }
-    
-    if (typeof logAudit === 'function') logAudit('INCIDENT_REPORTED', 'Incidents_Service', incId, `OOS: ${data.triggerOos}`);
-    return { success: true, message: 'Incident reported successfully.' };
-    
+    if (typeof logAudit === 'function') logAudit('VEHICLE_CHECKED_IN', 'Vehicles', data.rentalId || data.cleanName, 'Repaired and returned to Warehouse');
+    return { success: true, message: 'Van is back in the Warehouse.' };
   } catch (err) {
-    // If it fails, bundle the exact error string so the UI can show it
-    return { success: false, message: 'Failed to report incident: ' + err.message };
+    return { success: false, message: 'Check-in script failed: ' + err.toString() };
   }
+}
+
+function decommissionVehicle(targetId, reason) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Vehicles');
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === targetId.trim().toLowerCase() || String(data[i][1]).trim().toLowerCase() === targetId.trim().toLowerCase()) {
+      rowIndex = i + 1; break;
+    }
+  }
+  if (rowIndex === -1) throw new Error('Vehicle not found.');
+
+  sheet.getRange(rowIndex, 10).setValue('Decommissioned'); 
+  sheet.getRange(rowIndex, 13).clearContent(); 
+  sheet.getRange(rowIndex, 14).clearContent(); 
+  const curNotes = sheet.getRange(rowIndex, 15).getValue();
+  sheet.getRange(rowIndex, 15).setValue((curNotes ? curNotes + ' | ' : '') + 'Decom: ' + reason);
+
+  if (typeof logAudit === 'function') logAudit('VEHICLE_DECOMMISSIONED', 'Vehicles', targetId, reason);
+  return { success: true, message: `Vehicle Decommissioned.` };
 }
