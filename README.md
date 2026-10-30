@@ -1,2 +1,0 @@
-# FleetTracking
-VEO Fleet tracking
