@@ -124,12 +124,19 @@
 <script>
   let globalState = { vehicles: [], techs: [] };
 
-  function loadState() {
-    google.script.run.withSuccessHandler(data => {
-      globalState = data;
-      renderTechs();
-      renderFleet();
-    }).getDashboardState();
+function loadState() {
+    google.script.run
+      .withSuccessHandler(data => {
+        globalState = data;
+        renderTechs();
+        renderFleet();
+      })
+      .withFailureHandler(error => {
+        console.error(error);
+        alert("Backend Error: " + error.message);
+        document.getElementById('tech-roster-container').innerText = "Error loading data. Check console.";
+      })
+      .getDashboardState();
   }
 
   function renderTechs() {
