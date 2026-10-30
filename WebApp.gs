@@ -35,21 +35,32 @@ function getDashboardState() {
 
   const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
-    const vData = vSheet.getDataRange().getValues();
-    for (let i = 1; i < vData.length; i++) {
-      if (!vData[i][0] && !vData[i][1]) continue; 
+    // Pulling 20 columns to safely capture Coast in Column T
+    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 20).getValues();
+    const tz = Session.getScriptTimeZone();
+    vRows.forEach(r => {
+      if (!r[0] && !r[1]) return; 
       vehicles.push({
-        cleanName: vData[i][0] || '', rentalId: vData[i][1] || '',
-        agency: vData[i][2] || '', makeModel: vData[i][3] || '',
-        vin: vData[i][4] || '', plate: vData[i][5] || '',
-        plateExpDate: vData[i][6] ? new Date(vData[i][6]).toLocaleDateString() : '—', // Col G
-        samsaraSerial: vData[i][7] || '', samsaraLink: vData[i][8] || '',
-        status: vData[i][9] || 'Warehouse (Ready)',
-        pickupDate: vData[i][10] ? new Date(vData[i][10]).toLocaleDateString() : '',
-        zone: vData[i][12] || '—', driver: vData[i][13] || '—', notes: vData[i][15] || '',
-        coast: vData[i][19] || 'No' // Col T (Index 19)
+        cleanName: String(r[0] || '').trim(),
+        rentalId: String(r[1] || '').trim(),
+        agency: String(r[2] || ''),
+        makeModel: String(r[3] || ''),
+        vin: String(r[4] || ''),
+        plate: String(r[5] || ''),
+        plateExpDate: (r[6] instanceof Date) ? Utilities.formatDate(r[6], tz, 'yyyy-MM-dd') : String(r[6] || '—'),
+        samsaraSerial: String(r[7] || ''),
+        samsaraLink: String(r[8] || ''),
+        status: String(r[9] || 'Warehouse (Ready)').trim(),
+        pickupDate: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'yyyy-MM-dd') : String(r[10] || '—'),
+        serviceNum: String(r[11] || ''),
+        zone: String(r[12] || '—'),
+        driver: String(r[13] || '—'),
+        lastService: (r[14] instanceof Date) ? Utilities.formatDate(r[14], tz, 'yyyy-MM-dd') : '—',
+        notes: String(r[15] || ''),
+        addons: String(r[18] || ''),
+        coast: String(r[19] || 'No')
       });
-    }
+    });
   }
 
   const techs = [];
