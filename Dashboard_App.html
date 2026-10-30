@@ -194,13 +194,25 @@
 </dialog>
 
 <script>
-  let globalState = { vehicles: [], techs: [], incidents: [], deployments: [] };
+let globalState = { vehicles: [], techs: [], incidents: [], deployments: [], zones: [] };
 
   function loadState() {
     google.script.run
-      .withSuccessHandler(data => { globalState = JSON.parse(data); renderTechs(); renderFleet(); })
+      .withSuccessHandler(data => { 
+        globalState = JSON.parse(data); 
+        populateZones();
+        renderTechs(); 
+        renderFleet(); 
+      })
       .withFailureHandler(err => alert("Backend Error: " + err.message))
       .getDashboardState();
+  }
+
+  function populateZones() {
+    const zoneSelect = document.getElementById('qd-zones');
+    if (globalState.zones && globalState.zones.length > 0) {
+      zoneSelect.innerHTML = globalState.zones.map(z => `<option value="${z}">${z}</option>`).join('');
+    }
   }
 
   // --- RENDER TECHS WITH SEARCH ---
@@ -279,14 +291,12 @@
     statusEl.innerText = selectedVan.status;
     statusEl.className = 'status-badge ' + (selectedVan.status.includes('Dispatched') ? 'status-active' : (selectedVan.status === 'Out of Service' ? 'status-oos' : 'status-ready'));
 
-    // Render Actions based on Status
     let actionsHtml = `<button class="btn btn-danger" onclick="openReportIssue()">🚨 Mark OOS / Report Issue</button>`;
     if (selectedVan.status.includes('Dispatched') || selectedVan.status.includes('Active')) {
       actionsHtml = `<button class="btn btn-primary" onclick="triggerCheckIn()">📥 End Shift / Check In</button>` + actionsHtml;
     }
     document.getElementById('vp-actions').innerHTML = actionsHtml;
 
-    // Render History
     const myDeps = globalState.deployments.filter(d => d.rentalId === rentalId).slice(0, 5);
     document.getElementById('vp-deployments-table').innerHTML = `<thead><tr><th>Date</th><th>Driver</th><th>Zone</th><th>Status</th></tr></thead>` + 
       (myDeps.length ? myDeps.map(d => `<tr><td>${d.date}</td><td>${d.tech}</td><td>${d.zone}</td><td>${d.status}</td></tr>`).join('') : `<tr><td colspan="4">No recent deployments</td></tr>`);
@@ -298,7 +308,6 @@
     document.getElementById('van-profile-modal').showModal();
   }
 
-  // --- OPEN MAINTENANCE MODAL ---
   function openMaintenanceModal() {
     const openIssues = globalState.incidents.filter(i => !i.resolved);
     document.getElementById('maintenance-table-body').innerHTML = openIssues.length ? 
@@ -307,7 +316,7 @@
     document.getElementById('maintenance-modal').showModal();
   }
 
-  // --- MODAL ACTION WORKFLOWS ---
+  // --- OPTIMISTIC MODAL ACTION WORKFLOWS ---
   function openReportIssue() {
     document.getElementById('van-profile-modal').close();
     document.getElementById('ri-van').value = selectedVan.rentalId;
@@ -321,13 +330,41 @@
       triggerOos: document.getElementById('ri-oos').checked
     };
     document.getElementById('report-issue-modal').close();
-    google.script.run.withSuccessHandler(loadState).processReportIncident(payload);
+
+    // OPTIMISTIC UI
+    if (payload.triggerOos) {
+      const van = globalState.vehicles.find(v => v.rentalId === payload.rentalId);
+      if (van) {
+        van.status = 'Out of Service';
+        van.zone = '—';
+        van.driver = '—';
+      }
+      renderTechs();
+      renderFleet();
+    }
+
+    google.script.run
+      .withFailureHandler(err => { alert("Failed to log issue: " + err.message); loadState(); })
+      .processReportIncident(payload);
   }
 
   function triggerCheckIn() {
     if(confirm(`End shift and check in Unit ${selectedVan.rentalId}?`)) {
       document.getElementById('van-profile-modal').close();
-      google.script.run.withSuccessHandler(loadState).processCheckInVehicle({ rentalId: selectedVan.rentalId, cleanName: selectedVan.cleanName });
+      
+      // OPTIMISTIC UI
+      const van = globalState.vehicles.find(v => v.rentalId === selectedVan.rentalId);
+      if (van) {
+        van.status = 'Warehouse (Ready)';
+        van.zone = '—';
+        van.driver = '—';
+      }
+      renderTechs();
+      renderFleet();
+
+      google.script.run
+        .withFailureHandler(err => { alert("Check-in failed: " + err.message); loadState(); })
+        .processCheckInVehicle({ rentalId: selectedVan.rentalId, cleanName: selectedVan.cleanName });
     }
   }
 
@@ -343,7 +380,20 @@
     const selectedZones = Array.from(document.getElementById('qd-zones').selectedOptions).map(o => o.value).join(', ');
     const payload = { rentalId: pendingDispatch.vanId, tech: pendingDispatch.techName, zones: selectedZones, batteryCount: document.getElementById('qd-battery').value };
     document.getElementById('quick-dispatch-modal').close();
-    google.script.run.withSuccessHandler(loadState).processDispatchCheckout(payload);
+    
+    // OPTIMISTIC UI
+    const van = globalState.vehicles.find(v => v.rentalId === payload.rentalId);
+    if (van) {
+      van.status = 'Dispatched';
+      van.zone = payload.zones;
+      van.driver = payload.tech;
+    }
+    renderTechs();
+    renderFleet();
+
+    google.script.run
+      .withFailureHandler(err => { alert("Dispatch failed: " + err.message); loadState(); })
+      .processDispatchCheckout(payload);
   }
 
   // --- DRAG & DROP ENGINE ---
@@ -366,10 +416,29 @@
       card.addEventListener('dragleave', () => card.style.borderColor = '');
       card.addEventListener('drop', (e) => { e.preventDefault(); card.style.borderColor = ''; const vanId = card.getAttribute('data-van'); if (draggedTech && vanId) openQuickDispatch(vanId, draggedTech); });
     });
+    
     const dock = document.getElementById('checkin-dock');
     dock.addEventListener('dragover', (e) => { if(e.dataTransfer.types.includes('text/vanid')) { e.preventDefault(); dock.classList.add('drag-over'); }});
     dock.addEventListener('dragleave', () => dock.classList.remove('drag-over'));
-    dock.addEventListener('drop', (e) => { e.preventDefault(); dock.classList.remove('drag-over'); const vanId = e.dataTransfer.getData('text/vanid'); if(vanId && confirm(`End shift?`)) google.script.run.withSuccessHandler(loadState).processCheckInVehicle({ rentalId: vanId }); });
+    dock.addEventListener('drop', (e) => {
+      e.preventDefault(); dock.classList.remove('drag-over'); 
+      const vanId = e.dataTransfer.getData('text/vanid'); 
+      if(vanId && confirm(`End shift?`)) {
+        // OPTIMISTIC UI
+        const van = globalState.vehicles.find(v => v.rentalId === vanId);
+        if (van) {
+          van.status = 'Warehouse (Ready)';
+          van.zone = '—';
+          van.driver = '—';
+        }
+        renderTechs();
+        renderFleet();
+
+        google.script.run
+          .withFailureHandler(err => { alert("Check-in failed: " + err.message); loadState(); })
+          .processCheckInVehicle({ rentalId: vanId }); 
+      }
+    });
   }
 
   window.onload = loadState;

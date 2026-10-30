@@ -23,8 +23,18 @@ function getDashboardState() {
   const tSheet = ss.getSheetByName('Tech_Profiles');
   const iSheet = ss.getSheetByName('Incidents_Service');
   const dSheet = ss.getSheetByName('Deployments');
+  const cSheet = ss.getSheetByName('_Config');
   
-  // 1. Fetch Vehicles
+  // 1. Fetch Config Zones (Column E)
+  const zones = [];
+  if (cSheet && cSheet.getLastRow() > 1) {
+    const cData = cSheet.getDataRange().getValues();
+    for (let i = 1; i < cData.length; i++) {
+      if (cData[i][4]) zones.push(String(cData[i][4]).trim()); // Col E
+    }
+  }
+
+  // 2. Fetch Vehicles
   const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
     const vData = vSheet.getDataRange().getValues();
@@ -41,7 +51,7 @@ function getDashboardState() {
     }
   }
 
-  // 2. Fetch Techs
+  // 3. Fetch Techs
   const techs = [];
   if (tSheet && tSheet.getLastRow() > 1) {
     const tData = tSheet.getDataRange().getValues();
@@ -56,7 +66,7 @@ function getDashboardState() {
     }
   }
 
-  // 3. Fetch Incidents (Maintenance History & Open Issues)
+  // 4. Fetch Incidents (Maintenance History & Open Issues)
   const incidents = [];
   if (iSheet && iSheet.getLastRow() > 1) {
     const iData = iSheet.getDataRange().getValues();
@@ -72,7 +82,7 @@ function getDashboardState() {
     }
   }
 
-  // 4. Fetch Deployments (Last 200 for speed)
+  // 5. Fetch Deployments (Last 200 for speed)
   const deployments = [];
   if (dSheet && dSheet.getLastRow() > 1) {
     const dData = dSheet.getDataRange().getValues();
@@ -87,9 +97,8 @@ function getDashboardState() {
     }
   }
 
-  return JSON.stringify({ vehicles, techs, incidents, deployments });
+  return JSON.stringify({ vehicles, techs, incidents, deployments, zones });
 }
-
 
 /**
  * Helper function to include modular HTML files into the main Dashboard_App.
