@@ -5,82 +5,81 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-main: #f0f2f5;
-      --bg-surface: #ffffff;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
-      --border-color: #e2e8f0;
-      --veo-cyan: #00E5FF;
-      --status-ready: #10b981;
-      --status-dispatched: #3b82f6;
-      --status-oos: #ef4444;
+      --bg-main: #f0f2f5; --bg-surface: #ffffff; --text-primary: #1e293b; --text-secondary: #64748b;
+      --border-color: #e2e8f0; --veo-cyan: #00E5FF; --status-ready: #10b981; --status-dispatched: #3b82f6; --status-oos: #ef4444;
       --radius: 12px;
     }
-    
     * { box-sizing: border-box; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
     body { background-color: var(--bg-main); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
     .app-container { display: flex; width: 100%; flex: 1; overflow: hidden; }
     
-    /* Left Sidebar: Tech Roster */
+    /* Sidebar & Tech Search */
     .sidebar { width: 340px; background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #f8fafc; font-weight: 600; }
+    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #f8fafc; }
+    .tech-search { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; margin-top: 8px; }
     .tech-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-    
-    /* Tech Cards */
     .tech-card { background: #fff; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; cursor: grab; display: flex; flex-direction: column; gap: 4px; }
-    .tech-card:active { cursor: grabbing; }
-    .tech-card.deployed { border-left: 4px solid var(--status-dispatched); }
     .tech-card.muted { opacity: 0.5; filter: grayscale(80%); pointer-events: none; }
     .tech-name { font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; }
     .tech-meta { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
     .tech-badges { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
     .badge-pill { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: #f1f5f9; }
 
-    /* Main Canvas: Vehicles */
+    /* Canvas & Vans */
     .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .topbar { height: 60px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 24px; justify-content: space-between; }
     .canvas { flex: 1; overflow-y: auto; padding: 24px; }
-    
     .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 320px)); gap: 16px; align-items: start; }
     
-    /* Vehicle Cards */
-    .van-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
-    .van-card[draggable="true"] { cursor: grab; border-left: 4px solid var(--status-dispatched); }
-    .van-card[draggable="true"]:active { cursor: grabbing; }
-    .van-card.drop-zone { border: 2px dashed var(--status-dispatched); background: #eff6ff; }
-    
+    .van-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; cursor: pointer; position: relative; transition: border 0.2s; }
+    .van-card:hover { border-color: var(--text-secondary); }
     .van-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
     .van-name { font-size: 16px; font-weight: 700; }
     .van-unit { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-    
     .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .status-ready { background: #d1fae5; color: #065f46; }
     .status-active { background: #dbeafe; color: #1e40af; }
     .status-oos { background: #fee2e2; color: #991b1b; }
     .van-meta { font-size: 12px; color: var(--text-secondary); margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
 
-    /* Bottom Dock Drop Zone */
-    .bottom-dock { height: 70px; background: #1e293b; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; border-top: 2px solid #0f172a; transition: all 0.2s; }
+    /* Bottom Dock */
+    .bottom-dock { height: 70px; background: #1e293b; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; border-top: 2px solid #0f172a; }
     .bottom-dock.drag-over { background: var(--status-oos); color: #fff; border-top: 2px dashed #fca5a5; }
 
-    .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
-    .btn-primary { background: var(--veo-cyan); color: #000; }
-    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin: 12px 0 4px 0; }
+    /* Modals & Utilities */
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: #fff; }
+    .btn-primary { background: var(--veo-cyan); color: #000; border: none; }
+    .btn-danger { background: var(--status-oos); color: #fff; border: none; }
+    dialog { padding: 0; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin: auto; max-width: 600px; width: 100%; }
+    dialog::backdrop { background: rgba(0,0,0,0.5); }
+    .modal-content { padding: 20px; }
+    .modal-header { border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; }
+    .history-table { width: 100%; text-align: left; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
+    .history-table th, .history-table td { padding: 8px; border-bottom: 1px solid var(--border-color); }
+    .history-table th { background: #f8fafc; font-weight: 600; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; }
   </style>
 </head>
 <body>
 
 <div class="app-container">
   <aside class="sidebar">
-    <div class="sidebar-header">Tech Roster</div>
+    <div class="sidebar-header">
+      <div style="font-weight: 600;">Tech Roster</div>
+      <input type="text" id="tech-search" class="tech-search" placeholder="Search drivers..." onkeyup="renderTechs()">
+    </div>
     <div class="tech-list" id="tech-roster-container">Loading...</div>
   </aside>
 
   <main class="main-content">
     <header class="topbar">
       <h2>VEO Command Center</h2>
-      <button class="btn btn-primary" onclick="loadState()">🔄 Refresh</button>
+      <div style="display:flex; gap: 8px;">
+        <button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="openMaintenanceModal()">🚨 Open Maintenance</button>
+        <button class="btn btn-primary" onclick="loadState()">🔄 Refresh</button>
+      </div>
     </header>
     <div class="canvas">
       <div class="fleet-grid" id="fleet-grid-container"></div>
@@ -88,78 +87,141 @@
   </main>
 </div>
 
-<!-- Check-In Drop Zone -->
-<div id="checkin-dock" class="bottom-dock">
-  📥 DRAG ACTIVE VAN HERE TO END SHIFT & CLEAR
-</div>
+<!-- Bottom Check-In Dock -->
+<div id="checkin-dock" class="bottom-dock">📥 DRAG ACTIVE VAN HERE TO END SHIFT & CLEAR</div>
 
-<!-- Quick Dispatch Modal -->
-<dialog id="quick-dispatch-modal" style="padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin: auto; width: 350px;">
-  <h3 style="margin-bottom:12px;">Deploy Vehicle</h3>
-  <form id="dispatch-form" method="dialog">
-    <p style="font-size:14px; margin-bottom:16px;">Assigning <strong><span id="qd-tech-name"></span></strong> to Unit <strong><span id="qd-van-id"></span></strong></p>
+<!-- 1. Quick Dispatch Modal -->
+<dialog id="quick-dispatch-modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Deploy Vehicle</h3></div>
+    <form id="dispatch-form" method="dialog">
+      <p style="font-size:14px; margin-bottom:16px;">Assigning <strong><span id="qd-tech-name"></span></strong> to Unit <strong><span id="qd-van-id"></span></strong></p>
+      <div class="form-group">
+        <label>Work Zone(s) (Ctrl/Cmd to multi-select):</label>
+        <select id="qd-zones" multiple style="height: 80px;">
+          <option value="Zone 1A">Zone 1A</option><option value="Zone 1B">Zone 1B</option><option value="Zone 2A">Zone 2A</option><option value="Zone 2B">Zone 2B</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Battery Count Target:</label><input type="number" id="qd-battery" placeholder="e.g. 10"></div>
+      <div style="text-align: right; margin-top:16px;">
+        <button type="button" class="btn" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitQuickDispatch()">Deploy</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- 2. Van 360° Profile Modal -->
+<dialog id="van-profile-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div>
+        <h2 id="vp-name" style="margin:0;">Van Name</h2>
+        <div id="vp-unit" style="font-size:12px; color:var(--text-secondary);">Unit #</div>
+      </div>
+      <span id="vp-status" class="status-badge">Status</span>
+    </div>
     
-    <div style="margin-bottom: 12px;">
-      <label style="display:block; margin-bottom:4px; font-size:12px; font-weight:600;">Work Zone(s) (Ctrl/Cmd to multi-select):</label>
-      <select id="qd-zones" multiple style="width: 100%; height: 80px; border-radius:4px; padding:4px;">
-        <option value="Zone 1A">Zone 1A</option>
-        <option value="Zone 1B">Zone 1B</option>
-        <option value="Zone 2A">Zone 2A</option>
-        <option value="Zone 2B">Zone 2B</option>
-      </select>
+    <div style="display:flex; gap:16px; margin-bottom:20px; font-size:13px; flex-wrap:wrap;">
+      <div><strong>Agency:</strong> <span id="vp-agency"></span></div>
+      <div><strong>Plate:</strong> <span id="vp-plate"></span></div>
+      <div><strong>VIN:</strong> <span id="vp-vin"></span></div>
+      <div><strong>Driver:</strong> <span id="vp-driver" style="color:var(--veo-cyan-dark); font-weight:600;"></span></div>
     </div>
 
-    <div style="margin-bottom: 16px;">
-      <label style="display:block; margin-bottom:4px; font-size:12px; font-weight:600;">Battery Count:</label>
-      <input type="number" id="qd-battery" placeholder="e.g. 10" style="width: 100%; padding: 6px; border-radius:4px; border:1px solid #ccc;">
+    <!-- Action Buttons -->
+    <div id="vp-actions" style="display:flex; gap:8px; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--border-color);">
+      <!-- Injected via JS based on status -->
     </div>
 
-    <div style="text-align: right;">
-      <button type="button" class="btn" style="background:#e2e8f0;" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="submitQuickDispatch()">Deploy</button>
+    <!-- History Tabs -->
+    <h4 style="margin-bottom:8px; color:var(--text-secondary);">Recent Deployments</h4>
+    <div style="max-height: 120px; overflow-y:auto; margin-bottom:16px;">
+      <table class="history-table" id="vp-deployments-table"></table>
     </div>
-  </form>
+
+    <h4 style="margin-bottom:8px; color:var(--text-secondary);">Maintenance History</h4>
+    <div style="max-height: 120px; overflow-y:auto;">
+      <table class="history-table" id="vp-incidents-table"></table>
+    </div>
+
+    <div style="text-align:right; margin-top:16px;">
+      <button class="btn" onclick="document.getElementById('van-profile-modal').close()">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- 3. Report Issue / Mark OOS Modal -->
+<dialog id="report-issue-modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Report Issue / Mark OOS</h3></div>
+    <form method="dialog">
+      <div class="form-group"><label>Vehicle Unit #</label><input type="text" id="ri-van" readonly style="background:#f8fafc;"></div>
+      <div class="form-group">
+        <label>Issue Category</label>
+        <select id="ri-cat">
+          <option>Mechanical / Engine</option><option>Flat Tire / Wheel</option>
+          <option>Check Engine Light</option><option>Body / Exterior Damage</option>
+          <option>Battery / Electrical</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="ri-desc" rows="3"></textarea></div>
+      <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="ri-oos" style="width:auto;"> <label style="margin:0;">Trigger Out-Of-Service (Will end active shift)</label>
+      </div>
+      <div style="text-align:right; margin-top:16px;">
+        <button type="button" class="btn" onclick="document.getElementById('report-issue-modal').close()">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="submitReportIssue()">Submit Report</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- 4. Open Maintenance Modal -->
+<dialog id="maintenance-modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <div class="modal-header"><h3>🚨 Open Maintenance Issues</h3></div>
+    <div style="max-height: 400px; overflow-y:auto;">
+      <table class="history-table">
+        <thead><tr><th>Van</th><th>Unit #</th><th>Reported</th><th>Category</th><th>Details</th></tr></thead>
+        <tbody id="maintenance-table-body"></tbody>
+      </table>
+    </div>
+    <div style="text-align:right; margin-top:16px;">
+      <button class="btn" onclick="document.getElementById('maintenance-modal').close()">Close</button>
+    </div>
+  </div>
 </dialog>
 
 <script>
-  let globalState = { vehicles: [], techs: [] };
+  let globalState = { vehicles: [], techs: [], incidents: [], deployments: [] };
 
-function loadState() {
+  function loadState() {
     google.script.run
-      .withSuccessHandler(data => {
-        // Parse the safe JSON string back into a usable object
-        globalState = JSON.parse(data); 
-        renderTechs();
-        renderFleet();
-      })
-      .withFailureHandler(error => {
-        console.error(error);
-        alert("Backend Error: " + error.message);
-        document.getElementById('tech-roster-container').innerText = "Error loading data. Check console.";
-      })
+      .withSuccessHandler(data => { globalState = JSON.parse(data); renderTechs(); renderFleet(); })
+      .withFailureHandler(err => alert("Backend Error: " + err.message))
       .getDashboardState();
   }
 
+  // --- RENDER TECHS WITH SEARCH ---
   function renderTechs() {
+    const q = document.getElementById('tech-search').value.toLowerCase();
     const container = document.getElementById('tech-roster-container');
-    const deployedTechs = [];
-    const activeTechs = [];
+    const deployedTechs = [], activeTechs = [];
 
     globalState.techs.forEach(t => {
-      const isDeployed = globalState.vehicles.some(v => v.driver.includes(t.name));
-      if (isDeployed) deployedTechs.push(t);
-      else activeTechs.push(t);
+      if (q && !t.name.toLowerCase().includes(q)) return; // Filter
+      const isDeployed = globalState.vehicles.some(v => String(v.driver).includes(t.name));
+      if (isDeployed) deployedTechs.push(t); else activeTechs.push(t);
     });
 
     let html = '';
     if (deployedTechs.length > 0) {
-      html += `<div class="section-title">Active On Route</div>`;
+      html += `<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:12px 0 4px;">Active On Route</div>`;
       html += deployedTechs.map(t => createTechCard(t, 'deployed')).join('');
     }
-    
-    html += `<div class="section-title">Available / Roster</div>`;
+    html += `<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:12px 0 4px;">Available / Roster</div>`;
     html += activeTechs.map(t => createTechCard(t, t.status !== 'Available' ? 'muted' : '')).join('');
-
     container.innerHTML = html;
     attachTechDragEvents();
   }
@@ -168,33 +230,26 @@ function loadState() {
     let flags = '';
     if (tech.restricted) flags += `<span class="badge-pill" style="color:#dc2626; background:#fef2f2;">🛑 Restricted</span>`;
     if (!tech.passedTest) flags += `<span class="badge-pill" style="color:#d97706; background:#fffbeb;">⚠️ No Test</span>`;
-    else flags += `<span class="badge-pill" style="color:#059669; background:#d1fae5;">✅ Passed Test</span>`;
-
+    
     return `
       <div class="tech-card ${stateClass}" draggable="${stateClass !== 'muted'}" data-tech="${tech.name}">
         <div class="tech-name"><span>${tech.name}</span> <span style="font-weight:400; font-size:12px;">📞 ${tech.phone}</span></div>
-        <div class="tech-meta">
-          <div>${tech.shift} &bull; ${tech.startTime} - ${tech.endTime}</div>
-          <div>${tech.workDays}</div>
-        </div>
+        <div class="tech-meta">${tech.shift} &bull; ${tech.startTime} - ${tech.endTime}</div>
         <div class="tech-badges">${flags}</div>
       </div>
     `;
   }
 
+  // --- RENDER FLEET ---
   function renderFleet() {
     const container = document.getElementById('fleet-grid-container');
     container.innerHTML = globalState.vehicles.map(v => {
       const statusClass = (v.status === 'Dispatched' || v.status === 'Active') ? 'status-active' : (v.status === 'Out of Service' ? 'status-oos' : 'status-ready');
       const isDraggable = (statusClass === 'status-active');
-      
       return `
-        <div class="van-card" draggable="${isDraggable}" data-van="${v.rentalId}" data-status="${v.status}">
+        <div class="van-card" draggable="${isDraggable}" data-van="${v.rentalId}" data-status="${v.status}" onclick="openVanProfile('${v.rentalId}')">
           <div class="van-header">
-            <div>
-              <div class="van-name">${v.cleanName}</div>
-              <div class="van-unit">Unit: ${v.rentalId}</div>
-            </div>
+            <div><div class="van-name">${v.cleanName}</div><div class="van-unit">Unit: ${v.rentalId}</div></div>
             <span class="status-badge ${statusClass}">${v.status}</span>
           </div>
           <div class="van-meta">
@@ -204,86 +259,78 @@ function loadState() {
         </div>
       `;
     }).join('');
+    attachVanDragEvents(); attachVanDropZones();
+  }
+
+  // --- VAN PROFILE MODAL ---
+  let selectedVan = null;
+  function openVanProfile(rentalId) {
+    selectedVan = globalState.vehicles.find(v => v.rentalId === rentalId);
+    if(!selectedVan) return;
+
+    document.getElementById('vp-name').innerText = selectedVan.cleanName;
+    document.getElementById('vp-unit').innerText = selectedVan.rentalId;
+    document.getElementById('vp-agency').innerText = selectedVan.agency || '--';
+    document.getElementById('vp-plate').innerText = selectedVan.plate || '--';
+    document.getElementById('vp-vin').innerText = selectedVan.vin || '--';
+    document.getElementById('vp-driver').innerText = selectedVan.driver || '--';
     
-    attachVanDragEvents();
-    attachVanDropZones();
+    const statusEl = document.getElementById('vp-status');
+    statusEl.innerText = selectedVan.status;
+    statusEl.className = 'status-badge ' + (selectedVan.status.includes('Dispatched') ? 'status-active' : (selectedVan.status === 'Out of Service' ? 'status-oos' : 'status-ready'));
+
+    // Render Actions based on Status
+    let actionsHtml = `<button class="btn btn-danger" onclick="openReportIssue()">🚨 Mark OOS / Report Issue</button>`;
+    if (selectedVan.status.includes('Dispatched') || selectedVan.status.includes('Active')) {
+      actionsHtml = `<button class="btn btn-primary" onclick="triggerCheckIn()">📥 End Shift / Check In</button>` + actionsHtml;
+    }
+    document.getElementById('vp-actions').innerHTML = actionsHtml;
+
+    // Render History
+    const myDeps = globalState.deployments.filter(d => d.rentalId === rentalId).slice(0, 5);
+    document.getElementById('vp-deployments-table').innerHTML = `<thead><tr><th>Date</th><th>Driver</th><th>Zone</th><th>Status</th></tr></thead>` + 
+      (myDeps.length ? myDeps.map(d => `<tr><td>${d.date}</td><td>${d.tech}</td><td>${d.zone}</td><td>${d.status}</td></tr>`).join('') : `<tr><td colspan="4">No recent deployments</td></tr>`);
+
+    const myIncs = globalState.incidents.filter(i => i.rentalId === rentalId);
+    document.getElementById('vp-incidents-table').innerHTML = `<thead><tr><th>Date</th><th>Category</th><th>Resolved?</th></tr></thead>` + 
+      (myIncs.length ? myIncs.map(i => `<tr><td>${i.date}</td><td>${i.category}</td><td>${i.resolved ? '✅ Yes' : '❌ No'}</td></tr>`).join('') : `<tr><td colspan="3">No recorded incidents</td></tr>`);
+
+    document.getElementById('van-profile-modal').showModal();
   }
 
-  // --- DRAG & DROP ENGINE ---
-  let draggedTech = null;
-
-  function attachTechDragEvents() {
-    document.querySelectorAll('.tech-card[draggable="true"]').forEach(card => {
-      card.addEventListener('dragstart', (e) => {
-        draggedTech = e.target.getAttribute('data-tech');
-        e.dataTransfer.setData('text/tech', draggedTech);
-        e.target.style.opacity = '0.5';
-      });
-      card.addEventListener('dragend', (e) => {
-        e.target.style.opacity = '1';
-        document.querySelectorAll('.van-card').forEach(v => v.classList.remove('drop-zone'));
-      });
-    });
+  // --- OPEN MAINTENANCE MODAL ---
+  function openMaintenanceModal() {
+    const openIssues = globalState.incidents.filter(i => !i.resolved);
+    document.getElementById('maintenance-table-body').innerHTML = openIssues.length ? 
+      openIssues.map(i => `<tr><td><strong>${i.cleanName}</strong></td><td>${i.rentalId}</td><td>${i.date}</td><td>${i.category}</td><td>${i.desc}</td></tr>`).join('') :
+      `<tr><td colspan="5" style="text-align:center;">No open maintenance issues! All clear.</td></tr>`;
+    document.getElementById('maintenance-modal').showModal();
   }
 
-  function attachVanDragEvents() {
-    document.querySelectorAll('.van-card[draggable="true"]').forEach(card => {
-      card.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/vanid', card.getAttribute('data-van'));
-        card.style.opacity = '0.5';
-      });
-      card.addEventListener('dragend', (e) => {
-        card.style.opacity = '1';
-        document.getElementById('checkin-dock').classList.remove('drag-over');
-      });
-    });
+  // --- MODAL ACTION WORKFLOWS ---
+  function openReportIssue() {
+    document.getElementById('van-profile-modal').close();
+    document.getElementById('ri-van').value = selectedVan.rentalId;
+    document.getElementById('report-issue-modal').showModal();
   }
 
-  function attachVanDropZones() {
-    // 1. Van Cards accepting Techs
-    document.querySelectorAll('.van-card').forEach(card => {
-      card.addEventListener('dragover', (e) => {
-        if(e.dataTransfer.types.includes('text/tech')) {
-          e.preventDefault();
-          const status = card.getAttribute('data-status');
-          if (status !== 'Out of Service') card.classList.add('drop-zone');
-        }
-      });
-      card.addEventListener('dragleave', () => card.classList.remove('drop-zone'));
-      card.addEventListener('drop', (e) => {
-        e.preventDefault();
-        card.classList.remove('drop-zone');
-        const vanId = card.getAttribute('data-van');
-        if (draggedTech && vanId) {
-          openQuickDispatch(vanId, draggedTech);
-        }
-      });
-    });
-
-    // 2. Bottom Dock accepting Vans (Check-In)
-    const dock = document.getElementById('checkin-dock');
-    dock.addEventListener('dragover', (e) => {
-      if(e.dataTransfer.types.includes('text/vanid')) {
-        e.preventDefault();
-        dock.classList.add('drag-over');
-      }
-    });
-    dock.addEventListener('dragleave', () => dock.classList.remove('drag-over'));
-    dock.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dock.classList.remove('drag-over');
-      const vanId = e.dataTransfer.getData('text/vanid');
-      if(vanId && confirm(`End shift and check in Unit ${vanId}?`)) {
-        dock.innerText = "Processing Check In...";
-        google.script.run.withSuccessHandler(() => {
-          dock.innerText = "📥 DRAG ACTIVE VAN HERE TO END SHIFT & CLEAR";
-          loadState();
-        }).processCheckIn(vanId);
-      }
-    });
+  function submitReportIssue() {
+    const payload = {
+      cleanName: selectedVan.cleanName, rentalId: selectedVan.rentalId,
+      issueCategory: document.getElementById('ri-cat').value, description: document.getElementById('ri-desc').value,
+      triggerOos: document.getElementById('ri-oos').checked
+    };
+    document.getElementById('report-issue-modal').close();
+    google.script.run.withSuccessHandler(loadState).processReportIncident(payload);
   }
 
-  // --- DISPATCH LOGIC ---
+  function triggerCheckIn() {
+    if(confirm(`End shift and check in Unit ${selectedVan.rentalId}?`)) {
+      document.getElementById('van-profile-modal').close();
+      google.script.run.withSuccessHandler(loadState).processCheckInVehicle({ rentalId: selectedVan.rentalId, cleanName: selectedVan.cleanName });
+    }
+  }
+
   let pendingDispatch = {};
   function openQuickDispatch(vanId, techName) {
     pendingDispatch = { vanId, techName };
@@ -293,16 +340,36 @@ function loadState() {
   }
 
   function submitQuickDispatch() {
-    const selectedZones = Array.from(document.getElementById('qd-zones').selectedOptions).map(opt => opt.value).join(', ');
-    const payload = {
-      rentalId: pendingDispatch.vanId,
-      tech: pendingDispatch.techName,
-      zones: selectedZones,
-      batteryCount: document.getElementById('qd-battery').value
-    };
+    const selectedZones = Array.from(document.getElementById('qd-zones').selectedOptions).map(o => o.value).join(', ');
+    const payload = { rentalId: pendingDispatch.vanId, tech: pendingDispatch.techName, zones: selectedZones, batteryCount: document.getElementById('qd-battery').value };
     document.getElementById('quick-dispatch-modal').close();
-    
     google.script.run.withSuccessHandler(loadState).processDispatchCheckout(payload);
+  }
+
+  // --- DRAG & DROP ENGINE ---
+  let draggedTech = null;
+  function attachTechDragEvents() {
+    document.querySelectorAll('.tech-card[draggable="true"]').forEach(card => {
+      card.addEventListener('dragstart', (e) => { draggedTech = e.target.getAttribute('data-tech'); e.dataTransfer.setData('text/tech', draggedTech); e.target.style.opacity = '0.5'; });
+      card.addEventListener('dragend', (e) => { e.target.style.opacity = '1'; document.querySelectorAll('.van-card').forEach(v => v.style.borderColor = ''); });
+    });
+  }
+  function attachVanDragEvents() {
+    document.querySelectorAll('.van-card[draggable="true"]').forEach(card => {
+      card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/vanid', card.getAttribute('data-van')); card.style.opacity = '0.5'; });
+      card.addEventListener('dragend', (e) => { card.style.opacity = '1'; document.getElementById('checkin-dock').classList.remove('drag-over'); });
+    });
+  }
+  function attachVanDropZones() {
+    document.querySelectorAll('.van-card').forEach(card => {
+      card.addEventListener('dragover', (e) => { if(e.dataTransfer.types.includes('text/tech') && card.getAttribute('data-status') !== 'Out of Service') { e.preventDefault(); card.style.borderColor = 'var(--status-dispatched)'; } });
+      card.addEventListener('dragleave', () => card.style.borderColor = '');
+      card.addEventListener('drop', (e) => { e.preventDefault(); card.style.borderColor = ''; const vanId = card.getAttribute('data-van'); if (draggedTech && vanId) openQuickDispatch(vanId, draggedTech); });
+    });
+    const dock = document.getElementById('checkin-dock');
+    dock.addEventListener('dragover', (e) => { if(e.dataTransfer.types.includes('text/vanid')) { e.preventDefault(); dock.classList.add('drag-over'); }});
+    dock.addEventListener('dragleave', () => dock.classList.remove('drag-over'));
+    dock.addEventListener('drop', (e) => { e.preventDefault(); dock.classList.remove('drag-over'); const vanId = e.dataTransfer.getData('text/vanid'); if(vanId && confirm(`End shift?`)) google.script.run.withSuccessHandler(loadState).processCheckInVehicle({ rentalId: vanId }); });
   }
 
   window.onload = loadState;

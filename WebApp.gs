@@ -21,58 +21,76 @@ function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const vSheet = ss.getSheetByName('Vehicles');
   const tSheet = ss.getSheetByName('Tech_Profiles');
+  const iSheet = ss.getSheetByName('Incidents_Service');
+  const dSheet = ss.getSheetByName('Deployments');
   
-  // 1. Fetch Vehicles Safely
+  // 1. Fetch Vehicles
   const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
-    const vData = vSheet.getDataRange().getValues(); // Dynamically sizes to your exact columns
+    const vData = vSheet.getDataRange().getValues();
     for (let i = 1; i < vData.length; i++) {
-      const r = vData[i];
-      if (!r[0] && !r[1]) continue; 
+      if (!vData[i][0] && !vData[i][1]) continue; 
       vehicles.push({
-        cleanName: r[0] || '',
-        rentalId: r[1] || '',
-        plate: r[5] || '',
-        samsaraSerial: r[7] || '',
-        samsaraLink: r[8] || '',
-        status: r[9] || 'Warehouse (Ready)',
-        zone: r[12] || '—',
-        driver: r[13] || '—'
+        cleanName: vData[i][0] || '', rentalId: vData[i][1] || '',
+        agency: vData[i][2] || '', makeModel: vData[i][3] || '',
+        vin: vData[i][4] || '', plate: vData[i][5] || '',
+        samsaraSerial: vData[i][7] || '', status: vData[i][9] || 'Warehouse (Ready)',
+        pickupDate: vData[i][10] ? new Date(vData[i][10]).toLocaleDateString() : '',
+        zone: vData[i][12] || '—', driver: vData[i][13] || '—', notes: vData[i][15] || ''
       });
     }
   }
 
-  // 2. Fetch Techs Safely
+  // 2. Fetch Techs
   const techs = [];
   if (tSheet && tSheet.getLastRow() > 1) {
     const tData = tSheet.getDataRange().getValues();
     for (let i = 1; i < tData.length; i++) {
-      const r = tData[i];
-      if (!r[0]) continue;
+      if (!tData[i][0]) continue;
       techs.push({
-        name: r[0] || '',
-        phone: r[1] || 'No Phone',
-        shift: r[2] || 'First Shift',
-        startTime: r[3] || '—',
-        endTime: r[4] || '—',
-        workDays: r[5] || '—',
-        passedTest: String(r[6]).trim().toLowerCase() === 'yes',
-        restricted: String(r[8]).trim().toLowerCase() === 'yes',
-        status: r[9] || 'Available'
+        name: tData[i][0] || '', phone: tData[i][1] || 'No Phone',
+        shift: tData[i][2] || 'First Shift', startTime: tData[i][3] || '—', endTime: tData[i][4] || '—',
+        workDays: tData[i][5] || '—', passedTest: String(tData[i][6]).trim().toLowerCase() === 'yes',
+        restricted: String(tData[i][8]).trim().toLowerCase() === 'yes', status: tData[i][9] || 'Available'
       });
-    }
-  } else {
-    // Fallback: If Tech_Profiles tab is missing, pull from _Config (Column K)
-    const configSheet = ss.getSheetByName('_Config');
-    if (configSheet) {
-      const roster = configSheet.getRange('K2:K' + configSheet.getLastRow()).getValues().flat().filter(String);
-      roster.forEach(name => techs.push({ name: name, shift: "First Shift", phone: "No Phone", restricted: false, passedTest: true, status: 'Available' }));
     }
   }
 
-// Wrap the return in JSON.stringify to instantly neutralize any rogue Date objects
-  return JSON.stringify({ vehicles: vehicles, techs: techs });
+  // 3. Fetch Incidents (Maintenance History & Open Issues)
+  const incidents = [];
+  if (iSheet && iSheet.getLastRow() > 1) {
+    const iData = iSheet.getDataRange().getValues();
+    for (let i = 1; i < iData.length; i++) {
+      if (!iData[i][0]) continue;
+      incidents.push({
+        id: iData[i][0], date: iData[i][1] ? new Date(iData[i][1]).toLocaleDateString() : '',
+        cleanName: iData[i][2] || '', rentalId: iData[i][3] || '',
+        category: iData[i][4] || '', desc: iData[i][5] || '',
+        oos: iData[i][6] || 'NO', statusImpact: iData[i][7] || '',
+        resolution: iData[i][8] || '', resolved: iData[i][9] ? true : false
+      });
+    }
+  }
+
+  // 4. Fetch Deployments (Last 200 for speed)
+  const deployments = [];
+  if (dSheet && dSheet.getLastRow() > 1) {
+    const dData = dSheet.getDataRange().getValues();
+    const startRow = Math.max(1, dData.length - 200);
+    for (let i = startRow; i < dData.length; i++) {
+      deployments.push({
+        id: dData[i][0], date: dData[i][1] ? new Date(dData[i][1]).toLocaleDateString() : '',
+        shift: dData[i][2] || '', cleanName: dData[i][3] || '', rentalId: dData[i][4] || '',
+        tech: dData[i][5] || '', zone: dData[i][6] || '', goals: dData[i][7] || '',
+        status: dData[i][9] || ''
+      });
+    }
+  }
+
+  return JSON.stringify({ vehicles, techs, incidents, deployments });
 }
+
+
 /**
  * Helper function to include modular HTML files into the main Dashboard_App.
  * This simulates a folder structure by injecting file contents dynamically.
