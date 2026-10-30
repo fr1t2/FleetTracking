@@ -22,6 +22,7 @@
     .badge-ready { background: #d1fae5; color: #065f46; }
     .badge-active { background: #dbeafe; color: #1e40af; }
     .badge-oos { background: #fee2e2; color: #991b1b; }
+    .badge-decom { background: #e2e8f0; color: #475569; }
     .badge-focus { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; }
 
     .sidebar { width: 340px; background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
@@ -38,6 +39,7 @@
     
     .van-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; cursor: pointer; transition: border 0.2s; }
     .van-card:hover { border-color: var(--text-secondary); }
+    .van-card.decommissioned { opacity: 0.6; filter: grayscale(50%); }
     .bottom-dock { height: 70px; background: #1e293b; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; border-top: 2px solid #0f172a; }
     .bottom-dock.drag-over { background: var(--status-oos); color: #fff; border-top: 2px dashed #fca5a5; }
 
@@ -71,6 +73,11 @@
     <header class="topbar">
       <h2>VEO Command Center</h2>
       <div class="flex-center">
+        <!-- New Toggle for Historical Fleet -->
+        <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; margin-right: 12px;">
+          <input type="checkbox" id="toggle-decom" onchange="renderFleet()" style="vertical-align: middle; margin-right: 4px;"> 
+          Show Retired Fleet
+        </label>
         <button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="openMaintenanceModal()">🚨 Open Maintenance</button>
         <button class="btn" onclick="openAddVanModal()">➕ Add Fleet Unit</button>
         <button class="btn btn-primary" onclick="loadState()">🔄 Refresh</button>
@@ -118,7 +125,6 @@
       <div id="vp-addons-container" style="grid-column: span 2;"></div>
     </div>
 
-    <!-- Dynamic Dispatch Details Block -->
     <div id="vp-dispatch-details" style="display:none; background:#f8fafc; padding:12px; border-radius:8px; margin-top:16px; border:1px solid var(--border-color);">
       <h4 class="text-sm bold" style="margin-bottom:8px; color:var(--veo-cyan-dark);">Current Dispatch Details</h4>
       <div class="grid-2 text-sm">
@@ -128,6 +134,12 @@
         <div><strong>Focus:</strong> <span id="vp-focus"></span></div>
         <div style="grid-column: span 2;"><strong>Goals:</strong> <span id="vp-goals"></span></div>
       </div>
+    </div>
+
+    <!-- Historical Tabs -->
+    <h4 class="text-sm bold text-muted mt-3">Recent Deployments</h4>
+    <div style="max-height: 120px; overflow-y:auto; margin-bottom:16px;">
+      <table class="history-table" id="vp-deployments-table"></table>
     </div>
 
     <h4 class="text-sm bold text-muted mt-3">Maintenance History</h4>
@@ -160,7 +172,7 @@
   <div class="modal-content">
     <div class="modal-header"><h3 class="bold" id="vcfg-title">⚙️ Vehicle Config</h3></div>
     <form method="dialog">
-      <input type="hidden" id="vcfg-mode"> <!-- 'add' or 'edit' -->
+      <input type="hidden" id="vcfg-mode">
       <div class="grid-2">
         <div class="form-group"><label>Clean Name *</label><input type="text" id="vcfg-name" required></div>
         <div class="form-group"><label>Rental Unit # *</label><input type="text" id="vcfg-rental" required></div>
@@ -246,17 +258,23 @@
   }
 
   function renderFleet() {
+    const showDecom = document.getElementById('toggle-decom').checked;
+    
     document.getElementById('fleet-grid-container').innerHTML = globalState.vehicles
-      .filter(v => v.status !== 'Decommissioned')
+      .filter(v => showDecom ? true : v.status !== 'Decommissioned')
       .map(v => {
         const isAct = v.status === 'Dispatched' || v.status === 'Active';
         const isOos = v.status === 'Out of Service';
-        const sc = isAct ? 'badge-active' : (isOos ? 'badge-oos' : 'badge-ready');
+        const isDecom = v.status === 'Decommissioned';
         
+        let sc = isAct ? 'badge-active' : (isOos ? 'badge-oos' : 'badge-ready');
+        if (isDecom) sc = 'badge-decom';
+        
+        const cardClass = isDecom ? 'van-card decommissioned' : 'van-card';
         const activeDep = isAct ? globalState.deployments.find(d => d.rentalId === v.rentalId && d.status === 'Dispatched') : null;
         const focusHtml = (activeDep && activeDep.goals) ? `<div class="mt-1"><span class="badge-focus">${activeDep.goals.split(' ')[0]}</span></div>` : '';
 
-        return `<div class="van-card" draggable="${isAct}" data-van="${v.rentalId}" data-status="${v.status}" onclick="openVanProfile('${v.rentalId}')">
+        return `<div class="${cardClass}" draggable="${isAct && !isDecom}" data-van="${v.rentalId}" data-status="${v.status}" onclick="openVanProfile('${v.rentalId}')">
           <div class="flex-between">
             <div><div class="bold text-sm">${v.cleanName}</div><div class="text-xs text-muted mt-1">Unit: ${v.rentalId} &bull; ${v.agency}</div></div>
             <span class="badge ${sc}">${v.status}</span>
@@ -295,7 +313,10 @@
     
     const sEl = document.getElementById('vp-status');
     sEl.innerText = selectedVan.status;
-    sEl.className = 'badge ' + (selectedVan.status.includes('Dispatched') ? 'badge-active' : (selectedVan.status === 'Out of Service' ? 'badge-oos' : 'badge-ready'));
+    
+    let sc = selectedVan.status.includes('Dispatched') ? 'badge-active' : (selectedVan.status === 'Out of Service' ? 'badge-oos' : 'badge-ready');
+    if (selectedVan.status === 'Decommissioned') sc = 'badge-decom';
+    sEl.className = 'badge ' + sc;
 
     const depBlock = document.getElementById('vp-dispatch-details');
     if (selectedVan.status.includes('Dispatched')) {
@@ -312,22 +333,34 @@
       depBlock.style.display = 'none';
     }
 
-    let actionsHtml = `<button class="btn" style="margin-right:auto; border-color:var(--text-secondary); color:var(--text-secondary);" onclick="openEditVanModal()">⚙️ Edit Specs</button>`;
+    // Historical History View 
+    const myDeps = globalState.deployments.filter(d => d.rentalId === rentalId).slice(0, 5);
+    document.getElementById('vp-deployments-table').innerHTML = `<thead><tr><th>Date</th><th>Driver</th><th>Zone</th><th>Status</th></tr></thead>` + 
+      (myDeps.length ? myDeps.map(d => `<tr><td>${d.date}</td><td>${d.tech}</td><td>${d.zone}</td><td>${d.status}</td></tr>`).join('') : `<tr><td colspan="4" class="text-muted text-center">No recent deployments</td></tr>`);
+
+    const myIncs = globalState.incidents.filter(i => i.rentalId === rentalId);
+    document.getElementById('vp-incidents-table').innerHTML = `<thead><tr><th>Date</th><th>Category</th><th>Resolved?</th></tr></thead>` + 
+      (myIncs.length ? myIncs.map(i => `<tr><td>${i.date}</td><td>${i.category}</td><td>${i.resolved ? '✅ Yes' : '❌ No'}</td></tr>`).join('') : `<tr><td colspan="3" class="text-muted text-center">No recorded incidents</td></tr>`);
+
+
+    let actionsHtml = '';
+    if (selectedVan.status !== 'Decommissioned') {
+       actionsHtml += `<button class="btn" style="margin-right:auto; border-color:var(--text-secondary); color:var(--text-secondary);" onclick="openEditVanModal()">⚙️ Edit Specs</button>`;
+    }
+
     if (selectedVan.status === 'Warehouse (Ready)') {
       actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Decommission</button> <button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerManualDispatch()">🚀 Dispatch (Start Shift)</button>`;
     } else if (selectedVan.status.includes('Dispatched')) {
       actionsHtml += `<button class="btn btn-danger" onclick="triggerOOS()">🚨 Mark OOS</button> <button class="btn btn-primary" onclick="triggerCheckIn()">📥 End Shift (Return)</button>`;
     } else if (selectedVan.status === 'Out of Service') {
       actionsHtml += `<button class="btn" style="border-color:var(--status-oos); color:var(--status-oos);" onclick="triggerDecommission()">🗑️ Decommission</button> <button class="btn btn-success" onclick="resolveIssue()">🛠️ Resolve Issue & Return to Service</button>`;
+    } else if (selectedVan.status === 'Decommissioned') {
+      actionsHtml += `<div class="text-sm bold text-muted" style="margin-right:auto;">This vehicle is retired. Action disabled.</div>`;
     }
+    
     actionsHtml += `<button class="btn" onclick="document.getElementById('van-profile-modal').close()">Close</button>`;
     
     document.getElementById('vp-actions').innerHTML = actionsHtml;
-
-    const myIncs = globalState.incidents.filter(i => i.rentalId === rentalId);
-    document.getElementById('vp-incidents-table').innerHTML = `<thead><tr><th>Date</th><th>Category</th><th>Resolved?</th></tr></thead>` + 
-      (myIncs.length ? myIncs.map(i => `<tr><td>${i.date}</td><td>${i.category}</td><td>${i.resolved ? '✅ Yes' : '❌ No'}</td></tr>`).join('') : `<tr><td colspan="3" class="text-muted text-center">No recorded incidents</td></tr>`);
-
     document.getElementById('van-profile-modal').showModal();
   }
 
@@ -338,7 +371,6 @@
     document.getElementById('vcfg-rental').readOnly = false;
     document.getElementById('vcfg-rental').style.background = '#fff';
     
-    // Reset Form
     ['name','rental','agency','model','vin','plate','exp','service','samsara','samlink','addons','pickup'].forEach(k => document.getElementById('vcfg-'+k).value = '');
     document.getElementById('vcfg-coast').value = 'No';
     document.getElementById('vcfg-pickup').value = new Date().toISOString().split('T')[0];
@@ -418,9 +450,9 @@
     if (!desc) return;
     document.getElementById('van-profile-modal').close();
     updateVanState(selectedVan.rentalId, { status: 'Out of Service', zone: '—', driver: '—' });
-    
-    // Mock incident object wrapper for backend compatibility (if needed) based on previous implementation
-    alert("OOS functionality should route to incident manager. Ensure processReportIncident exists."); 
+    google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processReportIncident({
+      cleanName: selectedVan.cleanName, rentalId: selectedVan.rentalId, issueCategory: 'General Issue', triggerOos: true, description: desc
+    });
   }
 
   function resolveIssue() {
@@ -428,14 +460,16 @@
     if (!notes) return;
     document.getElementById('van-profile-modal').close();
     updateVanState(selectedVan.rentalId, { status: 'Warehouse (Ready)' });
-    alert("CheckIn functionality executing. Ensure processCheckInVehicle exists.");
+    google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processCheckInVehicle({
+      cleanName: selectedVan.cleanName, rentalId: selectedVan.rentalId, resolutionNotes: notes
+    });
   }
 
   function triggerCheckIn() {
     if(confirm(`End active shift for Unit ${selectedVan.rentalId}?`)) {
       document.getElementById('van-profile-modal').close();
       updateVanState(selectedVan.rentalId, { status: 'Warehouse (Ready)', zone: '—', driver: '—' });
-      alert("CheckIn functionality executing. Ensure processCheckInVehicle exists.");
+      google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processCheckInVehicle({ rentalId: selectedVan.rentalId });
     }
   }
 
@@ -458,7 +492,7 @@
     const payload = { rentalId: pendingDispatch.vanId, tech: pendingDispatch.techName, zones: zones, batteryCount: document.getElementById('qd-battery').value };
     document.getElementById('quick-dispatch-modal').close();
     updateVanState(payload.rentalId, { status: 'Dispatched', zone: payload.zones, driver: payload.tech });
-    alert("Dispatch routing. Ensure processDispatchCheckout exists.");
+    google.script.run.withFailureHandler(err=>alert("Dispatch failed: "+err.message)).processDispatchCheckout(payload);
   }
 
   function openMaintenanceModal() {
@@ -494,7 +528,7 @@
       e.preventDefault(); dock.classList.remove('drag-over'); const vanId = e.dataTransfer.getData('text/vanid'); 
       if(vanId && confirm(`End shift?`)) {
         updateVanState(vanId, { status: 'Warehouse (Ready)', zone: '—', driver: '—' });
-        alert("CheckIn functionality executing. Ensure processCheckInVehicle exists.");
+        google.script.run.withFailureHandler(err=>alert("Failed: "+err.message)).processCheckInVehicle({ rentalId: vanId });
       }
     });
   }
