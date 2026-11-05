@@ -2,496 +2,492 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VEO Fleet & Dispatch Portal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>VEO Dispatch Command</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --veo-cyan: #00E5FF; --veo-cyan-dark: #00B8CC;
-      --bg-main: #f4f7f6; --bg-panel: #ffffff;
-      --text-main: #202124; --text-muted: #5f6368;
-      --border-color: #e0e0e0; --shadow: 0 4px 12px rgba(0,0,0,0.05);
-      --success: #34C759; --danger: #FF3B30; --warning: #FFCC00;
+      --veo-cyan: #00E5FF; 
+      --veo-cyan-dark: #00B8CC;
+      --bg-main: #0f1115; 
+      --bg-panel: #1a1d24;
+      --bg-surface: #252932;
+      --text-main: #ffffff; 
+      --text-muted: #9ba1a6;
+      --border-color: #333842; 
+      --success: #34C759; 
+      --danger: #FF3B30; 
+      --warning: #FFCC00;
     }
-    body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); }
+    
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
     * { box-sizing: border-box; }
 
-    /* Top Navigation */
-    .nav-tabs { display: flex; gap: 8px; padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow); }
-    .nav-tab { padding: 10px 20px; cursor: pointer; font-weight: 700; font-size: 14px; border: none; border-radius: 6px; background: transparent; color: var(--text-muted); transition: 0.2s; font-family: 'Inter', sans-serif; }
-    .nav-tab.active { background: rgba(0,229,255,0.1); color: var(--veo-cyan-dark); }
+    /* Layout Shell */
+    .app-header { background: var(--bg-panel); border-bottom: 1px solid var(--border-color); padding: 16px 24px; font-weight: 800; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+    .app-body { display: flex; flex: 1; overflow: hidden; }
     
-    .tab-content { display: none; padding: 24px; max-width: 1600px; margin: 0 auto; }
-    .tab-content.active { display: block; }
-
-    /* Kanban Board Layout */
-    .kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: start; }
-    .kanban-col { background: #eef2f5; border-radius: 12px; padding: 16px; min-height: 500px; display: flex; flex-direction: column; gap: 12px; transition: 0.2s; border: 2px dashed transparent; }
-    .kanban-header { font-weight: 800; font-size: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .kanban-count { background: var(--bg-panel); padding: 2px 8px; border-radius: 12px; font-size: 12px; color: var(--text-muted); }
+    /* Left Sidebar: Techs */
+    .sidebar { width: 320px; background: var(--bg-panel); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-color); font-weight: 700; color: var(--text-muted); }
+    .tech-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     
-    /* Drag & Drop Styling */
-    .kanban-col.drag-over { border-color: var(--veo-cyan-dark); background: rgba(0, 229, 255, 0.05); }
-    .card-item { background: var(--bg-panel); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border-color); border-top: 4px solid var(--border-color); cursor: grab; transition: 0.2s; }
-    .card-item:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
-    .card-item:active { cursor: grabbing; }
+    /* Right Stage: Fleet */
+    .main-stage { flex: 1; display: flex; flex-direction: column; position: relative; }
+    .fleet-board { flex: 1; overflow-y: auto; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-content: start; }
     
-    .st-ready { border-top-color: var(--success); }
-    .st-active { border-top-color: var(--veo-cyan-dark); }
-    .st-oos { border-top-color: var(--danger); }
+    /* Kanban Columns */
+    .board-col { background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); min-height: 500px; display: flex; flex-direction: column; gap: 12px; }
+    .col-header { font-weight: 800; font-size: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Cards */
+    .tech-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-left: 4px solid var(--success); border-radius: 8px; padding: 12px; cursor: grab; transition: transform 0.1s; }
+    .tech-card:active { cursor: grabbing; transform: scale(0.98); }
+    .tech-card.unavailable { border-left-color: var(--border-color); opacity: 0.6; cursor: not-allowed; }
+    .tech-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tech-attr { font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 4px; }
+    
+    .van-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-top: 4px solid var(--border-color); border-radius: 8px; padding: 16px; transition: 0.2s; }
+    .van-card.ready { border-top-color: var(--success); }
+    .van-card.active { border-top-color: var(--veo-cyan); cursor: grab; }
+    .van-card.drag-over { border-color: var(--veo-cyan); background: rgba(0, 229, 255, 0.05); }
+    .van-title { font-weight: 800; font-size: 16px; color: #fff; }
+    .van-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    
+    /* Bottom Check-in Dock */
+    #end-shift-dock { height: 80px; background: var(--bg-panel); border-top: 2px dashed var(--border-color); display: flex; justify-content: center; align-items: center; font-weight: 700; color: var(--text-muted); transition: 0.2s; z-index: 10; }
+    #end-shift-dock.drag-over { background: rgba(255, 59, 48, 0.1); border-top-color: var(--danger); color: var(--danger); height: 120px; font-size: 18px; }
 
-    /* Forms & Buttons */
-    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: 'Inter', sans-serif; font-size: 13px; }
-    .btn-primary { background: var(--veo-cyan-dark); color: #fff; }
-    .btn-danger { background: var(--danger); color: #fff; }
-    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-    .btn:hover { opacity: 0.9; }
-
-    /* Native Dialog Styling */
-    dialog { padding: 0; border: none; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); margin: auto; max-width: 90vw; }
-    dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
-    .dialog-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-weight: 800; font-size: 18px; color: var(--veo-cyan-dark); display: flex; justify-content: space-between; align-items: center; }
-    .dialog-body { padding: 24px; overflow-y: auto; max-height: 70vh; }
-    .dialog-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: #fafafa; }
+    /* Native Dialogs (Modals) */
+    dialog { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 0; width: 100%; max-width: 500px; box-shadow: 0 24px 48px rgba(0,0,0,0.5); margin: auto; }
+    dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
+    .dlg-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-weight: 800; font-size: 18px; display: flex; justify-content: space-between; align-items: center; color: var(--veo-cyan); }
+    .dlg-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+    .dlg-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-panel); }
     
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 14px; box-sizing: border-box; }
-    .row { display: flex; gap: 16px; }
-    .col { flex: 1; }
+    .form-control { width: 100%; padding: 10px; background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 14px; }
+    .form-control:focus { outline: none; border-color: var(--veo-cyan); }
+    
+    .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; font-family: 'Inter', sans-serif; transition: 0.2s; }
+    .btn-primary { background: var(--veo-cyan-dark); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+    .btn:hover { filter: brightness(1.1); }
 
-    #global-loader { display: none; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--veo-cyan), #007aff); z-index: 9999; animation: loading 1.5s infinite; }
-    @keyframes loading { 0% { width: 0%; } 50% { width: 50%; margin-left: 0; } 100% { width: 50%; margin-left: 100%; } }
+    /* Loader */
+    #global-loader { display: none; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--veo-cyan), #007aff); z-index: 9999; animation: load 1.5s infinite; }
+    @keyframes load { 0% { width: 0%; } 50% { width: 50%; margin-left: 0; } 100% { width: 50%; margin-left: 100%; } }
   </style>
 </head>
 <body>
   <div id="global-loader"></div>
-
-  <!-- NAVIGATION -->
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="switchTab('dispatch')">📋 Dispatch</button>
-    <button class="nav-tab" onclick="switchTab('fleet')">🚚 Fleet</button>
-    <button class="nav-tab" onclick="switchTab('techs')">👤 Techs</button>
-    <button class="nav-tab" onclick="switchTab('monitor')">📡 Shift</button>
+  
+  <div class="app-header">
+    <div>VEO Dispatch Control</div>
+    <button class="btn btn-outline" onclick="loadPortalData()">🔄 Refresh</button>
   </div>
 
-  <!-- DISPATCH TAB (Kanban Board) -->
-  <div id="tab-dispatch" class="tab-content active">
-    <div style="display:flex; justify-content:space-between; margin-bottom: 24px;">
-      <div>
-        <h2 style="margin:0; font-weight:900;">Command Board</h2>
-        <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-muted);">Drag and drop vehicles across columns to assign or complete shifts.</p>
+  <div class="app-body">
+    <!-- LEFT: TECH ROSTER -->
+    <div class="sidebar">
+      <div class="sidebar-header">👨‍🔧 Available Techs <br><span style="font-size:11px; font-weight:400;">Drag a Tech onto a Ready Van to Dispatch</span></div>
+      <div class="tech-list" id="tech-list-container">
+        <!-- Rendered via JS -->
       </div>
     </div>
 
-    <div class="kanban-board">
-      
-      <!-- READY COLUMN -->
-      <div class="kanban-col" id="col-ready" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'Warehouse (Ready)')">
-        <div class="kanban-header">
-          <span style="color:var(--success);">Warehouse (Ready)</span>
-          <span class="kanban-count" id="count-ready">0</span>
+    <!-- RIGHT: FLEET BOARD -->
+    <div class="main-stage">
+      <div class="fleet-board">
+        <!-- READY COLUMN -->
+        <div class="board-col">
+          <div class="col-header"><span style="color:var(--success)">Warehouse (Ready)</span><span id="cnt-ready" style="color:var(--text-muted)">0</span></div>
+          <div id="list-ready" style="display:flex; flex-direction:column; gap:12px;"></div>
         </div>
-        <div id="list-ready" style="display:flex; flex-direction:column; gap:12px;"></div>
+
+        <!-- ACTIVE COLUMN -->
+        <div class="board-col">
+          <div class="col-header"><span style="color:var(--veo-cyan)">Active on Route</span><span id="cnt-active" style="color:var(--text-muted)">0</span></div>
+          <div id="list-active" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
       </div>
 
-      <!-- DISPATCHED COLUMN -->
-      <div class="kanban-col" id="col-active" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'Dispatched')">
-        <div class="kanban-header">
-          <span style="color:var(--veo-cyan-dark);">Active Routes</span>
-          <span class="kanban-count" id="count-active">0</span>
-        </div>
-        <div id="list-active" style="display:flex; flex-direction:column; gap:12px;"></div>
+      <!-- BOTTOM DOCK: END SHIFT -->
+      <div id="end-shift-dock" ondragover="dockDragOver(event)" ondragleave="dockDragLeave(event)" ondrop="dockDrop(event)">
+        📥 Drag Active Vans Here to End Shift
       </div>
-
-      <!-- OOS COLUMN -->
-      <div class="kanban-col" id="col-oos" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'Out of Service')">
-        <div class="kanban-header">
-          <span style="color:var(--danger);">Needs Attention</span>
-          <span class="kanban-count" id="count-oos">0</span>
-        </div>
-        <div id="list-oos" style="display:flex; flex-direction:column; gap:12px;"></div>
-      </div>
-
     </div>
   </div>
 
-  <!-- FLEET / TECHS / SHIFT PLACEHOLDERS -->
-  <div id="tab-fleet" class="tab-content"><h2>Fleet Registry</h2><p>Data loads here...</p></div>
-  <div id="tab-techs" class="tab-content"><h2>Tech Roster</h2><p>Data loads here...</p></div>
-  <div id="tab-monitor" class="tab-content"><h2>Shift Monitor</h2><p>Data loads here...</p></div>
-
-
-  <!-- ============================================== -->
-  <!-- NATIVE DIALOG MODALS                           -->
-  <!-- ============================================== -->
+  <!-- ========================================== -->
+  <!-- NATIVE DIALOGS                             -->
+  <!-- ========================================== -->
 
   <!-- 1. DISPATCH MODAL -->
-  <dialog id="quick-dispatch-modal" style="width: 500px;">
-    <div class="dialog-header">🚀 Deploy Vehicle</div>
-    <form method="dialog" onsubmit="submitQuickDispatch(event)">
-      <div class="dialog-body">
-        <input type="hidden" id="qd-van-id">
-        <div style="background:rgba(0,229,255,0.05); padding:12px; border-radius:6px; margin-bottom:16px; border:1px solid var(--veo-cyan);">
-          Assigning Tech to Unit <strong id="qd-van-label"></strong>
+  <dialog id="modal-dispatch">
+    <div class="dlg-header">🚀 Deploy Vehicle</div>
+    <form method="dialog" onsubmit="submitDispatch(event)">
+      <div class="dlg-body">
+        <input type="hidden" id="dp_rental_id">
+        <input type="hidden" id="dp_tech_name">
+        
+        <div style="background: rgba(0,229,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid var(--veo-cyan); font-size: 14px;">
+          Assigning <strong id="lbl_tech" style="color:var(--veo-cyan)"></strong> to <strong id="lbl_van" style="color:var(--veo-cyan)"></strong>
         </div>
 
         <div class="form-group">
-          <label>Assigned Tech / Driver</label>
-          <select id="qd-tech" class="form-control" required></select>
-        </div>
-
-        <div class="form-group">
-          <label>Work Zone(s)</label>
-          <select id="qd-zones" class="form-control" multiple style="height:70px;" required></select>
+          <label>Work Zone(s) (Hold Ctrl/Cmd to multi-select)</label>
+          <select id="dp_zones" class="form-control" multiple style="height: 90px;" required></select>
         </div>
 
         <div class="form-group">
           <label>Shift Focus</label>
-          <select id="qd-focus" class="form-control">
+          <select id="dp_focus" class="form-control">
             <option value="">-- Select Focus --</option>
-            <option value="Standard Route">Standard Route</option>
-            <option value="Battery Swaps">Battery Swaps</option>
-            <option value="Rebalancing">Rebalancing</option>
+            <option value="Battery Swap">Battery Swap</option>
+            <option value="Rebalance">Rebalance</option>
+            <option value="Retrieval">Retrieval</option>
           </select>
         </div>
 
-        <div class="row">
-          <div class="col form-group">
+        <div style="display:flex; gap:16px;">
+          <div class="form-group" style="flex:1;">
             <label>Batteries Out</label>
-            <input type="number" id="qd-battery" class="form-control" placeholder="0">
+            <input type="number" id="dp_batt" class="form-control" placeholder="0">
           </div>
-          <div class="col form-group">
+          <div class="form-group" style="flex:1;">
             <label>E-Key Number</label>
-            <input type="text" id="qd-ekey" class="form-control" placeholder="e.g. K-104">
+            <input type="text" id="dp_ekey" class="form-control" placeholder="e.g. K-104">
           </div>
         </div>
 
         <div class="form-group">
           <label>Shift Notes & Goals</label>
-          <textarea id="qd-notes" class="form-control" rows="2" placeholder="Specific instructions..."></textarea>
+          <textarea id="dp_notes" class="form-control" rows="2" placeholder="Specific instructions..."></textarea>
         </div>
       </div>
-      <div class="dialog-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('quick-dispatch-modal').close()">Cancel</button>
+      <div class="dlg-footer">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-dispatch').close()">Cancel</button>
         <button type="submit" class="btn btn-primary">Deploy Van</button>
       </div>
     </form>
   </dialog>
 
-  <!-- 2. EDIT DISPATCH MODAL -->
-  <dialog id="edit-dispatch-modal" style="width: 500px;">
-    <div class="dialog-header">✏️ Edit Active Shift</div>
-    <form method="dialog" onsubmit="submitEditDispatch(event)">
-      <div class="dialog-body">
-        <input type="hidden" id="ed-dep-id">
-        <div style="background:#f4f7f6; padding:12px; border-radius:6px; margin-bottom:16px;">
-          Editing Shift for <strong id="ed-tech-label"></strong>
-        </div>
-
+  <!-- 2. EDIT ACTIVE SHIFT MODAL -->
+  <dialog id="modal-edit-shift">
+    <div class="dlg-header">✏️ Edit Active Shift</div>
+    <form method="dialog" onsubmit="submitEditShift(event)">
+      <div class="dlg-body">
+        <input type="hidden" id="ed_dep_id">
         <div class="form-group">
           <label>Assigned Vehicle (Hot-Swap)</label>
-          <select id="ed-van" class="form-control"></select>
+          <select id="ed_van" class="form-control"></select>
         </div>
-
         <div class="form-group">
           <label>Work Zone(s)</label>
-          <select id="ed-zones" class="form-control" multiple style="height:70px;"></select>
+          <select id="ed_zones" class="form-control" multiple style="height: 90px;" required></select>
         </div>
-
-        <div class="row">
-          <div class="col form-group">
+        <div style="display:flex; gap:16px;">
+          <div class="form-group" style="flex:1;">
             <label>Batteries Out</label>
-            <input type="number" id="ed-battery" class="form-control">
+            <input type="number" id="ed_batt" class="form-control">
           </div>
-          <div class="col form-group">
+          <div class="form-group" style="flex:1;">
             <label>E-Key Number</label>
-            <input type="text" id="ed-ekey" class="form-control">
+            <input type="text" id="ed_ekey" class="form-control">
           </div>
         </div>
-
         <div class="form-group">
-          <label>Shift Notes & Goals</label>
-          <textarea id="ed-notes" class="form-control" rows="2"></textarea>
+          <label>Shift Notes</label>
+          <textarea id="ed_notes" class="form-control" rows="2"></textarea>
         </div>
       </div>
-      <div class="dialog-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('edit-dispatch-modal').close()">Cancel</button>
+      <div class="dlg-footer">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-shift').close()">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Changes</button>
       </div>
     </form>
   </dialog>
 
   <!-- 3. END SHIFT CHECKOUT MODAL -->
-  <dialog id="end-shift-modal" style="width: 400px;">
-    <div class="dialog-header" style="color:var(--danger);">🛑 End Shift Checkout</div>
+  <dialog id="modal-end-shift">
+    <div class="dlg-header" style="color:var(--danger)">🛑 End Shift Checkout</div>
     <form method="dialog" onsubmit="submitEndShift(event)">
-      <div class="dialog-body">
-        <input type="hidden" id="es-dep-id">
-        <input type="hidden" id="es-rental-id">
-        <p style="font-size:14px; font-weight:600; margin-top:0;">Checking in vehicle. Please confirm return items:</p>
+      <div class="dlg-body">
+        <input type="hidden" id="es_dep_id">
+        <input type="hidden" id="es_rental_id">
+        
+        <p style="font-size: 14px; margin-top:0; color:var(--text-muted)">Checking in vehicle. Please log return assets:</p>
 
         <div class="form-group">
           <label>Batteries Returned In</label>
-          <input type="number" id="es-batt-in" class="form-control" placeholder="0" required>
+          <input type="number" id="es_batt_in" class="form-control" placeholder="0" required>
         </div>
 
-        <div class="form-group" style="margin-top:20px;">
-          <label style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-main); font-weight:600;">
-            <input type="checkbox" id="es-ekey-ret" style="transform:scale(1.2);"> E-Key Returned to Lockbox
+        <div class="form-group" style="margin-top: 20px;">
+          <label style="display:flex; align-items:center; gap:10px; font-size:14px; color:#fff;">
+            <input type="checkbox" id="es_ekey_ret" style="transform: scale(1.3); accent-color: var(--danger);"> E-Key Returned to Lockbox
           </label>
         </div>
       </div>
-      <div class="dialog-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('end-shift-modal').close()">Cancel</button>
+      <div class="dlg-footer">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-end-shift').close()">Cancel</button>
         <button type="submit" class="btn btn-danger">Complete Check-In</button>
       </div>
     </form>
   </dialog>
 
-  <!-- 4. INCIDENT / OOS MODAL (Simplified for Drop Zone) -->
-  <dialog id="incident-modal" style="width: 400px;">
-    <div class="dialog-header" style="color:var(--danger);">⚠️ Report Issue</div>
-    <form method="dialog" onsubmit="submitIncident(event)">
-      <div class="dialog-body">
-        <input type="hidden" id="inc-rental-id">
-        <div class="form-group">
-          <label>Issue Description</label>
-          <textarea id="inc-desc" class="form-control" rows="3" required></textarea>
-        </div>
-      </div>
-      <div class="dialog-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('incident-modal').close()">Cancel</button>
-        <button type="submit" class="btn btn-danger">Mark OOS</button>
-      </div>
-    </form>
-  </dialog>
-
-
-  <!-- ============================================== -->
-  <!-- JAVASCRIPT ENGINE                              -->
-  <!-- ============================================== -->
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT LOGIC                           -->
+  <!-- ========================================== -->
   <script>
-    let globalState = null;
+    let globalState = { techs: [], vehicles: [], deployments: [], config: { zones: [] } };
 
     window.onload = function() { loadPortalData(); };
 
-    // Basic Tab Switcher
-    function switchTab(t) {
-      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-      event.currentTarget.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-' + t).classList.add('active');
-    }
-
-    // Global Loader
-    function setLoader(state) {
-      document.getElementById('global-loader').style.display = state ? 'block' : 'none';
-    }
+    function setLoader(state) { document.getElementById('global-loader').style.display = state ? 'block' : 'none'; }
 
     function loadPortalData() {
       setLoader(true);
       google.script.run
         .withSuccessHandler(function(state) {
           globalState = state;
-          populateSelects();
-          renderKanbanBoard();
+          // Fallback zones if config is empty
+          if(!globalState.config.zones || globalState.config.zones.length === 0) {
+            globalState.config.zones = ['Zone 1A', 'Zone 1B', 'Zone 2A', 'Zone 2B', 'Zone 3A'];
+          }
+          populateDropdowns();
+          renderTechs();
+          renderVans();
+          setLoader(false);
+        })
+        .withFailureHandler(function(err) {
+          alert("Error loading data: " + err);
           setLoader(false);
         })
         .getDashboardState();
     }
 
-    // Populate dropdowns used in Modals
-    function populateSelects() {
-      if(!globalState) return;
-      
-      // Populate Tech Dropdown
-      const techOpts = globalState.techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-      document.getElementById('qd-tech').innerHTML = '<option value="">-- Select Tech --</option>' + techOpts;
-      
-      // Populate Zones Dropdown
-      const zones = (globalState.config && globalState.config.zones) ? globalState.config.zones : ['Zone 1A', 'Zone 1B', 'Zone 2A'];
-      const zoneOpts = zones.map(z => `<option value="${z}">${z}</option>`).join('');
-      document.getElementById('qd-zones').innerHTML = zoneOpts;
-      document.getElementById('ed-zones').innerHTML = zoneOpts;
+    function populateDropdowns() {
+      const zOpts = globalState.config.zones.map(z => `<option value="${z}">${z}</option>`).join('');
+      document.getElementById('dp_zones').innerHTML = zOpts;
+      document.getElementById('ed_zones').innerHTML = zOpts;
     }
 
-    /* --- RENDER KANBAN COLUMNS --- */
-    function renderKanbanBoard() {
-      if(!globalState) return;
+    /* --- RENDER LEFT SIDEBAR (TECHS) --- */
+    function renderTechs() {
+      const container = document.getElementById('tech-list-container');
       
-      const rdy = globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)');
-      const act = globalState.deployments.filter(d => d.status === 'Dispatched');
-      const oos = globalState.vehicles.filter(v => v.status === 'Out of Service');
+      let html = '';
+      globalState.techs.forEach(t => {
+        // Check if Tech is currently dispatched
+        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && d.tech === t.name);
+        const isAvail = !activeDep && t.status !== 'Inactive';
+        
+        html += `
+          <div class="tech-card ${isAvail ? '' : 'unavailable'}" ${isAvail ? `draggable="true" ondragstart="techDragStart(event, '${t.name}')"` : ''}>
+            <div class="tech-name">${t.name}</div>
+            <div class="tech-attr"><span>📞 ${t.phone || 'N/A'}</span><span>${t.shift || ''}</span></div>
+            <div class="tech-attr" style="margin-top:8px;">
+              <span>Drive Test: <strong style="color:${t.passedTest ? 'var(--success)' : 'var(--danger)'}">${t.passedTest ? 'Yes' : 'No'}</strong></span>
+              <span style="color:${isAvail ? 'var(--success)' : 'var(--warning)'}">${isAvail ? 'Available' : 'On Route'}</span>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
 
-      document.getElementById('count-ready').innerText = rdy.length;
-      document.getElementById('count-active').innerText = act.length;
-      document.getElementById('count-oos').innerText = oos.length;
+    /* --- RENDER RIGHT STAGE (VANS) --- */
+    function renderVans() {
+      const rdyContainer = document.getElementById('list-ready');
+      const actContainer = document.getElementById('list-active');
+      
+      const rdyVans = globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)');
+      const actVans = globalState.deployments.filter(d => d.status === 'Dispatched'); // Draw active from deployments
+      
+      document.getElementById('cnt-ready').innerText = rdyVans.length;
+      document.getElementById('cnt-active').innerText = actVans.length;
 
-      // Render Ready
-      document.getElementById('list-ready').innerHTML = rdy.map(v => `
-        <div class="card-item st-ready" draggable="true" ondragstart="handleDragStart(event, '${v.rentalId}', 'Warehouse (Ready)', '${v.cleanName}', '')">
-          <div style="font-weight:800; font-size:15px;">${v.cleanName}</div>
-          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Plate: ${v.plate}</div>
+      // Render Ready (Drop Targets for Techs)
+      rdyContainer.innerHTML = rdyVans.map(v => `
+        <div class="van-card ready" data-rental="${v.rentalId}" data-name="${v.cleanName}" 
+             ondragover="vanDragOver(event)" ondragleave="vanDragLeave(event)" ondrop="vanDropTech(event, this)">
+          <div class="van-title">${v.cleanName}</div>
+          <div class="van-sub">${v.rentalId} &bull; ${v.plate}</div>
+          <div class="van-sub">Service #: ${v.serviceNumber || 'N/A'}</div>
         </div>
       `).join('');
 
-      // Render Active
-      document.getElementById('list-active').innerHTML = act.map(d => `
-        <div class="card-item st-active" draggable="true" ondragstart="handleDragStart(event, '${d.rentalId}', 'Dispatched', '${d.vehicle}', '${d.id}')" onclick="openEditDispatchModal('${d.id}')">
-          <div style="font-weight:800; font-size:15px;">${d.tech}</div>
-          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${d.vehicle} &bull; ${d.zone}</div>
-          <div style="font-size:11px; margin-top:8px; color:var(--veo-cyan-dark); font-weight:700;">OUT: ${d.departureTime}</div>
-        </div>
-      `).join('');
-
-      // Render OOS
-      document.getElementById('list-oos').innerHTML = oos.map(v => `
-        <div class="card-item st-oos" draggable="true" ondragstart="handleDragStart(event, '${v.rentalId}', 'Out of Service', '${v.cleanName}', '')">
-          <div style="font-weight:800; font-size:15px;">${v.cleanName}</div>
-          <div style="font-size:12px; color:var(--danger); font-weight:600; margin-top:4px;">${v.notes || 'Maintenance Required'}</div>
+      // Render Active (Draggable to Dock, Click to Edit)
+      actContainer.innerHTML = actVans.map(d => `
+        <div class="van-card active" draggable="true" ondragstart="vanDragStart(event, '${d.rentalId}', '${d.id}')" onclick="openEditShift('${d.id}')">
+          <div class="van-title">${d.vehicle}</div>
+          <div class="van-sub" style="color:var(--veo-cyan); font-weight:700;">Tech: ${d.tech}</div>
+          <div class="van-sub">Zone: ${d.zone}</div>
+          <div class="van-sub" style="margin-top:8px;">Time Out: ${d.departureTime || 'N/A'}</div>
         </div>
       `).join('');
     }
 
-    /* --- UNIFIED DRAG AND DROP ENGINE --- */
-    function handleDragStart(ev, rentalId, status, cleanName, depId) {
-      ev.dataTransfer.setData("rentalId", rentalId);
-      ev.dataTransfer.setData("status", status);
-      ev.dataTransfer.setData("cleanName", cleanName);
-      ev.dataTransfer.setData("depId", depId || '');
-      ev.dataTransfer.effectAllowed = "move";
+    /* --- DRAG & DROP ENGINE --- */
+    
+    // 1. Tech Drag (Start)
+    function techDragStart(ev, techName) {
+      ev.dataTransfer.setData("techName", techName);
     }
 
-    function handleDragOver(ev) {
+    // 2. Van Drop Targets (For Techs)
+    function vanDragOver(ev) {
       ev.preventDefault();
-      // Styling handled by CSS hover/active states where possible, or add classes here
+      ev.currentTarget.classList.add('drag-over');
     }
-
-    function handleDrop(ev, targetStatus) {
+    function vanDragLeave(ev) {
+      ev.currentTarget.classList.remove('drag-over');
+    }
+    function vanDropTech(ev, el) {
       ev.preventDefault();
-      
-      const rentalId = ev.dataTransfer.getData("rentalId");
-      const currentStatus = ev.dataTransfer.getData("status");
-      const cleanName = ev.dataTransfer.getData("cleanName");
-      const depId = ev.dataTransfer.getData("depId");
-
-      if (currentStatus === targetStatus) return; // Dropped in same lane
-
-      if (targetStatus === 'Dispatched') {
-        // Dragged to Active
-        openQuickDispatch(rentalId, cleanName);
-      } 
-      else if (targetStatus === 'Warehouse (Ready)') {
-        if (currentStatus === 'Dispatched') {
-          // Dragged to Ready from Active -> END SHIFT
-          openEndShift(depId, rentalId);
-        } else if (currentStatus === 'Out of Service') {
-          // Dragged from OOS to Ready
-          alert("Trigger repair check-in for " + cleanName); 
-        }
-      } 
-      else if (targetStatus === 'Out of Service') {
-        // Dragged to OOS
-        document.getElementById('inc-rental-id').value = rentalId;
-        document.getElementById('incident-modal').showModal();
+      el.classList.remove('drag-over');
+      const techName = ev.dataTransfer.getData("techName");
+      if (techName) {
+        const rentalId = el.getAttribute('data-rental');
+        const vanName = el.getAttribute('data-name');
+        openDispatchModal(rentalId, vanName, techName);
       }
     }
 
-    /* --- MODAL LOGIC --- */
-    
-    function openQuickDispatch(rentalId, cleanName) {
-      document.getElementById('qd-van-id').value = rentalId;
-      document.getElementById('qd-van-label').innerText = cleanName;
-      document.getElementById('qd-battery').value = '';
-      document.getElementById('qd-ekey').value = '';
-      document.getElementById('qd-notes').value = '';
-      document.getElementById('qd-focus').value = '';
-      document.getElementById('quick-dispatch-modal').showModal();
+    // 3. Active Van Drag (Start)
+    function vanDragStart(ev, rentalId, depId) {
+      ev.dataTransfer.setData("rentalId", rentalId);
+      ev.dataTransfer.setData("depId", depId);
     }
 
-    function submitQuickDispatch(e) {
+    // 4. Bottom Dock Drop Targets (For Active Vans -> End Shift)
+    function dockDragOver(ev) {
+      ev.preventDefault();
+      document.getElementById('end-shift-dock').classList.add('drag-over');
+    }
+    function dockDragLeave(ev) {
+      document.getElementById('end-shift-dock').classList.remove('drag-over');
+    }
+    function dockDrop(ev) {
+      ev.preventDefault();
+      document.getElementById('end-shift-dock').classList.remove('drag-over');
+      const rentalId = ev.dataTransfer.getData("rentalId");
+      const depId = ev.dataTransfer.getData("depId");
+      if (rentalId && depId) {
+        openEndShiftModal(depId, rentalId);
+      }
+    }
+
+    /* --- MODAL WORKFLOWS --- */
+
+    // A. DISPATCH
+    function openDispatchModal(rentalId, vanName, techName) {
+      document.getElementById('dp_rental_id').value = rentalId;
+      document.getElementById('dp_tech_name').value = techName;
+      document.getElementById('lbl_tech').innerText = techName;
+      document.getElementById('lbl_van').innerText = vanName;
+      
+      // Reset fields
+      Array.from(document.getElementById('dp_zones').options).forEach(o => o.selected = false);
+      document.getElementById('dp_focus').value = '';
+      document.getElementById('dp_batt').value = '';
+      document.getElementById('dp_ekey').value = '';
+      document.getElementById('dp_notes').value = '';
+      
+      document.getElementById('modal-dispatch').showModal();
+    }
+
+    function submitDispatch(e) {
       const payload = {
-        rentalId: document.getElementById('qd-van-id').value,
-        assignedTech: document.getElementById('qd-tech').value,
-        workZone: Array.from(document.getElementById('qd-zones').selectedOptions).map(o => o.value).join(', '),
-        focusCategory: document.getElementById('qd-focus').value,
-        batteryTarget: document.getElementById('qd-battery').value,
-        eKey: document.getElementById('qd-ekey').value,
-        goals: document.getElementById('qd-notes').value,
-        shift: 'First Shift' 
+        rentalId: document.getElementById('dp_rental_id').value,
+        assignedTech: document.getElementById('dp_tech_name').value,
+        cleanName: document.getElementById('lbl_van').innerText,
+        workZone: Array.from(document.getElementById('dp_zones').selectedOptions).map(o => o.value).join(', '),
+        focusCategory: document.getElementById('dp_focus').value,
+        batteryTarget: document.getElementById('dp_batt').value,
+        eKey: document.getElementById('dp_ekey').value,
+        goals: document.getElementById('dp_notes').value,
+        shift: 'First Shift'
       };
+      
       setLoader(true);
-      google.script.run.withSuccessHandler(loadPortalData).processDispatchCheckout(payload);
+      google.script.run
+        .withSuccessHandler(loadPortalData)
+        .processDispatchCheckout(payload);
     }
 
-    function openEditDispatchModal(depId) {
+    // B. EDIT ACTIVE SHIFT
+    function openEditShift(depId) {
       const dep = globalState.deployments.find(d => d.id === depId);
       if(!dep) return;
+
+      document.getElementById('ed_dep_id').value = depId;
       
-      document.getElementById('ed-dep-id').value = dep.id;
-      document.getElementById('ed-tech-label').innerText = dep.tech;
-      
-      // Hot-Swap Van Dropdown
+      // Populate Hot-Swap Dropdown
       let vanOpts = `<option value="${dep.rentalId}">${dep.vehicle} (Current)</option>`;
       globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)').forEach(v => {
         vanOpts += `<option value="${v.rentalId}">${v.cleanName}</option>`;
       });
-      document.getElementById('ed-van').innerHTML = vanOpts;
-      document.getElementById('ed-van').value = dep.rentalId;
+      document.getElementById('ed_van').innerHTML = vanOpts;
+      document.getElementById('ed_van').value = dep.rentalId;
 
-      document.getElementById('ed-battery').value = dep.target || '';
-      document.getElementById('ed-ekey').value = dep.eKey || '';
-      document.getElementById('ed-notes').value = dep.goals || '';
+      document.getElementById('ed_batt').value = dep.target || '';
+      document.getElementById('ed_ekey').value = dep.eKey || '';
+      document.getElementById('ed_notes').value = dep.goals || '';
       
-      document.getElementById('edit-dispatch-modal').showModal();
+      // Zones handling omitted for brevity, assumes setup via populateDropdowns
+      document.getElementById('modal-edit-shift').showModal();
     }
 
-    function submitEditDispatch(e) {
+    function submitEditShift(e) {
       const payload = {
-        id: document.getElementById('ed-dep-id').value,
-        rentalId: document.getElementById('ed-van').value,
-        zone: Array.from(document.getElementById('ed-zones').selectedOptions).map(o => o.value).join(', '),
-        target: document.getElementById('ed-battery').value,
-        eKey: document.getElementById('ed-ekey').value,
-        goals: document.getElementById('ed-notes').value
+        id: document.getElementById('ed_dep_id').value,
+        rentalId: document.getElementById('ed_van').value,
+        zone: Array.from(document.getElementById('ed_zones').selectedOptions).map(o => o.value).join(', '),
+        target: document.getElementById('ed_batt').value,
+        eKey: document.getElementById('ed_ekey').value,
+        goals: document.getElementById('ed_notes').value
       };
+      
       setLoader(true);
-      google.script.run.withSuccessHandler(loadPortalData).updateDeploymentRecord(payload);
+      google.script.run
+        .withSuccessHandler(loadPortalData)
+        .updateDeploymentRecord(payload);
     }
 
-    function openEndShift(depId, rentalId) {
-      document.getElementById('es-dep-id').value = depId;
-      document.getElementById('es-rental-id').value = rentalId;
-      document.getElementById('es-batt-in').value = '';
-      document.getElementById('es-ekey-ret').checked = false;
-      document.getElementById('end-shift-modal').showModal();
+    // C. END SHIFT
+    function openEndShiftModal(depId, rentalId) {
+      document.getElementById('es_dep_id').value = depId;
+      document.getElementById('es_rental_id').value = rentalId;
+      document.getElementById('es_batt_in').value = '';
+      document.getElementById('es_ekey_ret').checked = false;
+      document.getElementById('modal-end-shift').showModal();
     }
 
     function submitEndShift(e) {
       const payload = {
-        deploymentId: document.getElementById('es-dep-id').value,
-        rentalId: document.getElementById('es-rental-id').value,
-        batteriesIn: document.getElementById('es-batt-in').value,
-        eKeyReturned: document.getElementById('es-ekey-ret').checked
+        deploymentId: document.getElementById('es_dep_id').value,
+        rentalId: document.getElementById('es_rental_id').value,
+        batteriesIn: document.getElementById('es_batt_in').value,
+        eKeyReturned: document.getElementById('es_ekey_ret').checked
       };
+      
       setLoader(true);
-      google.script.run.withSuccessHandler(loadPortalData).endShift(payload);
+      google.script.run
+        .withSuccessHandler(loadPortalData)
+        .endShift(payload);
     }
 
-    function submitIncident(e) {
-      // Mock logic to handle OOS drop
-      setLoader(true);
-      setTimeout(() => { loadPortalData(); }, 1000); 
-    }
-
-    // Click outside `<dialog>` to close
-    document.querySelectorAll('dialog').forEach(dialog => {
-      dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
+    // Global click listener to close native dialogs when clicking backdrop
+    document.querySelectorAll('dialog').forEach(dlg => {
+      dlg.addEventListener('click', (e) => {
+        if (e.target === dlg) dlg.close();
       });
     });
-
   </script>
 </body>
 </html>
