@@ -19,94 +19,82 @@ function include(filename) {
 
 function getDashboardState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const vSheet = ss.getSheetByName('Vehicles');
-  const tSheet = ss.getSheetByName('Tech_Profiles');
-  const iSheet = ss.getSheetByName('Incidents_Service');
-  const dSheet = ss.getSheetByName('Deployments');
-  const cSheet = ss.getSheetByName('_Config');
+  const tz = Session.getScriptTimeZone();
+  const cfg = { zones: ['Zone 1A', 'Zone 1B', 'Zone 2A', 'Zone 2B', 'Zone 3A'] }; 
   
-  const zones = [];
+  // Try to load config dynamically if the sheet exists
+  const cSheet = ss.getSheetByName('_Config');
   if (cSheet && cSheet.getLastRow() > 1) {
+    cfg.zones = [];
     const cData = cSheet.getDataRange().getValues();
     for (let i = 1; i < cData.length; i++) {
-      if (cData[i][4]) zones.push(String(cData[i][4]).trim());
+      if (cData[i][4]) cfg.zones.push(String(cData[i][4]).trim());
     }
   }
 
+  // 1. Fetch Vehicles Safely
+  const vSheet = ss.getSheetByName('Vehicles');
   const vehicles = [];
   if (vSheet && vSheet.getLastRow() > 1) {
-    // Pulling 20 columns to safely capture Coast in Column T
-    const vRows = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 20).getValues();
-    const tz = Session.getScriptTimeZone();
-    vRows.forEach(r => {
-      if (!r[0] && !r[1]) return; 
+    const vData = vSheet.getDataRange().getValues(); // Dynamically sizes to exact columns
+    for (let i = 1; i < vData.length; i++) {
+      const r = vData[i];
+      if (!r[0] && !r[1]) continue; 
       vehicles.push({
         cleanName: String(r[0] || '').trim(),
         rentalId: String(r[1] || '').trim(),
-        agency: String(r[2] || ''),
-        makeModel: String(r[3] || ''),
-        vin: String(r[4] || ''),
         plate: String(r[5] || ''),
-        plateExpDate: (r[6] instanceof Date) ? Utilities.formatDate(r[6], tz, 'yyyy-MM-dd') : String(r[6] || '—'),
-        samsaraSerial: String(r[7] || ''),
-        samsaraLink: String(r[8] || ''),
-        status: String(r[9] || 'Warehouse (Ready)').trim(),
-        pickupDate: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'yyyy-MM-dd') : String(r[10] || '—'),
-        serviceNum: String(r[11] || ''),
-        zone: String(r[12] || '—'),
-        driver: String(r[13] || '—'),
-        lastService: (r[14] instanceof Date) ? Utilities.formatDate(r[14], tz, 'yyyy-MM-dd') : '—',
-        notes: String(r[15] || ''),
-        addons: String(r[18] || ''),
-        coast: String(r[19] || 'No')
-      });
-    });
-  }
-
-  const techs = [];
-  if (tSheet && tSheet.getLastRow() > 1) {
-    const tData = tSheet.getDataRange().getValues();
-    for (let i = 1; i < tData.length; i++) {
-      if (!tData[i][0]) continue;
-      techs.push({
-        name: tData[i][0] || '', phone: tData[i][1] || 'No Phone',
-        shift: tData[i][2] || 'First Shift', startTime: tData[i][3] || '—', endTime: tData[i][4] || '—',
-        workDays: tData[i][5] || '—', passedTest: String(tData[i][6]).trim().toLowerCase() === 'yes',
-        restricted: String(tData[i][8]).trim().toLowerCase() === 'yes', status: tData[i][9] || 'Available'
+        status: String(r[8] || r[9] || 'Warehouse (Ready)').trim(), // Covers multiple column layouts
+        zone: String(r[11] || r[12] || '—'),
+        driver: String(r[12] || r[13] || '—')
       });
     }
   }
 
-  const incidents = [];
-  if (iSheet && iSheet.getLastRow() > 1) {
-    const iData = iSheet.getDataRange().getValues();
-    for (let i = 1; i < iData.length; i++) {
-      if (!iData[i][0]) continue;
-      incidents.push({
-        id: iData[i][0], date: iData[i][1] ? new Date(iData[i][1]).toLocaleDateString() : '',
-        cleanName: iData[i][2] || '', rentalId: iData[i][3] || '',
-        category: iData[i][4] || '', desc: iData[i][5] || '',
-        oos: iData[i][6] || 'NO', statusImpact: iData[i][7] || '',
-        resolution: iData[i][8] || '', resolved: iData[i][9] ? true : false
-      });
-    }
-  }
-
+  // 2. Fetch Deployments Safely
+  const dSheet = ss.getSheetByName('Deployments');
   const deployments = [];
   if (dSheet && dSheet.getLastRow() > 1) {
     const dData = dSheet.getDataRange().getValues();
     const startRow = Math.max(1, dData.length - 200);
     for (let i = startRow; i < dData.length; i++) {
+      const r = dData[i];
       deployments.push({
-        id: dData[i][0], date: dData[i][1] ? new Date(dData[i][1]).toLocaleDateString() : '',
-        shift: dData[i][2] || '', cleanName: dData[i][3] || '', rentalId: dData[i][4] || '',
-        tech: dData[i][5] || '', zone: dData[i][6] || '', goals: dData[i][7] || '',
-        battery: dData[i][8] || '', status: dData[i][9] || '', departureTime: dData[i][10] ? new Date(dData[i][10]).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''
+        id: String(r[0] || ''),
+        vehicle: String(r[3] || ''),
+        rentalId: String(r[4] || ''),
+        tech: String(r[5] || ''),
+        zone: String(r[6] || ''),
+        target: String(r[8] || ''),
+        status: String(r[9] || 'Dispatched'),
+        departureTime: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'hh:mm a') : String(r[10] || '')
       });
     }
   }
 
-  return JSON.stringify({ vehicles, techs, incidents, deployments, zones });
+  // 3. Fetch Techs Safely
+  const tSheet = ss.getSheetByName('Tech_Profiles');
+  const techs = [];
+  if (tSheet && tSheet.getLastRow() > 1) {
+    const tData = tSheet.getDataRange().getValues();
+    for (let i = 1; i < tData.length; i++) {
+      const r = tData[i];
+      if (!r[0]) continue;
+      techs.push({
+        name: String(r[0] || ''),
+        phone: String(r[1] || 'No Phone'),
+        shift: String(r[2] || 'First Shift'),
+        startTime: String(r[3] || '—'),
+        endTime: String(r[4] || '—'),
+        workDays: String(r[5] || '—'),
+        passedTest: String(r[6]).trim().toLowerCase() === 'yes',
+        restricted: String(r[8]).trim().toLowerCase() === 'yes',
+        status: String(r[9] || 'Available')
+      });
+    }
+  }
+
+  return { config: cfg, vehicles: vehicles, deployments: deployments, techs: techs };
 }
 
 /**

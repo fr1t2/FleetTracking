@@ -249,26 +249,27 @@
 
     function setLoader(state) { document.getElementById('global-loader').style.display = state ? 'block' : 'none'; }
 
-    function loadPortalData() {
-      setLoader(true);
-      google.script.run
-        .withSuccessHandler(function(state) {
-          globalState = state;
-          // Fallback zones if config is empty
-          if(!globalState.config.zones || globalState.config.zones.length === 0) {
-            globalState.config.zones = ['Zone 1A', 'Zone 1B', 'Zone 2A', 'Zone 2B', 'Zone 3A'];
-          }
-          populateDropdowns();
-          renderTechs();
-          renderVans();
-          setLoader(false);
-        })
-        .withFailureHandler(function(err) {
-          alert("Error loading data: " + err);
-          setLoader(false);
-        })
-        .getDashboardState();
-    }
+function loadPortalData() {
+  setLoader(true);
+  google.script.run
+    .withSuccessHandler(function(state) {
+      globalState = state;
+      // Fallback zones if config is empty
+      if(!globalState.config || !globalState.config.zones || globalState.config.zones.length === 0) {
+        globalState.config = globalState.config || {};
+        globalState.config.zones = ['Zone 1A', 'Zone 1B', 'Zone 2A', 'Zone 2B', 'Zone 3A'];
+      }
+      populateDropdowns();
+      renderTechs();
+      renderVans();
+      setLoader(false);
+    })
+    .withFailureHandler(function(error) {
+      setLoader(false);
+      alert("Backend Crash: " + error.message);
+    })
+    .getDashboardState();
+}
 
     function populateDropdowns() {
       const zOpts = globalState.config.zones.map(z => `<option value="${z}">${z}</option>`).join('');
