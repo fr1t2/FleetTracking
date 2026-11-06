@@ -19,7 +19,7 @@
 
     /* Topbar & Search */
     .topbar { background: var(--bg-panel); padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
-    .search-box { padding: 10px 16px; width: 300px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Inter'; }
+    .search-box { padding: 10px 16px; width: 250px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Inter'; }
 
     /* Snapshot Grid */
     .grid-container { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; max-width: 1800px; margin: 0 auto; }
@@ -43,16 +43,23 @@
     .modal-tabs { display: flex; background: #f8f9fa; border-bottom: 1px solid var(--border-color); }
     .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; }
     .tab-btn.active { color: var(--veo-cyan-dark); border-bottom-color: var(--veo-cyan-dark); background: #fff; }
-    .tab-content { display: none; padding: 24px; min-height: 300px; max-height: 60vh; overflow-y: auto; }
+    .tab-content { display: none; padding: 24px; min-height: 250px; max-height: 60vh; overflow-y: auto; }
     .tab-content.active { display: block; }
     
     .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-family: 'Inter'; }
-    .btn-primary { background: var(--veo-cyan-dark); color: #fff; width: 100%; }
-    .btn-danger { background: var(--oos); color: #fff; width: 100%; }
+    .btn-primary { background: var(--veo-cyan-dark); color: #fff; }
+    .btn-danger { background: var(--oos); color: #fff; }
+    .btn-success { background: var(--ready); color: #fff; }
+    .btn-dark { background: #202124; color: #fff; }
     .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
     .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; }
+    .row { display: flex; gap: 16px; }
+    .col { flex: 1; }
 
-    /* Predictive Driver Card inside Modal */
+    /* Dialog Footer */
+    .dlg-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: #fafafa; }
+
+    /* Predictive Driver Card */
     .driver-card { background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
     .driver-card:hover { border-color: var(--veo-cyan-dark); }
     .d-badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 800; display: inline-block; margin-right: 4px; }
@@ -67,7 +74,14 @@
 
   <div class="topbar">
     <div style="font-size:20px; font-weight:900; letter-spacing:-0.5px;">VEO Snapshot</div>
-    <input type="text" id="global-search" class="search-box" placeholder="Search Vans or Drivers..." onkeyup="renderGrid()">
+    <div style="display:flex; gap:12px; align-items:center;">
+      <input type="text" id="global-search" class="search-box" placeholder="Search Vans or Drivers..." onkeyup="renderGrid()">
+      <select id="grid-sort" class="form-control" style="width:auto; margin-bottom:0;" onchange="renderGrid()">
+        <option value="status-type-name">Sort: Status ➔ Type ➔ Name</option>
+        <option value="name">Sort: Alphabetical (A-Z)</option>
+        <option value="type-name">Sort: Group by Type</option>
+      </select>
+    </div>
   </div>
 
   <div class="grid-container" id="fleet-grid"></div>
@@ -107,6 +121,45 @@
     <div id="tab-service" class="tab-content">
       <div id="service-view"></div>
     </div>
+    
+    <!-- DYNAMIC ACTION FOOTER -->
+    <div class="dlg-footer" id="vm-footer"></div>
+  </dialog>
+
+  <!-- EDIT DISPATCH MODAL -->
+  <dialog id="edit-dispatch-modal" style="max-width: 500px; z-index: 1005;">
+    <div class="modal-head">✏️ Edit Active Shift</div>
+    <div style="padding: 24px;">
+      <input type="hidden" id="ed-dep-id">
+      <input type="hidden" id="ed-rental-id">
+      <input type="hidden" id="ed-selected-tech">
+      
+      <label style="font-size:12px; font-weight:700;">Driver (Search to Change)</label>
+      <input type="text" id="ed-driver-search" class="form-control" placeholder="Search tech roster..." onkeyup="searchDriverEdit()">
+      <div id="ed-driver-result-card" style="margin-bottom:12px; max-height:150px; overflow-y:auto;"></div>
+
+      <div class="row">
+        <div class="col form-group">
+          <label style="font-size:12px; font-weight:700;">Zone(s)</label>
+          <select id="ed-zone" class="form-control" multiple style="height:90px;"></select>
+        </div>
+        <div class="col form-group">
+          <label style="font-size:12px; font-weight:700;">Shift Focus</label>
+          <select id="ed-focus" class="form-control">
+            <option value="">-- Select --</option>
+            <option value="Battery Swap">Battery Swap</option>
+            <option value="Rebalance">Rebalance</option>
+            <option value="Retrieval">Retrieval</option>
+            <option value="Standard Route">Standard Route</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-dispatch-modal').close()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="submitEditDispatch()">Save Changes</button>
+      </div>
+    </div>
   </dialog>
 
   <!-- LOG SERVICE MODAL -->
@@ -115,14 +168,14 @@
     <div style="padding: 24px;">
       <input type="hidden" id="ls-rental-id">
       <input type="hidden" id="ls-clean-name">
-      <div class="form-group"><label>Category</label><input type="text" id="ls-category" class="form-control" placeholder="e.g. Mechanical, Body"></div>
-      <div class="form-group"><label>Description</label><textarea id="ls-desc" class="form-control" rows="2"></textarea></div>
+      <div class="form-group"><label style="font-size:12px; font-weight:700;">Category</label><input type="text" id="ls-category" class="form-control" placeholder="e.g. Mechanical, Body"></div>
+      <div class="form-group"><label style="font-size:12px; font-weight:700;">Description</label><textarea id="ls-desc" class="form-control" rows="2"></textarea></div>
       <label style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:16px;">
         <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> Mark Out of Service
       </label>
-      <div style="display:flex; justify-content:flex-end; gap:12px;">
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
         <button class="btn btn-outline" type="button" onclick="document.getElementById('log-service-modal').close()">Cancel</button>
-        <button class="btn btn-danger" type="button" onclick="submitNewService()">Submit</button>
+        <button class="btn btn-danger" type="button" onclick="submitNewService()">Submit Ticket</button>
       </div>
     </div>
   </dialog>
@@ -132,7 +185,7 @@
     <div class="modal-head" style="color:var(--danger)">⚠️ Unsaved Changes</div>
     <div style="padding: 24px;">
       <p style="margin-top:0; font-size:14px; font-weight:500;">You have entered information in this form. Are you sure you want to close it and discard your changes?</p>
-      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+      <div class="dlg-footer" style="padding: 24px 0 0 0; background: transparent; border-top: none;">
         <button class="btn btn-outline" type="button" onclick="document.getElementById('unsaved-modal').close()">Keep Editing</button>
         <button class="btn btn-danger" type="button" onclick="forceCloseModal()">Discard Changes</button>
       </div>
@@ -147,35 +200,52 @@
     function loadData() {
       document.getElementById('global-loader').style.display = 'block';
       google.script.run
-        .withSuccessHandler(state => { globalState = state; renderGrid(); document.getElementById('global-loader').style.display = 'none'; })
+        .withSuccessHandler(state => { 
+            globalState = JSON.parse(state); 
+            renderGrid(); 
+            document.getElementById('global-loader').style.display = 'none'; 
+        })
         .getDashboardState();
     }
 
     function renderGrid() {
       if(!globalState) return;
       const q = document.getElementById('global-search').value.toLowerCase();
+      const sortMode = document.getElementById('grid-sort').value;
       
-      // SEAMLESS SORT: Status -> Type -> Name[cite: 1]
-      let vans = [...globalState.vehicles];
+      let vans = [...(globalState.vehicles || [])];
       const statusWeight = { 'Dispatched': 1, 'Warehouse (Ready)': 2, 'Out of Service': 3 };
       
       vans.sort((a, b) => {
-        if (statusWeight[a.status] !== statusWeight[b.status]) return statusWeight[a.status] - statusWeight[b.status];
-        if (a.type !== b.type) return a.type.localeCompare(b.type);
-        return a.cleanName.localeCompare(b.cleanName);
+        if (sortMode === 'status-type-name') {
+            if (statusWeight[a.status] !== statusWeight[b.status]) return statusWeight[a.status] - statusWeight[b.status];
+            if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
+            return a.cleanName.localeCompare(b.cleanName);
+        } else if (sortMode === 'type-name') {
+            if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
+            return a.cleanName.localeCompare(b.cleanName);
+        } else {
+            // Alphabetical
+            return a.cleanName.localeCompare(b.cleanName);
+        }
       });
 
       let html = '';
       vans.forEach(v => {
         if (v.status === 'Decommissioned') return;
-        if (q && !v.cleanName.toLowerCase().includes(q) && !v.driver.toLowerCase().includes(q)) return;
+        if (q && !v.cleanName.toLowerCase().includes(q) && !(v.driver || '').toLowerCase().includes(q)) return;
 
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-dispatched' : 'st-oos');
-        let ribbon = v.safeToDrive ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
+        let ribbon = (String(v.safeToDrive) === 'true') ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
         
-        let subText = v.status === 'Dispatched' 
-          ? `<div style="font-weight:700; color:var(--dispatched); margin-top:8px;">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted);">📍 ${v.zone}</div>` 
-          : `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Type: ${v.type}</div>`;
+        let subText = '';
+        if (v.status === 'Dispatched') {
+          const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
+          const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
+          subText = `<div style="font-weight:700; color:var(--dispatched); margin-top:8px;">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted);">📍 ${v.zone}</div>${focusStr}`;
+        } else {
+          subText = `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Type: ${v.type || 'Van'}</div>`;
+        }
 
         html += `
           <div class="van-card ${bClass}" onclick="openVanModal('${v.rentalId}')">
@@ -197,40 +267,70 @@
     }
 
     function openVanModal(rentalId) {
-      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      const v = (globalState.vehicles || []).find(x => x.rentalId === rentalId);
+      if (!v) return;
+      
       document.getElementById('vm-rental-id').value = rentalId;
       document.getElementById('vm-title').innerText = v.cleanName;
       document.getElementById('vm-selected-tech').value = '';
       
-      const dep = globalState.deployments.find(d => d.rentalId === rentalId && d.status === 'Dispatched');
-      const tech = globalState.techs.find(t => t.name === (dep ? dep.tech : v.driver));
+      const dep = (globalState.deployments || []).find(d => d.rentalId === rentalId && d.status === 'Dispatched');
+      const tech = (globalState.techs || []).find(t => t.name === (dep ? dep.tech : v.driver));
 
-      // 1. Dispatch Tab (With Inline Driver Search)
+      // 1. Dispatch Tab & Action Footer
       let dHtml = '';
+      let footerHtml = `<button class="btn btn-outline" type="button" onclick="document.getElementById('van-modal').close()">Close</button>`;
+      
       if (v.status === 'Warehouse (Ready)') {
         dHtml = `
-          <h4 style="margin-top:0;">Deploy Vehicle</h4>
-          <input type="text" id="live-driver-search" class="form-control" placeholder="Search Tech Roster..." onkeyup="searchDriver()">
-          <div id="driver-result-card" style="margin-bottom:12px; max-height:240px; overflow-y:auto;"></div>
-          <label style="font-size:12px; font-weight:700;">Zone(s)</label>
-          <select id="sel-zone" class="form-control" multiple style="height:100px; margin-bottom:16px;">
-            ${globalState.config.zones.map(z=>`<option value="${z}">${z}</option>`).join('')}
-          </select>
-          <button class="btn btn-primary" onclick="submitDispatch()">🚀 Dispatch Now</button>
+          <div style="margin-bottom:16px;">
+            <label style="font-size:12px; font-weight:700;">Assign Driver (Search Tech Roster)</label>
+            <input type="text" id="live-driver-search" class="form-control" placeholder="Type name..." onkeyup="searchDriver()">
+            <div id="driver-result-card" style="margin-bottom:12px; max-height:200px; overflow-y:auto;"></div>
+          </div>
+          <div class="row">
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Zone(s)</label>
+              <select id="sel-zone" class="form-control" multiple style="height:90px;">
+                ${(globalState.zones || []).map(z=>`<option value="${z}">${z}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Shift Focus</label>
+              <select id="sel-focus" class="form-control">
+                <option value="">-- Select --</option>
+                <option value="Battery Swap">Battery Swap</option>
+                <option value="Rebalance">Rebalance</option>
+                <option value="Retrieval">Retrieval</option>
+                <option value="Standard Route">Standard Route</option>
+              </select>
+              <label style="font-size:12px; font-weight:700; margin-top:8px;">Batteries Out</label>
+              <input type="number" id="sel-batt" class="form-control" placeholder="0">
+            </div>
+          </div>
         `;
+        footerHtml += `<button class="btn btn-primary" type="button" onclick="submitDispatch()">🚀 Dispatch Now</button>`;
       } else if (v.status === 'Dispatched') {
         dHtml = `
-          <h4 style="margin-top:0; color:var(--dispatched);">Active Route</h4>
-          <p><strong>Tech:</strong> ${dep ? dep.tech : v.driver}</p>
-          <p><strong>Zones:</strong> ${dep ? dep.zone : v.zone}</p>
-          <p><strong>Focus:</strong> ${dep ? dep.goals : '—'}</p>
-          <p><strong>Out Since:</strong> ${dep ? dep.departureTime : 'Unknown'}</p>
-          <button class="btn btn-primary" style="background:#000;" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>
+          <div style="background:rgba(0, 229, 255, 0.05); border:1px solid var(--veo-cyan); padding:16px; border-radius:8px;">
+            <h4 style="margin-top:0; color:var(--veo-cyan-dark);">Active Route Details</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size:14px;">
+              <div><strong>Tech:</strong> ${dep ? dep.tech : v.driver}</div>
+              <div><strong>Out Since:</strong> ${dep ? dep.departureTime : 'Unknown'}</div>
+              <div><strong>Zone(s):</strong> ${dep ? dep.zone : v.zone}</div>
+              <div><strong>Focus:</strong> ${dep ? dep.goals : '—'}</div>
+              <div><strong>Batteries Out:</strong> ${dep ? dep.battery : '0'}</div>
+            </div>
+          </div>
         `;
+        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
+        footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
       } else {
-        dHtml = `<p style="color:var(--oos); font-weight:bold;">Vehicle is Out of Service.</p>`;
+        dHtml = `<div style="padding:20px; background:#fee2e2; color:#991b1b; border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
+        footerHtml += `<button class="btn btn-success" type="button" onclick="submitCheckIn()">✅ Check In to Warehouse</button>`;
       }
       document.getElementById('dispatch-view').innerHTML = dHtml;
+      document.getElementById('vm-footer').innerHTML = footerHtml;
 
       // 2. Driver Tab
       if (tech) {
@@ -247,37 +347,56 @@
 
       // 3. Specs Tab
       document.getElementById('specs-view').innerHTML = `
-        <p><strong>Type:</strong> ${v.type}</p>
-        <p><strong>Plate:</strong> ${v.plate}</p>
-        <p><strong>Samsara:</strong> <a href="${v.samsaraLink}" target="_blank">View GPS</a></p>
+        <p><strong>Type:</strong> ${v.type || 'Van'}</p>
+        <p><strong>Plate:</strong> ${v.plate} <span style="font-size:12px; color:var(--text-muted);">(Exp: ${v.plateExpDate || 'N/A'})</span></p>
+        <p><strong>Coast Card:</strong> ${v.coast || 'No'}</p>
+        <p><strong>Addons:</strong> ${v.addons || 'None'}</p>
+        <p><strong>Samsara:</strong> <a href="${v.samsaraLink}" target="_blank" style="color:var(--veo-cyan-dark);">View GPS</a></p>
       `;
 
       // 4. Service Tab
-      let openIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
+      let allIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
+      let openIncidents = allIncidents.filter(i => !i.resolved);
+      let closedIncidents = allIncidents.filter(i => i.resolved);
+
       let incHtml = openIncidents.map(i => `
         <div style="border:1px solid var(--border-color); padding:12px; border-radius:6px; margin-bottom:8px;">
           <div style="font-weight:700; color:${i.severity === 'OOS' ? 'var(--oos)' : 'var(--warning)'};">${i.severity} Issue</div>
-          <div style="font-size:13px; margin:4px 0 8px 0;">${i.issue}</div>
-          <input type="text" id="res-${i.id}" class="form-control" placeholder="Resolution notes..." style="padding:6px; font-size:12px;">
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="closeService('${i.id}', '${rentalId}')">Close Issue</button>
+          <div style="font-size:13px; margin:4px 0 8px 0;">${i.desc || i.issue}</div>
+          <input type="text" id="res-${i.id}" class="form-control" placeholder="Resolution notes..." style="padding:6px; font-size:12px; margin-bottom:8px;">
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="closeService('${i.id}', '${rentalId}')">Close Ticket</button>
+        </div>
+      `).join('');
+
+      let histHtml = closedIncidents.map(i => `
+        <div style="font-size:12px; color:var(--text-muted); border-bottom:1px solid #eee; padding:6px 0;">
+          <strong>${i.date}</strong>: ${i.desc || i.issue} <br>
+          <em style="color:var(--ready);">Resolved: ${i.resolution}</em>
         </div>
       `).join('');
 
       document.getElementById('service-view').innerHTML = `
         <div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
           <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>Last Oil: <strong>${v.lastOil}</strong></span>
-            <span>Last Tires: <strong>${v.lastTires}</strong></span>
+            <span>Last Oil: <strong>${v.lastOil || 'N/A'}</strong></span>
+            <span>Last Tires: <strong>${v.lastTires || 'N/A'}</strong></span>
           </div>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Open Tickets</strong>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ New</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ Log Issue</button>
         </div>
-        ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
+        <div style="margin-bottom:16px;">
+          ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
+          <strong style="font-size:14px;">Service History</strong>
+        </div>
+        <div style="max-height:150px; overflow-y:auto;">
+          ${histHtml || '<p style="font-size:13px; color:var(--text-muted);">No past service records.</p>'}
+        </div>
       `;
 
-      // Default to dispatch tab and ensure dirty state is reset[cite: 1]
       document.querySelectorAll('.tab-btn')[0].click();
       const vm = document.getElementById('van-modal');
       vm.dataset.dirty = 'false';
@@ -288,15 +407,13 @@
     function searchDriver() {
       const q = document.getElementById('live-driver-search').value.toLowerCase();
       const container = document.getElementById('driver-result-card');
-
       if(q.length < 1) { 
         container.innerHTML = ''; 
         document.getElementById('vm-selected-tech').value = ''; 
         return; 
       }
       
-      // Find ALL drivers containing the typed letters
-      const matches = globalState.techs.filter(t => t.name.toLowerCase().includes(q));
+      const matches = (globalState.techs || []).filter(t => t.name.toLowerCase().includes(q));
       
       if(matches.length > 0) {
         container.innerHTML = matches.map(match => {
@@ -326,8 +443,7 @@
       document.getElementById('vm-selected-tech').value = name;
       document.getElementById('van-modal').dataset.dirty = 'true';
       
-      // Remove highlight from all cards, apply to selected
-      document.querySelectorAll('.driver-card').forEach(c => {
+      document.querySelectorAll('#driver-result-card .driver-card').forEach(c => {
         c.style.borderColor = 'var(--border-color)';
         c.style.backgroundColor = '#f8f9fa';
       });
@@ -336,6 +452,95 @@
         sel.style.borderColor = 'var(--veo-cyan-dark)';
         sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)';
       }
+    }
+
+    /* --- EDIT DISPATCH ENGINE --- */
+    function openEditDispatchModal(depId) {
+      if(!depId) return;
+      const dep = (globalState.deployments || []).find(d => d.id === depId);
+      if (!dep) return;
+      
+      document.getElementById('ed-dep-id').value = dep.id;
+      document.getElementById('ed-rental-id').value = dep.rentalId;
+      document.getElementById('ed-selected-tech').value = dep.tech;
+      document.getElementById('ed-driver-search').value = dep.tech;
+      document.getElementById('ed-driver-result-card').innerHTML = ''; // Clear prior search
+      
+      const zoneSel = document.getElementById('ed-zone');
+      zoneSel.innerHTML = (globalState.zones || []).map(z=>`<option value="${z}">${z}</option>`).join('');
+      
+      // Select existing zones
+      const activeZones = (dep.zone || '').split(',').map(z => z.trim());
+      Array.from(zoneSel.options).forEach(opt => {
+          if(activeZones.includes(opt.value)) opt.selected = true;
+      });
+
+      document.getElementById('ed-focus').value = dep.goals || '';
+
+      document.getElementById('van-modal').close();
+      const edm = document.getElementById('edit-dispatch-modal');
+      edm.dataset.dirty = 'false';
+      edm.showModal();
+    }
+
+    function searchDriverEdit() {
+      const q = document.getElementById('ed-driver-search').value.toLowerCase();
+      const container = document.getElementById('ed-driver-result-card');
+      if(q.length < 1) { 
+        container.innerHTML = ''; 
+        document.getElementById('ed-selected-tech').value = ''; 
+        return; 
+      }
+      
+      const matches = (globalState.techs || []).filter(t => t.name.toLowerCase().includes(q));
+      
+      if(matches.length > 0) {
+        container.innerHTML = matches.map(match => {
+          return `
+            <div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')">
+              <strong>${match.name}</strong>
+            </div>
+          `;
+        }).join('');
+      } else {
+        container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px;">No matching drivers found.</div>`;
+      }
+    }
+
+    function selectDriverEdit(name) {
+      document.getElementById('ed-selected-tech').value = name;
+      document.getElementById('ed-driver-search').value = name;
+      document.getElementById('edit-dispatch-modal').dataset.dirty = 'true';
+      
+      document.querySelectorAll('#ed-driver-result-card .driver-card').forEach(c => {
+        c.style.borderColor = 'var(--border-color)';
+        c.style.backgroundColor = '#f8f9fa';
+      });
+      const sel = document.getElementById('edcard-' + name.replace(/\s+/g, ''));
+      if(sel) {
+        sel.style.borderColor = 'var(--veo-cyan-dark)';
+        sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)';
+      }
+    }
+
+    function submitEditDispatch() {
+      const tech = document.getElementById('ed-selected-tech').value;
+      if (!tech) { alert('Please select a valid driver.'); return; }
+      
+      const payload = {
+        id: document.getElementById('ed-dep-id').value,
+        rentalId: document.getElementById('ed-rental-id').value,
+        assignedTech: tech,
+        workZone: Array.from(document.getElementById('ed-zone').selectedOptions).map(o => o.value).join(', '),
+        goals: document.getElementById('ed-focus').value
+      };
+      
+      const edm = document.getElementById('edit-dispatch-modal');
+      edm.dataset.dirty = 'false';
+      edm.close();
+      
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData).updateDeploymentRecord(payload);
     }
 
     /* --- SUBMISSION HANDLERS --- */
@@ -347,6 +552,8 @@
         rentalId: document.getElementById('vm-rental-id').value,
         assignedTech: tech,
         workZone: Array.from(document.getElementById('sel-zone').selectedOptions).map(o => o.value).join(', '),
+        goals: document.getElementById('sel-focus').value,
+        batteryTarget: document.getElementById('sel-batt').value,
         shift: 'First Shift'
       };
       
@@ -370,6 +577,16 @@
       
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData).endShift(payload);
+    }
+
+    function submitCheckIn() {
+      const payload = { rentalId: document.getElementById('vm-rental-id').value };
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      vm.close();
+      
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData).processCheckInVehicle(payload);
     }
 
     /* --- SERVICE ENGINE --- */
@@ -420,7 +637,7 @@
       dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
       dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       
-      // 2. Intercept background clicks[cite: 1]
+      // 2. Intercept background clicks
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
           if (dlg.id === 'unsaved-modal') {
@@ -441,7 +658,7 @@
     function forceCloseModal() {
       if (pendingCloseDialog) {
         pendingCloseDialog.close();
-        pendingCloseDialog.dataset.dirty = 'false'; // Reset state
+        pendingCloseDialog.dataset.dirty = 'false'; 
         pendingCloseDialog = null;
       }
       document.getElementById('unsaved-modal').close();
