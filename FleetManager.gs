@@ -178,3 +178,82 @@ function closeServiceIssue(data) {
     throw new Error('Close ticket failed: ' + err.message);
   }
 }
+
+function processAddVehicle(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    // Maps directly to the 24-column layout
+    const rowData = [
+      data.vanName || '',
+      data.rentalId || '',
+      data.agency || '',
+      data.makeModel || '',
+      data.vin || '',
+      data.plate || '',
+      data.plateExp || '',
+      data.samsaraSerial || '',
+      data.samsaraLink || '',
+      'Warehouse (Ready)', // Col 10: Status
+      now,                 // Col 11: Pickup Date
+      '',                  // Col 12: Service Num
+      '',                  // Col 13: Zone
+      '',                  // Col 14: Tech
+      now,                 // Col 15: Last Service Date
+      'Newly Added',       // Col 16: Notes
+      user,                // Col 17: Updated By
+      now,                 // Col 18: Updated At
+      data.addons || '',   // Col 19: Addons
+      data.coast || 'No',  // Col 20: Coast
+      data.type || 'Cargo Van', // Col 21: Vehicle Type
+      '',                  // Col 22: Oil Date
+      '',                  // Col 23: Oil Miles
+      ''                   // Col 24: Tires
+    ];
+    
+    // Ensure array padding prevents out-of-bounds crashes
+    while (rowData.length < 24) rowData.push('');
+    
+    vSheet.appendRow(rowData);
+    return { success: true };
+  } catch (err) {
+    throw new Error('Add vehicle failed: ' + err.message);
+  }
+}
+
+function decommissionVehicle(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+    
+    const vData = vSheet.getDataRange().getValues();
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        const row = i + 1;
+        vSheet.getRange(row, 10).setValue('Decommissioned'); // Status
+        vSheet.getRange(row, 13).clearContent(); // Zone
+        vSheet.getRange(row, 14).clearContent(); // Tech
+        
+        // Bundle the checklist into the history notes
+        const tz = Session.getScriptTimeZone();
+        const dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
+        const decomNotes = `RETIRED (${dateStr}) - Reason: ${data.reason} | Samsara Removed: ${data.samRemoved ? 'Yes' : 'No'} | Assets Removed: ${data.assetsRemoved ? 'Yes' : 'No'} | Ops Notified: ${data.opsNotified ? 'Yes' : 'No'} | Cleaned: ${data.clean ? 'Yes' : 'No'}`;
+        
+        const existingNotes = vSheet.getRange(row, 16).getValue();
+        vSheet.getRange(row, 16).setValue((existingNotes ? existingNotes + ' | ' : '') + decomNotes);
+        
+        vSheet.getRange(row, 17).setValue(user);
+        vSheet.getRange(row, 18).setValue(now);
+        break;
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    throw new Error('Decommission failed: ' + err.message);
+  }
+}
