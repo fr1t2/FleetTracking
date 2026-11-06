@@ -161,32 +161,23 @@
     </div>
   </dialog>
 
-  <!-- LOG SERVICE MODAL -->
+<!-- LOG MAINTENANCE MODAL -->
   <dialog id="log-service-modal" style="max-width: 450px; z-index: 1001;">
     <div class="modal-head">📝 Log Maintenance</div>
     <div style="padding: 24px;">
       <input type="hidden" id="ls-rental-id">
       <input type="hidden" id="ls-clean-name">
       
-      <div class="row">
-        <div class="col form-group">
-          <label style="font-size:12px; font-weight:700;">Category</label>
-          <select id="ls-category" class="form-control">
-            <option value="Mechanical">Mechanical</option>
-            <option value="Body Damage">Body Damage</option>
-            <option value="Tires">Tires</option>
-            <option value="Lights/Electrical">Lights/Electrical</option>
-            <option value="Interior">Interior</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="col form-group">
-          <label style="font-size:12px; font-weight:700;">Severity</label>
-          <select id="ls-severity" class="form-control">
-             <option value="Minor">Minor (Safe to Drive)</option>
-             <option value="OOS">Critical (Out of Service)</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Issue Category</label>
+        <select id="ls-category" class="form-control">
+          <option value="Mechanical">Mechanical</option>
+          <option value="Body Damage">Body Damage</option>
+          <option value="Tires">Tires</option>
+          <option value="Lights/Electrical">Lights/Electrical</option>
+          <option value="Interior">Interior</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
       
       <div class="form-group">
@@ -199,6 +190,7 @@
           <textarea id="ls-desc" class="form-control" rows="3" placeholder="Describe the issue..."></textarea>
       </div>
       
+      <!-- REDUNDANT SEVERITY DROPDOWN REMOVED. JUST THE CHECKBOX NOW. -->
       <label style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:16px;">
         <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> Mark Vehicle Out of Service
       </label>
@@ -684,18 +676,20 @@
         .processCheckInVehicle(payload);
     }
 
-    /* --- SERVICE ENGINE --- */
+/* --- SERVICE ENGINE --- */
     function openLogService(rentalId, cleanName) {
+      // Close the van modal first if it is open
       const vm = document.getElementById('van-modal');
-      if (vm.open) vm.close();
+      if (vm && vm.open) vm.close();
       
-      document.getElementById('ls-rental-id').value = rentalId;
-      document.getElementById('ls-clean-name').value = cleanName;
+      document.getElementById('ls-rental-id').value = rentalId || '';
+      document.getElementById('ls-clean-name').value = cleanName || '';
       document.getElementById('ls-category').value = 'Mechanical';
-      document.getElementById('ls-severity').value = 'Minor';
       document.getElementById('ls-impact').value = '';
       document.getElementById('ls-desc').value = '';
-      document.getElementById('ls-oos').checked = false;
+      
+      // Default to checking the OOS box for safety, but user can uncheck it
+      document.getElementById('ls-oos').checked = true; 
       
       const lsm = document.getElementById('log-service-modal');
       lsm.dataset.dirty = 'false';
@@ -704,39 +698,62 @@
 
     function submitNewService() {
       const rentalId = document.getElementById('ls-rental-id').value;
+      const isOos = document.getElementById('ls-oos').checked;
+      
       const payload = {
         rentalId: rentalId,
         cleanName: document.getElementById('ls-clean-name').value,
         category: document.getElementById('ls-category').value,
-        severity: document.getElementById('ls-severity').value,
+        severity: isOos ? 'OOS' : 'Minor', // Let the checkbox dictate the severity
         statusImpact: document.getElementById('ls-impact').value,
         description: document.getElementById('ls-desc').value,
-        isOos: document.getElementById('ls-oos').checked
+        isOos: isOos
       };
       
       const lsm = document.getElementById('log-service-modal');
       lsm.dataset.dirty = 'false';
       lsm.close();
 
+      // OPTIMISTIC SYNC
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) {
           if (payload.isOos) {
-              v.status = 'Out of Service'; v.driver = '—'; v.zone = '—'; v.safeToDrive = 'false';
+              v.status = 'Out of Service'; 
+              v.driver = '—'; 
+              v.zone = '—'; 
+              v.safeToDrive = 'false';
+              
               const d = globalState.deployments.find(x => x.rentalId === rentalId && x.status === 'Dispatched');
               if(d) d.status = 'Completed';
-          } else { v.safeToDrive = 'true'; }
+          } else { 
+              v.safeToDrive = 'true'; 
+          }
       }
-      globalState.incidents.unshift({ id: 'temp-' + Date.now(), rentalId: rentalId, severity: payload.severity, issue: payload.description, dateReported: new Date().toLocaleDateString() });
+      globalState.incidents.unshift({ 
+        id: 'temp-' + Date.now(), 
+        rentalId: rentalId, 
+        severity: payload.severity, 
+        issue: payload.description, 
+        dateReported: new Date().toLocaleDateString() 
+      });
       renderGrid();
       
       document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData)
+      
+      // Assumes your backend function is logNewServiceNeed or processReportIncident
+      const backendCall = google.script.run
+        .withSuccessHandler(loadData)
         .withFailureHandler(err => {
             document.getElementById('global-loader').style.display = 'none';
             alert("Error logging service: " + err.message);
             loadData();
-        })
-        .logNewServiceNeed(payload);
+        });
+
+      if (typeof backendCall.logNewServiceNeed === 'function') {
+          backendCall.logNewServiceNeed(payload);
+      } else {
+          backendCall.processReportIncident(payload);
+      }
     }
 
     function closeService(incId, rentalId) {
