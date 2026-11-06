@@ -2,493 +2,236 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VEO Dispatch Command</title>
+  <title>VEO Fleet Snapshot</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --veo-cyan: #00E5FF; 
-      --veo-cyan-dark: #00B8CC;
-      --bg-main: #0f1115; 
-      --bg-panel: #1a1d24;
-      --bg-surface: #252932;
-      --text-main: #ffffff; 
-      --text-muted: #9ba1a6;
-      --border-color: #333842; 
-      --success: #34C759; 
-      --danger: #FF3B30; 
-      --warning: #FFCC00;
+      --veo-cyan: #00E5FF; --veo-cyan-dark: #00B8CC;
+      --bg-main: #f4f7f6; --bg-panel: #ffffff;
+      --text-main: #202124; --text-muted: #5f6368;
+      --border-color: #e0e0e0; --shadow: 0 4px 12px rgba(0,0,0,0.05);
+      --ready: #34C759; --dispatched: #00B8CC; --oos: #FF3B30; --warning: #FFCC00;
     }
-    
-    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); }
     * { box-sizing: border-box; }
 
-    /* Layout Shell */
-    .app-header { background: var(--bg-panel); border-bottom: 1px solid var(--border-color); padding: 16px 24px; font-weight: 800; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
-    .app-body { display: flex; flex: 1; overflow: hidden; }
-    
-    /* Left Sidebar: Techs */
-    .sidebar { width: 320px; background: var(--bg-panel); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-color); font-weight: 700; color: var(--text-muted); }
-    .tech-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-    
-    /* Right Stage: Fleet */
-    .main-stage { flex: 1; display: flex; flex-direction: column; position: relative; }
-    .fleet-board { flex: 1; overflow-y: auto; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-content: start; }
-    
-    /* Kanban Columns */
-    .board-col { background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); min-height: 500px; display: flex; flex-direction: column; gap: 12px; }
-    .col-header { font-weight: 800; font-size: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    
-    /* Cards */
-    .tech-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-left: 4px solid var(--success); border-radius: 8px; padding: 12px; cursor: grab; transition: transform 0.1s; }
-    .tech-card:active { cursor: grabbing; transform: scale(0.98); }
-    .tech-card.unavailable { border-left-color: var(--border-color); opacity: 0.6; cursor: not-allowed; }
-    .tech-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-    .tech-attr { font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 4px; }
-    
-    .van-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-top: 4px solid var(--border-color); border-radius: 8px; padding: 16px; transition: 0.2s; }
-    .van-card.ready { border-top-color: var(--success); }
-    .van-card.active { border-top-color: var(--veo-cyan); cursor: grab; }
-    .van-card.drag-over { border-color: var(--veo-cyan); background: rgba(0, 229, 255, 0.05); }
-    .van-title { font-weight: 800; font-size: 16px; color: #fff; }
-    .van-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-    
-    /* Bottom Check-in Dock */
-    #end-shift-dock { height: 80px; background: var(--bg-panel); border-top: 2px dashed var(--border-color); display: flex; justify-content: center; align-items: center; font-weight: 700; color: var(--text-muted); transition: 0.2s; z-index: 10; }
-    #end-shift-dock.drag-over { background: rgba(255, 59, 48, 0.1); border-top-color: var(--danger); color: var(--danger); height: 120px; font-size: 18px; }
+    /* Topbar & Search */
+    .topbar { background: var(--bg-panel); padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+    .search-box { padding: 10px 16px; width: 300px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Inter'; }
 
-    /* Native Dialogs (Modals) */
-    dialog { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 0; width: 100%; max-width: 500px; box-shadow: 0 24px 48px rgba(0,0,0,0.5); margin: auto; }
-    dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
-    .dlg-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-weight: 800; font-size: 18px; display: flex; justify-content: space-between; align-items: center; color: var(--veo-cyan); }
-    .dlg-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
-    .dlg-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-panel); }
+    /* Snapshot Grid */
+    .grid-container { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; max-width: 1800px; margin: 0 auto; }
     
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); }
-    .form-control { width: 100%; padding: 10px; background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 14px; }
-    .form-control:focus { outline: none; border-color: var(--veo-cyan); }
+    .van-card { background: var(--bg-panel); border-radius: 12px; padding: 20px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: 0.2s; }
+    .van-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
     
-    .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; font-family: 'Inter', sans-serif; transition: 0.2s; }
-    .btn-primary { background: var(--veo-cyan-dark); color: #fff; }
-    .btn-danger { background: var(--danger); color: #fff; }
-    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-    .btn:hover { filter: brightness(1.1); }
+    /* Status Colors */
+    .st-ready { border-top: 5px solid var(--ready); }
+    .st-dispatched { border-top: 5px solid var(--dispatched); }
+    .st-oos { border-top: 5px solid var(--oos); }
+    
+    /* Safe-to-Drive Warning Ribbon */
+    .ribbon-warning { position: absolute; top: 0; right: 0; background: var(--warning); color: #000; font-size: 10px; font-weight: 800; padding: 4px 12px; border-bottom-left-radius: 8px; }
 
-    /* Loader */
-    #global-loader { display: none; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--veo-cyan), #007aff); z-index: 9999; animation: load 1.5s infinite; }
-    @keyframes load { 0% { width: 0%; } 50% { width: 50%; margin-left: 0; } 100% { width: 50%; margin-left: 100%; } }
+    /* Tabbed Modal */
+    dialog { border: none; border-radius: 16px; padding: 0; width: 95%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    
+    .modal-head { padding: 20px 24px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+    .modal-tabs { display: flex; background: #f8f9fa; border-bottom: 1px solid var(--border-color); }
+    .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; }
+    .tab-btn.active { color: var(--veo-cyan-dark); border-bottom-color: var(--veo-cyan-dark); background: #fff; }
+    .tab-content { display: none; padding: 24px; min-height: 300px; max-height: 60vh; overflow-y: auto; }
+    .tab-content.active { display: block; }
+    
+    .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; }
+    .btn-primary { background: var(--veo-cyan-dark); color: #fff; width: 100%; }
+    .btn-danger { background: var(--oos); color: #fff; width: 100%; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; }
+
+    /* Predictive Driver Card */
+    .driver-card { display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    .d-badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 800; }
+    .b-pass { background: #d1fae5; color: #065f46; }
+    .b-fail { background: #fee2e2; color: #991b1b; }
+
+    #global-loader { display: none; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--veo-cyan); z-index: 9999; }
   </style>
 </head>
 <body>
   <div id="global-loader"></div>
-  
-  <div class="app-header">
-    <div>VEO Dispatch Control</div>
-    <button class="btn btn-outline" onclick="loadPortalData()">🔄 Refresh</button>
+
+  <div class="topbar">
+    <div style="font-size:20px; font-weight:900; letter-spacing:-0.5px;">VEO Snapshot</div>
+    <input type="text" id="global-search" class="search-box" placeholder="Search Vans or Drivers..." onkeyup="renderGrid()">
   </div>
 
-  <div class="app-body">
-    <!-- LEFT: TECH ROSTER -->
-    <div class="sidebar">
-      <div class="sidebar-header">👨‍🔧 Available Techs <br><span style="font-size:11px; font-weight:400;">Drag a Tech onto a Ready Van to Dispatch</span></div>
-      <div class="tech-list" id="tech-list-container">
-        <!-- Rendered via JS -->
-      </div>
+  <div class="grid-container" id="fleet-grid"></div>
+
+  <!-- 360 VEHICLE MODAL -->
+  <dialog id="van-modal">
+    <div class="modal-head">
+      <span id="vm-title">Van Name</span>
+      <button onclick="document.getElementById('van-modal').close()" style="border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+    </div>
+    
+    <div class="modal-tabs">
+      <button class="tab-btn active" onclick="switchTab('dispatch')">Dispatch</button>
+      <button class="tab-btn" onclick="switchTab('specs')">Specs</button>
+      <button class="tab-btn" onclick="switchTab('service')">Service</button>
     </div>
 
-    <!-- RIGHT: FLEET BOARD -->
-    <div class="main-stage">
-      <div class="fleet-board">
-        <!-- READY COLUMN -->
-        <div class="board-col">
-          <div class="col-header"><span style="color:var(--success)">Warehouse (Ready)</span><span id="cnt-ready" style="color:var(--text-muted)">0</span></div>
-          <div id="list-ready" style="display:flex; flex-direction:column; gap:12px;"></div>
-        </div>
-
-        <!-- ACTIVE COLUMN -->
-        <div class="board-col">
-          <div class="col-header"><span style="color:var(--veo-cyan)">Active on Route</span><span id="cnt-active" style="color:var(--text-muted)">0</span></div>
-          <div id="list-active" style="display:flex; flex-direction:column; gap:12px;"></div>
-        </div>
-      </div>
-
-      <!-- BOTTOM DOCK: END SHIFT -->
-      <div id="end-shift-dock" ondragover="dockDragOver(event)" ondragleave="dockDragLeave(event)" ondrop="dockDrop(event)">
-        📥 Drag Active Vans Here to End Shift
-      </div>
+    <!-- TAB: DISPATCH -->
+    <div id="tab-dispatch" class="tab-content active">
+      <input type="hidden" id="vm-rental-id">
+      <div id="dispatch-view"></div>
     </div>
-  </div>
 
-  <!-- ========================================== -->
-  <!-- NATIVE DIALOGS                             -->
-  <!-- ========================================== -->
+    <!-- TAB: SPECS -->
+    <div id="tab-specs" class="tab-content">
+      <div id="specs-view"></div>
+    </div>
 
-  <!-- 1. DISPATCH MODAL -->
-  <dialog id="modal-dispatch">
-    <div class="dlg-header">🚀 Deploy Vehicle</div>
-    <form method="dialog" onsubmit="submitDispatch(event)">
-      <div class="dlg-body">
-        <input type="hidden" id="dp_rental_id">
-        <input type="hidden" id="dp_tech_name">
-        
-        <div style="background: rgba(0,229,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid var(--veo-cyan); font-size: 14px;">
-          Assigning <strong id="lbl_tech" style="color:var(--veo-cyan)"></strong> to <strong id="lbl_van" style="color:var(--veo-cyan)"></strong>
-        </div>
-
-        <div class="form-group">
-          <label>Work Zone(s) (Hold Ctrl/Cmd to multi-select)</label>
-          <select id="dp_zones" class="form-control" multiple style="height: 90px;" required></select>
-        </div>
-
-        <div class="form-group">
-          <label>Shift Focus</label>
-          <select id="dp_focus" class="form-control">
-            <option value="">-- Select Focus --</option>
-            <option value="Battery Swap">Battery Swap</option>
-            <option value="Rebalance">Rebalance</option>
-            <option value="Retrieval">Retrieval</option>
-          </select>
-        </div>
-
-        <div style="display:flex; gap:16px;">
-          <div class="form-group" style="flex:1;">
-            <label>Batteries Out</label>
-            <input type="number" id="dp_batt" class="form-control" placeholder="0">
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label>E-Key Number</label>
-            <input type="text" id="dp_ekey" class="form-control" placeholder="e.g. K-104">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Shift Notes & Goals</label>
-          <textarea id="dp_notes" class="form-control" rows="2" placeholder="Specific instructions..."></textarea>
-        </div>
-      </div>
-      <div class="dlg-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-dispatch').close()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Deploy Van</button>
-      </div>
-    </form>
+    <!-- TAB: SERVICE -->
+    <div id="tab-service" class="tab-content">
+      <div id="service-view"></div>
+      <button class="btn btn-danger" style="margin-top:16px;" onclick="logNewService()">+ Log Service Need</button>
+    </div>
   </dialog>
 
-  <!-- 2. EDIT ACTIVE SHIFT MODAL -->
-  <dialog id="modal-edit-shift">
-    <div class="dlg-header">✏️ Edit Active Shift</div>
-    <form method="dialog" onsubmit="submitEditShift(event)">
-      <div class="dlg-body">
-        <input type="hidden" id="ed_dep_id">
-        <div class="form-group">
-          <label>Assigned Vehicle (Hot-Swap)</label>
-          <select id="ed_van" class="form-control"></select>
-        </div>
-        <div class="form-group">
-          <label>Work Zone(s)</label>
-          <select id="ed_zones" class="form-control" multiple style="height: 90px;" required></select>
-        </div>
-        <div style="display:flex; gap:16px;">
-          <div class="form-group" style="flex:1;">
-            <label>Batteries Out</label>
-            <input type="number" id="ed_batt" class="form-control">
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label>E-Key Number</label>
-            <input type="text" id="ed_ekey" class="form-control">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Shift Notes</label>
-          <textarea id="ed_notes" class="form-control" rows="2"></textarea>
-        </div>
-      </div>
-      <div class="dlg-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-shift').close()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- 3. END SHIFT CHECKOUT MODAL -->
-  <dialog id="modal-end-shift">
-    <div class="dlg-header" style="color:var(--danger)">🛑 End Shift Checkout</div>
-    <form method="dialog" onsubmit="submitEndShift(event)">
-      <div class="dlg-body">
-        <input type="hidden" id="es_dep_id">
-        <input type="hidden" id="es_rental_id">
-        
-        <p style="font-size: 14px; margin-top:0; color:var(--text-muted)">Checking in vehicle. Please log return assets:</p>
-
-        <div class="form-group">
-          <label>Batteries Returned In</label>
-          <input type="number" id="es_batt_in" class="form-control" placeholder="0" required>
-        </div>
-
-        <div class="form-group" style="margin-top: 20px;">
-          <label style="display:flex; align-items:center; gap:10px; font-size:14px; color:#fff;">
-            <input type="checkbox" id="es_ekey_ret" style="transform: scale(1.3); accent-color: var(--danger);"> E-Key Returned to Lockbox
-          </label>
-        </div>
-      </div>
-      <div class="dlg-footer">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-end-shift').close()">Cancel</button>
-        <button type="submit" class="btn btn-danger">Complete Check-In</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- ========================================== -->
-  <!-- JAVASCRIPT LOGIC                           -->
-  <!-- ========================================== -->
   <script>
-    let globalState = { techs: [], vehicles: [], deployments: [], config: { zones: [] } };
+    let globalState = null;
 
-    window.onload = function() { loadPortalData(); };
+    window.onload = function() { loadData(); };
 
-    function setLoader(state) { document.getElementById('global-loader').style.display = state ? 'block' : 'none'; }
-
-function loadPortalData() {
-  setLoader(true);
-  google.script.run
-    .withSuccessHandler(function(state) {
-      globalState = state;
-      // Fallback zones if config is empty
-      if(!globalState.config || !globalState.config.zones || globalState.config.zones.length === 0) {
-        globalState.config = globalState.config || {};
-        globalState.config.zones = ['Zone 1A', 'Zone 1B', 'Zone 2A', 'Zone 2B', 'Zone 3A'];
-      }
-      populateDropdowns();
-      renderTechs();
-      renderVans();
-      setLoader(false);
-    })
-    .withFailureHandler(function(error) {
-      setLoader(false);
-      alert("Backend Crash: " + error.message);
-    })
-    .getDashboardState();
-}
-
-    function populateDropdowns() {
-      const zOpts = globalState.config.zones.map(z => `<option value="${z}">${z}</option>`).join('');
-      document.getElementById('dp_zones').innerHTML = zOpts;
-      document.getElementById('ed_zones').innerHTML = zOpts;
+    function loadData() {
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run
+        .withSuccessHandler(state => { globalState = state; renderGrid(); document.getElementById('global-loader').style.display = 'none'; })
+        .getDashboardState();
     }
 
-    /* --- RENDER LEFT SIDEBAR (TECHS) --- */
-    function renderTechs() {
-      const container = document.getElementById('tech-list-container');
+    function renderGrid() {
+      if(!globalState) return;
+      const q = document.getElementById('global-search').value.toLowerCase();
       
+      // SEAMLESS SORT: Status -> Type -> Name
+      let vans = [...globalState.vehicles];
+      const statusWeight = { 'Dispatched': 1, 'Warehouse (Ready)': 2, 'Out of Service': 3 };
+      
+      vans.sort((a, b) => {
+        if (statusWeight[a.status] !== statusWeight[b.status]) return statusWeight[a.status] - statusWeight[b.status];
+        if (a.type !== b.type) return a.type.localeCompare(b.type);
+        return a.cleanName.localeCompare(b.cleanName);
+      });
+
       let html = '';
-      globalState.techs.forEach(t => {
-        // Check if Tech is currently dispatched
-        const activeDep = globalState.deployments.find(d => d.status === 'Dispatched' && d.tech === t.name);
-        const isAvail = !activeDep && t.status !== 'Inactive';
+      vans.forEach(v => {
+        if (v.status === 'Decommissioned') return;
+        if (q && !v.cleanName.toLowerCase().includes(q) && !v.driver.toLowerCase().includes(q)) return;
+
+        let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-dispatched' : 'st-oos');
+        let ribbon = v.safeToDrive ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
         
+        let subText = v.status === 'Dispatched' 
+          ? `<div style="font-weight:700; color:var(--dispatched); margin-top:8px;">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted);">📍 ${v.zone}</div>` 
+          : `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Type: ${v.type}</div>`;
+
         html += `
-          <div class="tech-card ${isAvail ? '' : 'unavailable'}" ${isAvail ? `draggable="true" ondragstart="techDragStart(event, '${t.name}')"` : ''}>
-            <div class="tech-name">${t.name}</div>
-            <div class="tech-attr"><span>📞 ${t.phone || 'N/A'}</span><span>${t.shift || ''}</span></div>
-            <div class="tech-attr" style="margin-top:8px;">
-              <span>Drive Test: <strong style="color:${t.passedTest ? 'var(--success)' : 'var(--danger)'}">${t.passedTest ? 'Yes' : 'No'}</strong></span>
-              <span style="color:${isAvail ? 'var(--success)' : 'var(--warning)'}">${isAvail ? 'Available' : 'On Route'}</span>
-            </div>
+          <div class="van-card ${bClass}" onclick="openVanModal('${v.rentalId}')">
+            ${ribbon}
+            <div style="font-size:18px; font-weight:800;">${v.cleanName} <span style="font-size:12px; font-weight:normal; color:var(--text-muted); float:right;">${v.rentalId}</span></div>
+            ${subText}
           </div>
         `;
       });
-      container.innerHTML = html;
+      document.getElementById('fleet-grid').innerHTML = html;
     }
 
-    /* --- RENDER RIGHT STAGE (VANS) --- */
-    function renderVans() {
-      const rdyContainer = document.getElementById('list-ready');
-      const actContainer = document.getElementById('list-active');
+    /* --- MODAL ENGINE --- */
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function openVanModal(rentalId) {
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      document.getElementById('vm-rental-id').value = rentalId;
+      document.getElementById('vm-title').innerText = v.cleanName;
       
-      const rdyVans = globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)');
-      const actVans = globalState.deployments.filter(d => d.status === 'Dispatched'); // Draw active from deployments
+      // Build Dispatch Tab
+      let dHtml = '';
+      if (v.status === 'Warehouse (Ready)') {
+        dHtml = `
+          <h4 style="margin-top:0;">Deploy Vehicle</h4>
+          <input type="text" id="live-driver-search" class="form-control" placeholder="Search Tech Roster..." onkeyup="searchDriver()">
+          <div id="driver-result-card"></div>
+          <select id="sel-zone" class="form-control" multiple style="height:100px;">
+            ${globalState.config.zones.map(z=>`<option value="${z}">${z}</option>`).join('')}
+          </select>
+          <button class="btn btn-primary" onclick="submitDispatch()">🚀 Dispatch Now</button>
+        `;
+      } else if (v.status === 'Dispatched') {
+        const dep = globalState.deployments.find(d => d.rentalId === rentalId && d.status === 'Dispatched');
+        dHtml = `
+          <h4 style="margin-top:0; color:var(--dispatched);">Active Route</h4>
+          <p><strong>Tech:</strong> ${dep ? dep.tech : v.driver}</p>
+          <p><strong>Zones:</strong> ${dep ? dep.zone : v.zone}</p>
+          <p><strong>Out Since:</strong> ${dep ? dep.departureTime : 'Unknown'}</p>
+          <button class="btn btn-primary" style="background:#000;" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>
+        `;
+      } else {
+        dHtml = `<p style="color:var(--oos); font-weight:bold;">Vehicle is Out of Service.</p>`;
+      }
+      document.getElementById('dispatch-view').innerHTML = dHtml;
+
+      // Build Specs Tab
+      document.getElementById('specs-view').innerHTML = `
+        <p><strong>Type:</strong> ${v.type}</p>
+        <p><strong>Plate:</strong> ${v.plate}</p>
+        <p><strong>Samsara:</strong> <a href="${v.samsaraLink}" target="_blank">View GPS</a></p>
+      `;
+
+      // Build Service Tab
+      document.getElementById('service-view').innerHTML = `
+        <div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span>Last Oil: <strong>${v.lastOil}</strong></span>
+            <span>Last Tires: <strong>${v.lastTires}</strong></span>
+          </div>
+        </div>
+        <p style="color:var(--oos); font-weight:600;">${v.notes || 'No active service notes.'}</p>
+      `;
+
+      switchTab('dispatch');
+      document.getElementById('van-modal').showModal();
+    }
+
+    /* --- LIVE DRIVER SEARCH --- */
+    function searchDriver() {
+      const q = document.getElementById('live-driver-search').value.toLowerCase();
+      if(q.length < 2) { document.getElementById('driver-result-card').innerHTML = ''; return; }
       
-      document.getElementById('cnt-ready').innerText = rdyVans.length;
-      document.getElementById('cnt-active').innerText = actVans.length;
-
-      // Render Ready (Drop Targets for Techs)
-      rdyContainer.innerHTML = rdyVans.map(v => `
-        <div class="van-card ready" data-rental="${v.rentalId}" data-name="${v.cleanName}" 
-             ondragover="vanDragOver(event)" ondragleave="vanDragLeave(event)" ondrop="vanDropTech(event, this)">
-          <div class="van-title">${v.cleanName}</div>
-          <div class="van-sub">${v.rentalId} &bull; ${v.plate}</div>
-          <div class="van-sub">Service #: ${v.serviceNumber || 'N/A'}</div>
-        </div>
-      `).join('');
-
-      // Render Active (Draggable to Dock, Click to Edit)
-      actContainer.innerHTML = actVans.map(d => `
-        <div class="van-card active" draggable="true" ondragstart="vanDragStart(event, '${d.rentalId}', '${d.id}')" onclick="openEditShift('${d.id}')">
-          <div class="van-title">${d.vehicle}</div>
-          <div class="van-sub" style="color:var(--veo-cyan); font-weight:700;">Tech: ${d.tech}</div>
-          <div class="van-sub">Zone: ${d.zone}</div>
-          <div class="van-sub" style="margin-top:8px;">Time Out: ${d.departureTime || 'N/A'}</div>
-        </div>
-      `).join('');
-    }
-
-    /* --- DRAG & DROP ENGINE --- */
-    
-    // 1. Tech Drag (Start)
-    function techDragStart(ev, techName) {
-      ev.dataTransfer.setData("techName", techName);
-    }
-
-    // 2. Van Drop Targets (For Techs)
-    function vanDragOver(ev) {
-      ev.preventDefault();
-      ev.currentTarget.classList.add('drag-over');
-    }
-    function vanDragLeave(ev) {
-      ev.currentTarget.classList.remove('drag-over');
-    }
-    function vanDropTech(ev, el) {
-      ev.preventDefault();
-      el.classList.remove('drag-over');
-      const techName = ev.dataTransfer.getData("techName");
-      if (techName) {
-        const rentalId = el.getAttribute('data-rental');
-        const vanName = el.getAttribute('data-name');
-        openDispatchModal(rentalId, vanName, techName);
+      const match = globalState.techs.find(t => t.name.toLowerCase().includes(q));
+      if(match) {
+        let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
+        document.getElementById('driver-result-card').innerHTML = `
+          <div class="driver-card" data-tech="${match.name}">
+            <div>
+              <strong>${match.name}</strong>
+              ${flagAlert}
+            </div>
+            <div style="text-align:right;">
+              <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
+              <span class="d-badge ${match.coastEnrolled ? 'b-pass' : 'b-fail'}" style="margin-left:4px;">Coast</span>
+            </div>
+          </div>
+        `;
       }
     }
-
-    // 3. Active Van Drag (Start)
-    function vanDragStart(ev, rentalId, depId) {
-      ev.dataTransfer.setData("rentalId", rentalId);
-      ev.dataTransfer.setData("depId", depId);
-    }
-
-    // 4. Bottom Dock Drop Targets (For Active Vans -> End Shift)
-    function dockDragOver(ev) {
-      ev.preventDefault();
-      document.getElementById('end-shift-dock').classList.add('drag-over');
-    }
-    function dockDragLeave(ev) {
-      document.getElementById('end-shift-dock').classList.remove('drag-over');
-    }
-    function dockDrop(ev) {
-      ev.preventDefault();
-      document.getElementById('end-shift-dock').classList.remove('drag-over');
-      const rentalId = ev.dataTransfer.getData("rentalId");
-      const depId = ev.dataTransfer.getData("depId");
-      if (rentalId && depId) {
-        openEndShiftModal(depId, rentalId);
-      }
-    }
-
-    /* --- MODAL WORKFLOWS --- */
-
-    // A. DISPATCH
-    function openDispatchModal(rentalId, vanName, techName) {
-      document.getElementById('dp_rental_id').value = rentalId;
-      document.getElementById('dp_tech_name').value = techName;
-      document.getElementById('lbl_tech').innerText = techName;
-      document.getElementById('lbl_van').innerText = vanName;
-      
-      // Reset fields
-      Array.from(document.getElementById('dp_zones').options).forEach(o => o.selected = false);
-      document.getElementById('dp_focus').value = '';
-      document.getElementById('dp_batt').value = '';
-      document.getElementById('dp_ekey').value = '';
-      document.getElementById('dp_notes').value = '';
-      
-      document.getElementById('modal-dispatch').showModal();
-    }
-
-    function submitDispatch(e) {
-      const payload = {
-        rentalId: document.getElementById('dp_rental_id').value,
-        assignedTech: document.getElementById('dp_tech_name').value,
-        cleanName: document.getElementById('lbl_van').innerText,
-        workZone: Array.from(document.getElementById('dp_zones').selectedOptions).map(o => o.value).join(', '),
-        focusCategory: document.getElementById('dp_focus').value,
-        batteryTarget: document.getElementById('dp_batt').value,
-        eKey: document.getElementById('dp_ekey').value,
-        goals: document.getElementById('dp_notes').value,
-        shift: 'First Shift'
-      };
-      
-      setLoader(true);
-      google.script.run
-        .withSuccessHandler(loadPortalData)
-        .processDispatchCheckout(payload);
-    }
-
-    // B. EDIT ACTIVE SHIFT
-    function openEditShift(depId) {
-      const dep = globalState.deployments.find(d => d.id === depId);
-      if(!dep) return;
-
-      document.getElementById('ed_dep_id').value = depId;
-      
-      // Populate Hot-Swap Dropdown
-      let vanOpts = `<option value="${dep.rentalId}">${dep.vehicle} (Current)</option>`;
-      globalState.vehicles.filter(v => v.status === 'Warehouse (Ready)').forEach(v => {
-        vanOpts += `<option value="${v.rentalId}">${v.cleanName}</option>`;
-      });
-      document.getElementById('ed_van').innerHTML = vanOpts;
-      document.getElementById('ed_van').value = dep.rentalId;
-
-      document.getElementById('ed_batt').value = dep.target || '';
-      document.getElementById('ed_ekey').value = dep.eKey || '';
-      document.getElementById('ed_notes').value = dep.goals || '';
-      
-      // Zones handling omitted for brevity, assumes setup via populateDropdowns
-      document.getElementById('modal-edit-shift').showModal();
-    }
-
-    function submitEditShift(e) {
-      const payload = {
-        id: document.getElementById('ed_dep_id').value,
-        rentalId: document.getElementById('ed_van').value,
-        zone: Array.from(document.getElementById('ed_zones').selectedOptions).map(o => o.value).join(', '),
-        target: document.getElementById('ed_batt').value,
-        eKey: document.getElementById('ed_ekey').value,
-        goals: document.getElementById('ed_notes').value
-      };
-      
-      setLoader(true);
-      google.script.run
-        .withSuccessHandler(loadPortalData)
-        .updateDeploymentRecord(payload);
-    }
-
-    // C. END SHIFT
-    function openEndShiftModal(depId, rentalId) {
-      document.getElementById('es_dep_id').value = depId;
-      document.getElementById('es_rental_id').value = rentalId;
-      document.getElementById('es_batt_in').value = '';
-      document.getElementById('es_ekey_ret').checked = false;
-      document.getElementById('modal-end-shift').showModal();
-    }
-
-    function submitEndShift(e) {
-      const payload = {
-        deploymentId: document.getElementById('es_dep_id').value,
-        rentalId: document.getElementById('es_rental_id').value,
-        batteriesIn: document.getElementById('es_batt_in').value,
-        eKeyReturned: document.getElementById('es_ekey_ret').checked
-      };
-      
-      setLoader(true);
-      google.script.run
-        .withSuccessHandler(loadPortalData)
-        .endShift(payload);
-    }
-
-    // Global click listener to close native dialogs when clicking backdrop
-    document.querySelectorAll('dialog').forEach(dlg => {
-      dlg.addEventListener('click', (e) => {
-        if (e.target === dlg) dlg.close();
-      });
-    });
   </script>
 </body>
 </html>

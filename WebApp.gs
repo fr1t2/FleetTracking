@@ -18,83 +18,98 @@ function include(filename) {
 }
 
 function getDashboardState() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const tz = Session.getScriptTimeZone();
-  const cfg = { zones: ['Zone 1A', 'Zone 1B', 'Zone 2A', 'Zone 2B', 'Zone 3A'] }; 
-  
-  // Try to load config dynamically if the sheet exists
-  const cSheet = ss.getSheetByName('_Config');
-  if (cSheet && cSheet.getLastRow() > 1) {
-    cfg.zones = [];
-    const cData = cSheet.getDataRange().getValues();
-    for (let i = 1; i < cData.length; i++) {
-      if (cData[i][4]) cfg.zones.push(String(cData[i][4]).trim());
-    }
-  }
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const tz = Session.getScriptTimeZone();
 
-  // 1. Fetch Vehicles Safely
-  const vSheet = ss.getSheetByName('Vehicles');
-  const vehicles = [];
-  if (vSheet && vSheet.getLastRow() > 1) {
-    const vData = vSheet.getDataRange().getValues(); // Dynamically sizes to exact columns
-    for (let i = 1; i < vData.length; i++) {
-      const r = vData[i];
-      if (!r[0] && !r[1]) continue; 
-      vehicles.push({
-        cleanName: String(r[0] || '').trim(),
-        rentalId: String(r[1] || '').trim(),
-        plate: String(r[5] || ''),
-        status: String(r[8] || r[9] || 'Warehouse (Ready)').trim(), // Covers multiple column layouts
-        zone: String(r[11] || r[12] || '—'),
-        driver: String(r[12] || r[13] || '—')
-      });
+    // 1. Fetch Config & Sort Zones (Push DEN OZ to the bottom)
+    const cfg = { zones: [], shifts: ['First Shift', 'Second Shift', 'Third Shift'] };
+    const cSheet = ss.getSheetByName('_Config');
+    if (cSheet && cSheet.getLastRow() > 1) {
+      const cData = cSheet.getDataRange().getValues();
+      let normalZones = [];
+      let ozGroups = [];
+      for (let i = 1; i < cData.length; i++) {
+        const z = String(cData[i][4]).trim();
+        if (z) {
+          if (z.toUpperCase().includes('DENVER OZ') || z.toUpperCase().includes('DEN OZ')) {
+            ozGroups.push(z);
+          } else {
+            normalZones.push(z);
+          }
+        }
+      }
+      normalZones.sort();
+      ozGroups.sort();
+      cfg.zones = normalZones.concat(ozGroups); // OZ Groups at the end
     }
-  }
 
-  // 2. Fetch Deployments Safely
-  const dSheet = ss.getSheetByName('Deployments');
-  const deployments = [];
-  if (dSheet && dSheet.getLastRow() > 1) {
-    const dData = dSheet.getDataRange().getValues();
-    const startRow = Math.max(1, dData.length - 200);
-    for (let i = startRow; i < dData.length; i++) {
-      const r = dData[i];
-      deployments.push({
-        id: String(r[0] || ''),
-        vehicle: String(r[3] || ''),
-        rentalId: String(r[4] || ''),
-        tech: String(r[5] || ''),
-        zone: String(r[6] || ''),
-        target: String(r[8] || ''),
-        status: String(r[9] || 'Dispatched'),
-        departureTime: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'hh:mm a') : String(r[10] || '')
-      });
+    // 2. Fetch Vehicles (Adding Type, Oil, Tires, and Severity)
+    const vSheet = ss.getSheetByName('Vehicles');
+    const vehicles = [];
+    if (vSheet && vSheet.getLastRow() > 1) {
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        const r = vData[i];
+        if (!r[0] && !r[1]) continue;
+        
+        vehicles.push({
+          cleanName: String(r[0] || '').trim(),
+          rentalId: String(r[1] || '').trim(),
+          type: String(r[2] || 'Cargo Van').trim(), // Assuming Col C is Vehicle Type now
+          plate: String(r[5] || ''),
+          samsaraLink: String(r[8] || ''), 
+          status: String(r[9] || 'Warehouse (Ready)').trim(),
+          zone: String(r[12] || ''),
+          driver: String(r[13] || ''),
+          notes: String(r[15] || ''),
+          safeToDrive: String(r[16] || '').toLowerCase() === 'yes', // Maintenance needed but safe
+          lastOil: String(r[17] || 'N/A'),
+          lastTires: String(r[18] || 'N/A')
+        });
+      }
     }
-  }
 
-  // 3. Fetch Techs Safely
-  const tSheet = ss.getSheetByName('Tech_Profiles');
-  const techs = [];
-  if (tSheet && tSheet.getLastRow() > 1) {
-    const tData = tSheet.getDataRange().getValues();
-    for (let i = 1; i < tData.length; i++) {
-      const r = tData[i];
-      if (!r[0]) continue;
-      techs.push({
-        name: String(r[0] || ''),
-        phone: String(r[1] || 'No Phone'),
-        shift: String(r[2] || 'First Shift'),
-        startTime: String(r[3] || '—'),
-        endTime: String(r[4] || '—'),
-        workDays: String(r[5] || '—'),
-        passedTest: String(r[6]).trim().toLowerCase() === 'yes',
-        restricted: String(r[8]).trim().toLowerCase() === 'yes',
-        status: String(r[9] || 'Available')
-      });
+    // 3. Fetch Tech Profiles (Adding Coast, Samsara Violation, Flagged)
+    const tSheet = ss.getSheetByName('Tech_Profiles');
+    const techs = [];
+    if (tSheet && tSheet.getLastRow() > 1) {
+      const tData = tSheet.getDataRange().getValues();
+      for (let i = 1; i < tData.length; i++) {
+        const r = tData[i];
+        if (!r[0]) continue;
+        techs.push({
+          name: String(r[0] || '').trim(),
+          passedTest: String(r[6]).trim().toLowerCase() === 'yes',
+          coastEnrolled: String(r[12]).trim().toLowerCase() === 'yes',
+          samsaraViolation: String(r[13]).trim().toLowerCase() === 'yes',
+          flagged: String(r[14]).trim() !== '' ? String(r[14]) : null
+        });
+      }
     }
-  }
 
-  return { config: cfg, vehicles: vehicles, deployments: deployments, techs: techs };
+    // 4. Fetch Deployments
+    const dSheet = ss.getSheetByName('Deployments');
+    const deployments = [];
+    if (dSheet && dSheet.getLastRow() > 1) {
+      const dData = dSheet.getDataRange().getValues();
+      const startRow = Math.max(1, dData.length - 200);
+      for (let i = startRow; i < dData.length; i++) {
+        const r = dData[i];
+        if (!r[0]) continue;
+        deployments.push({
+          id: String(r[0] || ''), vehicle: String(r[3] || ''), rentalId: String(r[4] || ''),
+          tech: String(r[5] || ''), zone: String(r[6] || ''), goals: String(r[7] || ''), target: String(r[8] || ''),
+          status: String(r[9] || 'Dispatched'),
+          departureTime: (r[10] instanceof Date) ? Utilities.formatDate(r[10], tz, 'hh:mm a') : String(r[10] || '')
+        });
+      }
+    }
+
+    return { config: cfg, vehicles: vehicles, deployments: deployments, techs: techs };
+  } catch (err) {
+    throw new Error("Backend Crash: " + err.message);
+  }
 }
 
 /**
