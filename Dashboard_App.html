@@ -12,6 +12,7 @@
       --text-main: #202124; --text-muted: #5f6368;
       --border-color: #e0e0e0; --shadow: 0 4px 12px rgba(0,0,0,0.05);
       --ready: #34C759; --dispatched: #00B8CC; --oos: #FF3B30; --warning: #FFCC00;
+      --danger: #FF3B30;
     }
     body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); }
     * { box-sizing: border-box; }
@@ -34,8 +35,8 @@
     /* Safe-to-Drive Warning Ribbon */
     .ribbon-warning { position: absolute; top: 0; right: 0; background: var(--warning); color: #000; font-size: 10px; font-weight: 800; padding: 4px 12px; border-bottom-left-radius: 8px; }
 
-    /* Tabbed Modal */
-    dialog { border: none; border-radius: 16px; padding: 0; width: 95%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    /* Tabbed Modal (Native Dialog) */
+    dialog { border: none; border-radius: 16px; padding: 0; width: 95%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); margin: auto; }
     dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
     
     .modal-head { padding: 20px 24px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
@@ -52,7 +53,7 @@
     .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; }
 
     /* Predictive Driver Card inside Modal */
-    .driver-card { background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; }
+    .driver-card { background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
     .driver-card:hover { border-color: var(--veo-cyan-dark); }
     .d-badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 800; display: inline-block; margin-right: 4px; }
     .b-pass { background: #d1fae5; color: #065f46; }
@@ -120,8 +121,20 @@
         <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> Mark Out of Service
       </label>
       <div style="display:flex; justify-content:flex-end; gap:12px;">
-        <button class="btn btn-outline" onclick="document.getElementById('log-service-modal').close()">Cancel</button>
-        <button class="btn btn-danger" onclick="submitNewService()">Submit</button>
+        <button class="btn btn-outline" type="button" onclick="document.getElementById('log-service-modal').close()">Cancel</button>
+        <button class="btn btn-danger" type="button" onclick="submitNewService()">Submit</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- UNSAVED CHANGES WARNING MODAL -->
+  <dialog id="unsaved-modal" style="max-width: 350px; z-index: 1002;">
+    <div class="modal-head" style="color:var(--danger)">⚠️ Unsaved Changes</div>
+    <div style="padding: 24px;">
+      <p style="margin-top:0; font-size:14px; font-weight:500;">You have entered information in this form. Are you sure you want to close it and discard your changes?</p>
+      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+        <button class="btn btn-outline" type="button" onclick="document.getElementById('unsaved-modal').close()">Keep Editing</button>
+        <button class="btn btn-danger" type="button" onclick="forceCloseModal()">Discard Changes</button>
       </div>
     </div>
   </dialog>
@@ -142,7 +155,7 @@
       if(!globalState) return;
       const q = document.getElementById('global-search').value.toLowerCase();
       
-      // SEAMLESS SORT: Status -> Type -> Name
+      // SEAMLESS SORT: Status -> Type -> Name[cite: 1]
       let vans = [...globalState.vehicles];
       const statusWeight = { 'Dispatched': 1, 'Warehouse (Ready)': 2, 'Out of Service': 3 };
       
@@ -187,6 +200,7 @@
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       document.getElementById('vm-rental-id').value = rentalId;
       document.getElementById('vm-title').innerText = v.cleanName;
+      document.getElementById('vm-selected-tech').value = '';
       
       const dep = globalState.deployments.find(d => d.rentalId === rentalId && d.status === 'Dispatched');
       const tech = globalState.techs.find(t => t.name === (dep ? dep.tech : v.driver));
@@ -197,7 +211,7 @@
         dHtml = `
           <h4 style="margin-top:0;">Deploy Vehicle</h4>
           <input type="text" id="live-driver-search" class="form-control" placeholder="Search Tech Roster..." onkeyup="searchDriver()">
-          <div id="driver-result-card" style="margin-bottom:12px;"></div>
+          <div id="driver-result-card" style="margin-bottom:12px; max-height:240px; overflow-y:auto;"></div>
           <label style="font-size:12px; font-weight:700;">Zone(s)</label>
           <select id="sel-zone" class="form-control" multiple style="height:100px; margin-bottom:16px;">
             ${globalState.config.zones.map(z=>`<option value="${z}">${z}</option>`).join('')}
@@ -239,7 +253,7 @@
       `;
 
       // 4. Service Tab
-      let openIncidents = globalState.incidents.filter(i => i.rentalId === rentalId);
+      let openIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
       let incHtml = openIncidents.map(i => `
         <div style="border:1px solid var(--border-color); padding:12px; border-radius:6px; margin-bottom:8px;">
           <div style="font-weight:700; color:${i.severity === 'OOS' ? 'var(--oos)' : 'var(--warning)'};">${i.severity} Issue</div>
@@ -263,35 +277,64 @@
         ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
       `;
 
-      // Default to dispatch tab
+      // Default to dispatch tab and ensure dirty state is reset[cite: 1]
       document.querySelectorAll('.tab-btn')[0].click();
-      document.getElementById('van-modal').showModal();
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      vm.showModal();
     }
 
-    /* --- LIVE DRIVER SEARCH --- */
+    /* --- LIVE DRIVER SEARCH (MULTI-MATCH) --- */
     function searchDriver() {
       const q = document.getElementById('live-driver-search').value.toLowerCase();
-      if(q.length < 2) { document.getElementById('driver-result-card').innerHTML = ''; document.getElementById('vm-selected-tech').value = ''; return; }
+      const container = document.getElementById('driver-result-card');
+
+      if(q.length < 1) { 
+        container.innerHTML = ''; 
+        document.getElementById('vm-selected-tech').value = ''; 
+        return; 
+      }
       
-      const match = globalState.techs.find(t => t.name.toLowerCase().includes(q));
-      if(match) {
-        document.getElementById('vm-selected-tech').value = match.name;
-        let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
-        let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
-        
-        document.getElementById('driver-result-card').innerHTML = `
-          <div class="driver-card" style="border-color:var(--veo-cyan-dark);">
-            <div style="display:flex; justify-content:space-between;">
-              <strong>${match.name}</strong>
-              <div>
-                <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
-                <span class="d-badge ${match.coastEnrolled ? 'b-pass' : 'b-fail'}">Coast</span>
-                ${vioAlert}
+      // Find ALL drivers containing the typed letters
+      const matches = globalState.techs.filter(t => t.name.toLowerCase().includes(q));
+      
+      if(matches.length > 0) {
+        container.innerHTML = matches.map(match => {
+          let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
+          let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
+          
+          return `
+            <div class="driver-card" id="dcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriver('${match.name}')">
+              <div style="display:flex; justify-content:space-between;">
+                <strong>${match.name}</strong>
+                <div>
+                  <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
+                  <span class="d-badge ${match.coastEnrolled ? 'b-pass' : 'b-fail'}">Coast</span>
+                  ${vioAlert}
+                </div>
               </div>
+              ${flagAlert}
             </div>
-            ${flagAlert}
-          </div>
-        `;
+          `;
+        }).join('');
+      } else {
+        container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px;">No matching drivers found.</div>`;
+      }
+    }
+
+    function selectDriver(name) {
+      document.getElementById('vm-selected-tech').value = name;
+      document.getElementById('van-modal').dataset.dirty = 'true';
+      
+      // Remove highlight from all cards, apply to selected
+      document.querySelectorAll('.driver-card').forEach(c => {
+        c.style.borderColor = 'var(--border-color)';
+        c.style.backgroundColor = '#f8f9fa';
+      });
+      const sel = document.getElementById('dcard-' + name.replace(/\s+/g, ''));
+      if(sel) {
+        sel.style.borderColor = 'var(--veo-cyan-dark)';
+        sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)';
       }
     }
 
@@ -307,7 +350,10 @@
         shift: 'First Shift'
       };
       
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      vm.close();
+      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData).processDispatchCheckout(payload);
     }
@@ -318,7 +364,10 @@
         deploymentId: depId,
         rentalId: document.getElementById('vm-rental-id').value
       };
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      vm.close();
+      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData).endShift(payload);
     }
@@ -330,7 +379,10 @@
       document.getElementById('ls-category').value = '';
       document.getElementById('ls-desc').value = '';
       document.getElementById('ls-oos').checked = false;
-      document.getElementById('log-service-modal').showModal();
+      
+      const lsm = document.getElementById('log-service-modal');
+      lsm.dataset.dirty = 'false';
+      lsm.showModal();
     }
 
     function submitNewService() {
@@ -341,8 +393,12 @@
         description: document.getElementById('ls-desc').value,
         isOos: document.getElementById('ls-oos').checked
       };
-      document.getElementById('log-service-modal').close();
+      
+      const lsm = document.getElementById('log-service-modal');
+      lsm.dataset.dirty = 'false';
+      lsm.close();
       document.getElementById('van-modal').close();
+      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData).logNewServiceNeed(payload);
     }
@@ -354,6 +410,41 @@
       document.getElementById('van-modal').close();
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData).closeServiceIssue({ incidentId: incId, rentalId: rentalId, resolutionNotes: notes });
+    }
+
+    /* --- SMART MODAL CLICK-OFF PROTECTION --- */
+    let pendingCloseDialog = null;
+
+    document.querySelectorAll('dialog').forEach(dlg => {
+      // 1. Listen for typing/selections to mark a modal as dirty
+      dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
+      dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
+      
+      // 2. Intercept background clicks[cite: 1]
+      dlg.addEventListener('click', (e) => {
+        if (e.target === dlg) {
+          if (dlg.id === 'unsaved-modal') {
+            dlg.close();
+            return;
+          }
+          
+          if (dlg.dataset.dirty === 'true') {
+            pendingCloseDialog = dlg;
+            document.getElementById('unsaved-modal').showModal();
+          } else {
+            dlg.close();
+          }
+        }
+      });
+    });
+
+    function forceCloseModal() {
+      if (pendingCloseDialog) {
+        pendingCloseDialog.close();
+        pendingCloseDialog.dataset.dirty = 'false'; // Reset state
+        pendingCloseDialog = null;
+      }
+      document.getElementById('unsaved-modal').close();
     }
   </script>
 </body>
