@@ -41,18 +41,21 @@
     
     .modal-head { padding: 20px 24px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
     .modal-tabs { display: flex; background: #f8f9fa; border-bottom: 1px solid var(--border-color); }
-    .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; }
+    .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; transition: 0.2s; }
     .tab-btn.active { color: var(--veo-cyan-dark); border-bottom-color: var(--veo-cyan-dark); background: #fff; }
     .tab-content { display: none; padding: 24px; min-height: 250px; max-height: 60vh; overflow-y: auto; }
     .tab-content.active { display: block; }
     
-    .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-family: 'Inter'; }
+    .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-family: 'Inter'; transition: 0.2s; }
     .btn-primary { background: var(--veo-cyan-dark); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
     .btn-danger { background: var(--oos); color: #fff; }
     .btn-success { background: var(--ready); color: #fff; }
     .btn-dark { background: #202124; color: #fff; }
     .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; }
+    .btn-outline:hover { background: #f4f7f6; }
+    
+    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; box-sizing: border-box; }
     .row { display: flex; gap: 16px; }
     .col { flex: 1; }
 
@@ -126,53 +129,48 @@
     <div class="dlg-footer" id="vm-footer"></div>
   </dialog>
 
-  <!-- EDIT DISPATCH MODAL -->
-  <dialog id="edit-dispatch-modal" style="max-width: 500px; z-index: 1005;">
-    <div class="modal-head">✏️ Edit Active Shift</div>
-    <div style="padding: 24px;">
-      <input type="hidden" id="ed-dep-id">
-      <input type="hidden" id="ed-rental-id">
-      <input type="hidden" id="ed-selected-tech">
-      
-      <label style="font-size:12px; font-weight:700;">Driver (Search to Change)</label>
-      <input type="text" id="ed-driver-search" class="form-control" placeholder="Search tech roster..." onkeyup="searchDriverEdit()">
-      <div id="ed-driver-result-card" style="margin-bottom:12px; max-height:150px; overflow-y:auto;"></div>
-
-      <div class="row">
-        <div class="col form-group">
-          <label style="font-size:12px; font-weight:700;">Zone(s)</label>
-          <select id="ed-zone" class="form-control" multiple style="height:90px;"></select>
-        </div>
-        <div class="col form-group">
-          <label style="font-size:12px; font-weight:700;">Shift Focus</label>
-          <select id="ed-focus" class="form-control">
-            <option value="">-- Select --</option>
-            <option value="Battery Swap">Battery Swap</option>
-            <option value="Rebalance">Rebalance</option>
-            <option value="Retrieval">Retrieval</option>
-            <option value="Standard Route">Standard Route</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-dispatch-modal').close()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="submitEditDispatch()">Save Changes</button>
-      </div>
-    </div>
-  </dialog>
-
   <!-- LOG SERVICE MODAL -->
-  <dialog id="log-service-modal" style="max-width: 400px; z-index: 1001;">
-    <div class="modal-head">📝 Log Service Need</div>
+  <dialog id="log-service-modal" style="max-width: 450px; z-index: 1001;">
+    <div class="modal-head">📝 Log Maintenance</div>
     <div style="padding: 24px;">
       <input type="hidden" id="ls-rental-id">
       <input type="hidden" id="ls-clean-name">
-      <div class="form-group"><label style="font-size:12px; font-weight:700;">Category</label><input type="text" id="ls-category" class="form-control" placeholder="e.g. Mechanical, Body"></div>
-      <div class="form-group"><label style="font-size:12px; font-weight:700;">Description</label><textarea id="ls-desc" class="form-control" rows="2"></textarea></div>
+      
+      <div class="row">
+        <div class="col form-group">
+          <label style="font-size:12px; font-weight:700;">Category</label>
+          <select id="ls-category" class="form-control">
+            <option value="Mechanical">Mechanical</option>
+            <option value="Body Damage">Body Damage</option>
+            <option value="Tires">Tires</option>
+            <option value="Lights/Electrical">Lights/Electrical</option>
+            <option value="Interior">Interior</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col form-group">
+          <label style="font-size:12px; font-weight:700;">Severity</label>
+          <select id="ls-severity" class="form-control">
+             <option value="Minor">Minor (Safe to Drive)</option>
+             <option value="OOS">Critical (Out of Service)</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Status Impact</label>
+          <input type="text" id="ls-impact" class="form-control" placeholder="e.g. Cannot operate, missing side mirror">
+      </div>
+
+      <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Description / Event Details</label>
+          <textarea id="ls-desc" class="form-control" rows="3" placeholder="Describe the issue..."></textarea>
+      </div>
+      
       <label style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:16px;">
-        <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> Mark Out of Service
+        <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> Mark Vehicle Out of Service
       </label>
+      
       <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
         <button class="btn btn-outline" type="button" onclick="document.getElementById('log-service-modal').close()">Cancel</button>
         <button class="btn btn-danger" type="button" onclick="submitNewService()">Submit Ticket</button>
@@ -205,6 +203,10 @@
             renderGrid(); 
             document.getElementById('global-loader').style.display = 'none'; 
         })
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error loading data: " + err.message);
+        })
         .getDashboardState();
     }
 
@@ -225,7 +227,6 @@
             if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
             return a.cleanName.localeCompare(b.cleanName);
         } else {
-            // Alphabetical
             return a.cleanName.localeCompare(b.cleanName);
         }
       });
@@ -244,7 +245,7 @@
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
           subText = `<div style="font-weight:700; color:var(--dispatched); margin-top:8px;">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted);">📍 ${v.zone}</div>${focusStr}`;
         } else {
-          subText = `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Type: ${v.type || 'Van'}</div>`;
+          subText = `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Type: ${v.type || 'Cargo Van'}</div>`;
         }
 
         html += `
@@ -309,6 +310,7 @@
             </div>
           </div>
         `;
+        footerHtml += `<button class="btn btn-danger" type="button" onclick="openLogService('${v.rentalId}', '${v.cleanName}')">🔧 Open Maint</button>`;
         footerHtml += `<button class="btn btn-primary" type="button" onclick="submitDispatch()">🚀 Dispatch Now</button>`;
       } else if (v.status === 'Dispatched') {
         dHtml = `
@@ -323,7 +325,7 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
+        footerHtml += `<button class="btn btn-danger" type="button" onclick="openLogService('${v.rentalId}', '${v.cleanName}')">🔧 Open Maint</button>`;
         footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
       } else {
         dHtml = `<div style="padding:20px; background:#fee2e2; color:#991b1b; border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
@@ -347,7 +349,7 @@
 
       // 3. Specs Tab
       document.getElementById('specs-view').innerHTML = `
-        <p><strong>Type:</strong> ${v.type || 'Van'}</p>
+        <p><strong>Type:</strong> ${v.type || 'Cargo Van'}</p>
         <p><strong>Plate:</strong> ${v.plate} <span style="font-size:12px; color:var(--text-muted);">(Exp: ${v.plateExpDate || 'N/A'})</span></p>
         <p><strong>Coast Card:</strong> ${v.coast || 'No'}</p>
         <p><strong>Addons:</strong> ${v.addons || 'None'}</p>
@@ -356,8 +358,8 @@
 
       // 4. Service Tab
       let allIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
-      let openIncidents = allIncidents.filter(i => !i.resolved);
-      let closedIncidents = allIncidents.filter(i => i.resolved);
+      let openIncidents = allIncidents.filter(i => !i.dateResolved);
+      let closedIncidents = allIncidents.filter(i => i.dateResolved);
 
       let incHtml = openIncidents.map(i => `
         <div style="border:1px solid var(--border-color); padding:12px; border-radius:6px; margin-bottom:8px;">
@@ -370,7 +372,7 @@
 
       let histHtml = closedIncidents.map(i => `
         <div style="font-size:12px; color:var(--text-muted); border-bottom:1px solid #eee; padding:6px 0;">
-          <strong>${i.date}</strong>: ${i.desc || i.issue} <br>
+          <strong>${i.dateReported}</strong>: ${i.desc || i.issue} <br>
           <em style="color:var(--ready);">Resolved: ${i.resolution}</em>
         </div>
       `).join('');
@@ -384,7 +386,7 @@
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Open Tickets</strong>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ Log Issue</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ Report New Issue</button>
         </div>
         <div style="margin-bottom:16px;">
           ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
@@ -407,6 +409,7 @@
     function searchDriver() {
       const q = document.getElementById('live-driver-search').value.toLowerCase();
       const container = document.getElementById('driver-result-card');
+
       if(q.length < 1) { 
         container.innerHTML = ''; 
         document.getElementById('vm-selected-tech').value = ''; 
@@ -454,95 +457,6 @@
       }
     }
 
-    /* --- EDIT DISPATCH ENGINE --- */
-    function openEditDispatchModal(depId) {
-      if(!depId) return;
-      const dep = (globalState.deployments || []).find(d => d.id === depId);
-      if (!dep) return;
-      
-      document.getElementById('ed-dep-id').value = dep.id;
-      document.getElementById('ed-rental-id').value = dep.rentalId;
-      document.getElementById('ed-selected-tech').value = dep.tech;
-      document.getElementById('ed-driver-search').value = dep.tech;
-      document.getElementById('ed-driver-result-card').innerHTML = ''; // Clear prior search
-      
-      const zoneSel = document.getElementById('ed-zone');
-      zoneSel.innerHTML = (globalState.zones || []).map(z=>`<option value="${z}">${z}</option>`).join('');
-      
-      // Select existing zones
-      const activeZones = (dep.zone || '').split(',').map(z => z.trim());
-      Array.from(zoneSel.options).forEach(opt => {
-          if(activeZones.includes(opt.value)) opt.selected = true;
-      });
-
-      document.getElementById('ed-focus').value = dep.goals || '';
-
-      document.getElementById('van-modal').close();
-      const edm = document.getElementById('edit-dispatch-modal');
-      edm.dataset.dirty = 'false';
-      edm.showModal();
-    }
-
-    function searchDriverEdit() {
-      const q = document.getElementById('ed-driver-search').value.toLowerCase();
-      const container = document.getElementById('ed-driver-result-card');
-      if(q.length < 1) { 
-        container.innerHTML = ''; 
-        document.getElementById('ed-selected-tech').value = ''; 
-        return; 
-      }
-      
-      const matches = (globalState.techs || []).filter(t => t.name.toLowerCase().includes(q));
-      
-      if(matches.length > 0) {
-        container.innerHTML = matches.map(match => {
-          return `
-            <div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')">
-              <strong>${match.name}</strong>
-            </div>
-          `;
-        }).join('');
-      } else {
-        container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px;">No matching drivers found.</div>`;
-      }
-    }
-
-    function selectDriverEdit(name) {
-      document.getElementById('ed-selected-tech').value = name;
-      document.getElementById('ed-driver-search').value = name;
-      document.getElementById('edit-dispatch-modal').dataset.dirty = 'true';
-      
-      document.querySelectorAll('#ed-driver-result-card .driver-card').forEach(c => {
-        c.style.borderColor = 'var(--border-color)';
-        c.style.backgroundColor = '#f8f9fa';
-      });
-      const sel = document.getElementById('edcard-' + name.replace(/\s+/g, ''));
-      if(sel) {
-        sel.style.borderColor = 'var(--veo-cyan-dark)';
-        sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)';
-      }
-    }
-
-    function submitEditDispatch() {
-      const tech = document.getElementById('ed-selected-tech').value;
-      if (!tech) { alert('Please select a valid driver.'); return; }
-      
-      const payload = {
-        id: document.getElementById('ed-dep-id').value,
-        rentalId: document.getElementById('ed-rental-id').value,
-        assignedTech: tech,
-        workZone: Array.from(document.getElementById('ed-zone').selectedOptions).map(o => o.value).join(', '),
-        goals: document.getElementById('ed-focus').value
-      };
-      
-      const edm = document.getElementById('edit-dispatch-modal');
-      edm.dataset.dirty = 'false';
-      edm.close();
-      
-      document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData).updateDeploymentRecord(payload);
-    }
-
     /* --- SUBMISSION HANDLERS --- */
     function submitDispatch() {
       const tech = document.getElementById('vm-selected-tech').value;
@@ -562,7 +476,12 @@
       vm.close();
       
       document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData).processDispatchCheckout(payload);
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error: " + err.message);
+        })
+        .processDispatchCheckout(payload);
     }
 
     function submitEndShift(depId) {
@@ -576,7 +495,12 @@
       vm.close();
       
       document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData).endShift(payload);
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error: " + err.message);
+        })
+        .endShift(payload);
     }
 
     function submitCheckIn() {
@@ -586,14 +510,24 @@
       vm.close();
       
       document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData).processCheckInVehicle(payload);
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error: " + err.message);
+        })
+        .processCheckInVehicle(payload);
     }
 
     /* --- SERVICE ENGINE --- */
     function openLogService(rentalId, cleanName) {
+      const vm = document.getElementById('van-modal');
+      if (vm.open) vm.close();
+      
       document.getElementById('ls-rental-id').value = rentalId;
       document.getElementById('ls-clean-name').value = cleanName;
-      document.getElementById('ls-category').value = '';
+      document.getElementById('ls-category').value = 'Mechanical';
+      document.getElementById('ls-severity').value = 'Minor';
+      document.getElementById('ls-impact').value = '';
       document.getElementById('ls-desc').value = '';
       document.getElementById('ls-oos').checked = false;
       
@@ -607,6 +541,8 @@
         rentalId: document.getElementById('ls-rental-id').value,
         cleanName: document.getElementById('ls-clean-name').value,
         category: document.getElementById('ls-category').value,
+        severity: document.getElementById('ls-severity').value,
+        statusImpact: document.getElementById('ls-impact').value,
         description: document.getElementById('ls-desc').value,
         isOos: document.getElementById('ls-oos').checked
       };
@@ -614,10 +550,14 @@
       const lsm = document.getElementById('log-service-modal');
       lsm.dataset.dirty = 'false';
       lsm.close();
-      document.getElementById('van-modal').close();
       
       document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData).logNewServiceNeed(payload);
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error logging service: " + err.message);
+        })
+        .logNewServiceNeed(payload);
     }
 
     function closeService(incId, rentalId) {
@@ -626,25 +566,27 @@
       
       document.getElementById('van-modal').close();
       document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData).closeServiceIssue({ incidentId: incId, rentalId: rentalId, resolutionNotes: notes });
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error closing ticket: " + err.message);
+        })
+        .closeServiceIssue({ incidentId: incId, rentalId: rentalId, resolutionNotes: notes });
     }
 
     /* --- SMART MODAL CLICK-OFF PROTECTION --- */
     let pendingCloseDialog = null;
 
     document.querySelectorAll('dialog').forEach(dlg => {
-      // 1. Listen for typing/selections to mark a modal as dirty
       dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
       dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       
-      // 2. Intercept background clicks
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
           if (dlg.id === 'unsaved-modal') {
             dlg.close();
             return;
           }
-          
           if (dlg.dataset.dirty === 'true') {
             pendingCloseDialog = dlg;
             document.getElementById('unsaved-modal').showModal();
