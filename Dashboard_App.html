@@ -75,6 +75,13 @@
     .b-fail { background: #fee2e2; color: #991b1b; }
 
     #global-loader { display: none; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--veo-cyan); z-index: 9999; }
+
+    /* Spec Grid */
+    .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px; margin-bottom: 20px; }
+    .spec-item { background: var(--bg-modal-head); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .spec-label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+    .spec-val { color: var(--text-main); font-weight: 600; font-size: 14px; word-break: break-word; }
+
   </style>
 </head>
 <body>
@@ -452,13 +459,61 @@
       } else {
         document.getElementById('driver-view').innerHTML = `<p>No active driver assigned.</p>`;
       }
+    // 3. Specs Tab
+      const isCoastEnrolled = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
+      const coastStr = isCoastEnrolled 
+          ? `<span style="color:var(--ready);">✅ Enrolled</span>` 
+          : `<span style="color:var(--danger);">❌ Not Enrolled</span>`;
+          
+      const samsaraStr = v.samsaraSerial 
+          ? `${v.samsaraSerial} <br><a href="${v.samsaraLink || '#'}" target="_blank" style="color:var(--veo-cyan-dark); font-size:11px; text-decoration:none;">🔗 View GPS</a>` 
+          : `<span style="color:var(--danger);">Unassigned</span>`;
 
       document.getElementById('specs-view').innerHTML = `
-        <p><strong>Type:</strong> ${v.type || 'Cargo Van'}</p>
-        <p><strong>Plate:</strong> ${v.plate} <span style="font-size:12px; color:var(--text-muted);">(Exp: ${v.plateExpDate || 'N/A'})</span></p>
-        <p><strong>Coast Card:</strong> ${v.coast || 'No'}</p>
-        <p><strong>Notes:</strong> ${v.notes || 'None'}</p>
-        <p><strong>Samsara:</strong> <a href="${v.samsaraLink}" target="_blank" style="color:var(--veo-cyan-dark);">View GPS</a></p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h4 style="margin:0; font-size:16px;">Vehicle Specifications</h4>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openEditVehicleModal('${v.rentalId}')">✏️ Edit Specs</button>
+        </div>
+        
+        <div class="spec-grid">
+          <div class="spec-item">
+            <div class="spec-label">Owner / Agency</div>
+            <div class="spec-val">${v.agency || '—'}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Make & Model</div>
+            <div class="spec-val">${v.makeModel || '—'}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Vehicle Type</div>
+            <div class="spec-val">${v.type || '—'}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">VIN</div>
+            <div class="spec-val" style="font-family:monospace;">${v.vin || '—'}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">License Plate</div>
+            <div class="spec-val">${v.plate || '—'} <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(Exp: ${v.plateExpDate || 'N/A'})</span></div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Samsara Gateway</div>
+            <div class="spec-val">${samsaraStr}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Coast Card</div>
+            <div class="spec-val">${coastStr}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Service / Contract #</div>
+            <div class="spec-val">${v.serviceNumber || '—'}</div>
+          </div>
+        </div>
+        
+        <div class="spec-item" style="grid-column: 1 / -1;">
+          <div class="spec-label">Notes & Addons</div>
+          <div class="spec-val" style="font-weight:normal; font-size:13px; line-height:1.4;">${v.notes || 'No interior builds or notes recorded.'}</div>
+        </div>
       `;
 
       let allIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
