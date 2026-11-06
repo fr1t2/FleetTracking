@@ -15,6 +15,26 @@ function getDashboardState() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const tz = Session.getScriptTimeZone();
 
+function getDashboardState() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const tSheet = ss.getSheetByName('Tech_Profiles');
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    const dSheet = ss.getSheetByName('Deployments');
+    const cSheet = ss.getSheetByName('_Config');
+    
+    const zones = [];
+    const issueCategories = []; // NEW: Array to hold categories
+    
+    if (cSheet && cSheet.getLastRow() > 1) {
+      const cData = cSheet.getDataRange().getValues();
+      for (let i = 1; i < cData.length; i++) {
+        if (cData[i][4]) zones.push(String(cData[i][4]).trim()); // Col E
+        if (cData[i][5]) issueCategories.push(String(cData[i][5]).trim()); // Col F (Index 5)
+      }
+    }
+
     // 1. Fetch Config Zones (Col E / Index 4)
     const cfg = { zones: [] };
     const cSheet = ss.getSheetByName('_Config');
@@ -180,14 +200,8 @@ function getDashboardState() {
       }
     });
 
-    return JSON.stringify({ 
-      config: cfg, 
-      zones: cfg.zones, 
-      vehicles: vehicles, 
-      deployments: deployments, 
-      incidents: incidents, 
-      techs: techs 
-    });
+    return JSON.stringify({ vehicles, techs, incidents, deployments, zones, issueCategories });
+
   } catch (err) {
     throw new Error("Backend Crash: " + err.message);
   }
