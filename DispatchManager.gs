@@ -7,28 +7,26 @@ function processDispatchCheckout(data) {
     const user = Session.getActiveUser().getEmail() || 'local-user';
     const deployId = 'DEP-' + Utilities.getUuid().substring(0, 8).toUpperCase();
 
-    let fullGoals = data.focusCategory ? `[${data.focusCategory}] ${data.goals || ''}` : (data.goals || '');
-
-    // 1. LOG NEW DEPLOYMENT (Captures new E-Key and Battery fields from earlier)
+    // 1. LOG NEW DEPLOYMENT (Writing Focus and Goals to Deployments ONLY)
     dSheet.appendRow([
       deployId, now, data.shift, data.cleanName, data.rentalId,
-      data.assignedTech, data.workZone, fullGoals, data.batteryTarget || '',
+      data.assignedTech, data.workZone, data.focusCategory, data.batteryTarget || '',
       'Dispatched', now, '', user, now, data.coDriver || '', data.isTraining ? 'Yes' : 'No',
-      data.eKey || '', '', '' 
+      data.eKey || '', '', '', data.goals || '', '' // Col T: Dispatch Notes, Col U: Check-In Notes (Blank for now)
     ]);
 
-    // 2. UPDATE TARGET VEHICLE (Shifted to columns 10, 13, 14, 17, 18)
+    // 2. UPDATE TARGET VEHICLE (Only operational status tags)
     const vData = vSheet.getDataRange().getValues();
     let found = false;
     for (let i = 1; i < vData.length; i++) {
       if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
         const row = i + 1;
-        vSheet.getRange(row, 10).setValue('Dispatched'); // Col J
-        vSheet.getRange(row, 13).setValue(data.workZone); // Col M
+        vSheet.getRange(row, 10).setValue('Dispatched'); 
+        vSheet.getRange(row, 13).setValue(data.workZone); 
         const fullTech = data.coDriver ? `${data.assignedTech} & ${data.coDriver}` : data.assignedTech;
-        vSheet.getRange(row, 14).setValue(fullTech); // Col N
-        vSheet.getRange(row, 17).setValue(user); // Col Q
-        vSheet.getRange(row, 18).setValue(now); // Col R
+        vSheet.getRange(row, 14).setValue(fullTech); 
+        vSheet.getRange(row, 17).setValue(user); 
+        vSheet.getRange(row, 18).setValue(now);
         found = true;
         break;
       }
@@ -49,7 +47,7 @@ function endShift(payload) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
-    // 1. End the Deployment & Log Return Assets
+    // 1. End Deployment & Log Check-In Notes in Deployments
     const dRows = dSheet.getDataRange().getValues();
     for (let i = 1; i < dRows.length; i++) {
       if (String(dRows[i][0]).trim() === String(payload.deploymentId).trim()) {
@@ -57,20 +55,21 @@ function endShift(payload) {
         dSheet.getRange(i + 1, 12).setValue(now);
         dSheet.getRange(i + 1, 18).setValue(payload.batteriesIn || 0);
         dSheet.getRange(i + 1, 19).setValue(payload.eKeyReturned ? 'Yes' : 'No');
+        dSheet.getRange(i + 1, 21).setValue(payload.checkInNotes || ''); // Col U: Check-In Notes
         break;
       }
     }
 
-    // 2. Return Vehicle to Warehouse (Shifted columns)
+    // 2. Return Vehicle to Warehouse 
     const vRows = vSheet.getDataRange().getValues();
     for (let j = 1; j < vRows.length; j++) {
       if (String(vRows[j][1]).trim().toLowerCase() === String(payload.rentalId).trim().toLowerCase()) {
         const row = j + 1;
-        vSheet.getRange(row, 10).setValue('Warehouse (Ready)'); // Col J
-        vSheet.getRange(row, 13).clearContent(); // Clear Zone (Col M)
-        vSheet.getRange(row, 14).clearContent(); // Clear Driver (Col N)
-        vSheet.getRange(row, 17).setValue(user); // Col Q
-        vSheet.getRange(row, 18).setValue(now); // Col R
+        vSheet.getRange(row, 10).setValue('Warehouse (Ready)');
+        vSheet.getRange(row, 13).clearContent(); // Clear Zone
+        vSheet.getRange(row, 14).clearContent(); // Clear Driver
+        vSheet.getRange(row, 17).setValue(user); 
+        vSheet.getRange(row, 18).setValue(now); 
         break;
       }
     }
