@@ -121,6 +121,8 @@ function closeServiceIssue(data) {
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
     const iData = iSheet.getDataRange().getValues();
+    
+    // 1. Mark the specific ticket as resolved
     for (let i = 1; i < iData.length; i++) {
       if (String(iData[i][0]).trim() === data.incidentId) {
         iSheet.getRange(i + 1, 9).setValue(data.resolutionNotes);
@@ -130,28 +132,44 @@ function closeServiceIssue(data) {
       }
     }
 
-    // Check if there are any other open tickets for this van
-    let hasOtherOpen = false;
+    // 2. Check for any OTHER open tickets, specifically looking for critical OOS ones
+    let hasOtherOos = false;
     for (let i = 1; i < iData.length; i++) {
-      if (String(iData[i][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && 
-          !iData[i][9] && 
-          String(iData[i][0]).trim() !== data.incidentId) {
-        hasOtherOpen = true;
-        break;
+      const rowRentalId = String(iData[i][3]).trim().toLowerCase();
+      const dateResolved = String(iData[i][9]).trim();
+      const incId = String(iData[i][0]).trim();
+      const isOosTriggered = String(iData[i][6]).trim().toUpperCase() === 'YES';
+      const severity = String(iData[i][13]).trim().toUpperCase();
+
+      if (rowRentalId === String(data.rentalId).trim().toLowerCase() && 
+          dateResolved === "" && 
+          incId !== String(data.incidentId).trim()) {
+        
+        // If we find even one other ticket that triggers OOS, flag it
+        if (isOosTriggered || severity === 'OOS') {
+          hasOtherOos = true;
+          break; 
+        }
       }
     }
 
-    // If no other open issues, move vehicle back to Warehouse (Ready)
-    if (!hasOtherOpen) {
-      const vData = vSheet.getDataRange().getValues();
-      for (let i = 1; i < vData.length; i++) {
-        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
-          const currentStatus = String(vData[i][9]).trim();
-          if (currentStatus === 'Out of Service') {
-            vSheet.getRange(i + 1, 10).setValue('Warehouse (Ready)');
+    // 3. Update the Vehicle status if there are no more OOS tickets holding it back
+    const vData = vSheet.getDataRange().getValues();
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        const row = i + 1;
+        
+        if (!hasOtherOos) {
+          const currentStatus = String(vData[i][9]).trim().toLowerCase();
+          if (currentStatus === 'out of service') {
+            vSheet.getRange(row, 10).setValue('Warehouse (Ready)');
           }
-          break;
+          vSheet.getRange(row, 16).clearContent(); // Clear the red OOS notes
         }
+        
+        vSheet.getRange(row, 17).setValue(user); // Updated By
+        vSheet.getRange(row, 18).setValue(now);  // Updated At
+        break;
       }
     }
 

@@ -356,7 +356,7 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-danger" type="button" onclick="openLogService('${v.rentalId}', '${v.cleanName}')">🔧 Open Maint</button>`;
+        footerHtml += `<button class="btn btn-danger" type="button" onclick="openLogService('${v.rentalId}', '${v.cleanName}')">➕ Log Maintenance</button>`;
         footerHtml += `<button class="btn btn-primary" type="button" onclick="submitDispatch()">🚀 Dispatch Now</button>`;
       } else if (v.status === 'Dispatched') {
         dHtml = `
@@ -371,7 +371,7 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-danger" type="button" onclick="openLogService('${v.rentalId}', '${v.cleanName}')">🔧 Open Maint</button>`;
+        footerHtml += `<button class="btn btn-danger" type="button" onclick="openLogService('${v.rentalId}', '${v.cleanName}')">➕ Log Maintenance</button>`;
         footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
         footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
       } else {
@@ -433,7 +433,7 @@
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Open Tickets</strong>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ Report New Issue</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">➕ Log Maintenance</button>
         </div>
         <div style="margin-bottom:16px;">
           ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
