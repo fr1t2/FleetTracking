@@ -79,11 +79,16 @@ function logNewServiceNeed(data) {
     const user = Session.getActiveUser().getEmail() || 'local-user';
     const incidentId = 'INC-' + Utilities.getUuid().substring(0, 6).toUpperCase();
 
-    // 14 Columns: [ID, Date, Name, Rental ID, Cat, Desc, OOS(YES/NO), Impact, ResNotes, DateRes, ResBy, LoggedBy, Timestamp, Severity]
+    // Ensure we handle missing optional fields gracefully
+    const statusImpact = data.statusImpact || '';
+    const severity = data.severity || (data.isOos ? 'OOS' : 'Minor');
+
+    // Incidents Row: 14 Columns
+    // [ID, Date, Name, Rental ID, Category, Description, OOS Triggered, Status Impact, Resolution, Date Resolved, Resolved By, Logged By, Timestamp, Severity]
     iSheet.appendRow([
       incidentId, now, data.cleanName, data.rentalId,
       data.category, data.description, data.isOos ? 'YES' : 'NO',
-      data.statusImpact, '', '', '', user, now, data.severity || (data.isOos ? 'OOS' : 'Minor')
+      statusImpact, '', '', '', user, now, severity
     ]);
 
     if (data.isOos) {
@@ -91,12 +96,12 @@ function logNewServiceNeed(data) {
       for (let i = 1; i < vData.length; i++) {
         if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
           const row = i + 1;
-          vSheet.getRange(row, 10).setValue('Out of Service');
-          vSheet.getRange(row, 13).clearContent();
-          vSheet.getRange(row, 14).clearContent();
-          vSheet.getRange(row, 16).setValue(data.description); 
-          vSheet.getRange(row, 17).setValue(user);
-          vSheet.getRange(row, 18).setValue(now);
+          vSheet.getRange(row, 10).setValue('Out of Service'); // Status
+          vSheet.getRange(row, 13).clearContent(); // Clear Zone
+          vSheet.getRange(row, 14).clearContent(); // Clear Tech
+          vSheet.getRange(row, 16).setValue(data.description); // Set Notes
+          vSheet.getRange(row, 17).setValue(user); // Updated By
+          vSheet.getRange(row, 18).setValue(now);  // Updated At
           break;
         }
       }
