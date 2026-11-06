@@ -173,3 +173,85 @@ function decommissionVehicle(targetId, reason) {
   if (typeof logAudit === 'function') logAudit('VEHICLE_DECOMMISSIONED', 'Vehicles', targetId, reason);
   return { success: true, message: `Vehicle Decommissioned.` };
 }
+
+function logNewServiceNeed(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+    const incidentId = 'INC-' + Utilities.getUuid().substring(0, 6).toUpperCase();
+
+    iSheet.appendRow([
+      incidentId, now, data.cleanName, data.rentalId,
+      data.category, data.description, data.isOos ? 'YES' : 'NO',
+      '', '', '', ''
+    ]);
+
+    if (data.isOos) {
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+          const row = i + 1;
+          vSheet.getRange(row, 10).setValue('Out of Service');
+          vSheet.getRange(row, 13).clearContent();
+          vSheet.getRange(row, 14).clearContent();
+          vSheet.getRange(row, 16).setValue(data.description);
+          vSheet.getRange(row, 17).setValue('NO'); // safeToDrive = NO
+          break;
+        }
+      }
+    } else {
+      // Mark as Minor/Safe
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+          vSheet.getRange(i + 1, 16).setValue(data.description);
+          vSheet.getRange(i + 1, 17).setValue('YES'); // safeToDrive = YES
+          break;
+        }
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
+}
+
+function closeServiceIssue(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    const iData = iSheet.getDataRange().getValues();
+    for (let i = 1; i < iData.length; i++) {
+      if (String(iData[i][0]).trim() === data.incidentId) {
+        iSheet.getRange(i + 1, 9).setValue(data.resolutionNotes);
+        iSheet.getRange(i + 1, 10).setValue(now);
+        iSheet.getRange(i + 1, 11).setValue(user);
+        break;
+      }
+    }
+    
+    // Clear warnings on the van if it was just a minor fix
+    const vData = vSheet.getDataRange().getValues();
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        const status = vSheet.getRange(i + 1, 10).getValue();
+        if (status !== 'Out of Service') {
+          vSheet.getRange(i + 1, 16).clearContent(); // Clear notes
+          vSheet.getRange(i + 1, 17).clearContent(); // Clear safeToDrive flag
+        }
+        break;
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
+}

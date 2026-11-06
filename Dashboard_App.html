@@ -45,14 +45,16 @@
     .tab-content { display: none; padding: 24px; min-height: 300px; max-height: 60vh; overflow-y: auto; }
     .tab-content.active { display: block; }
     
-    .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; }
+    .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-family: 'Inter'; }
     .btn-primary { background: var(--veo-cyan-dark); color: #fff; width: 100%; }
     .btn-danger { background: var(--oos); color: #fff; width: 100%; }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
     .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; }
 
-    /* Predictive Driver Card */
-    .driver-card { display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; }
-    .d-badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 800; }
+    /* Predictive Driver Card inside Modal */
+    .driver-card { background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; }
+    .driver-card:hover { border-color: var(--veo-cyan-dark); }
+    .d-badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 800; display: inline-block; margin-right: 4px; }
     .b-pass { background: #d1fae5; color: #065f46; }
     .b-fail { background: #fee2e2; color: #991b1b; }
 
@@ -78,6 +80,7 @@
     
     <div class="modal-tabs">
       <button class="tab-btn active" onclick="switchTab('dispatch')">Dispatch</button>
+      <button class="tab-btn" onclick="switchTab('driver')">Driver</button>
       <button class="tab-btn" onclick="switchTab('specs')">Specs</button>
       <button class="tab-btn" onclick="switchTab('service')">Service</button>
     </div>
@@ -85,7 +88,13 @@
     <!-- TAB: DISPATCH -->
     <div id="tab-dispatch" class="tab-content active">
       <input type="hidden" id="vm-rental-id">
+      <input type="hidden" id="vm-selected-tech">
       <div id="dispatch-view"></div>
+    </div>
+
+    <!-- TAB: DRIVER INFO -->
+    <div id="tab-driver" class="tab-content">
+      <div id="driver-view"></div>
     </div>
 
     <!-- TAB: SPECS -->
@@ -96,7 +105,24 @@
     <!-- TAB: SERVICE -->
     <div id="tab-service" class="tab-content">
       <div id="service-view"></div>
-      <button class="btn btn-danger" style="margin-top:16px;" onclick="logNewService()">+ Log Service Need</button>
+    </div>
+  </dialog>
+
+  <!-- LOG SERVICE MODAL -->
+  <dialog id="log-service-modal" style="max-width: 400px; z-index: 1001;">
+    <div class="modal-head">📝 Log Service Need</div>
+    <div style="padding: 24px;">
+      <input type="hidden" id="ls-rental-id">
+      <input type="hidden" id="ls-clean-name">
+      <div class="form-group"><label>Category</label><input type="text" id="ls-category" class="form-control" placeholder="e.g. Mechanical, Body"></div>
+      <div class="form-group"><label>Description</label><textarea id="ls-desc" class="form-control" rows="2"></textarea></div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:16px;">
+        <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> Mark Out of Service
+      </label>
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <button class="btn btn-outline" onclick="document.getElementById('log-service-modal').close()">Cancel</button>
+        <button class="btn btn-danger" onclick="submitNewService()">Submit</button>
+      </div>
     </div>
   </dialog>
 
@@ -162,24 +188,28 @@
       document.getElementById('vm-rental-id').value = rentalId;
       document.getElementById('vm-title').innerText = v.cleanName;
       
-      // Build Dispatch Tab
+      const dep = globalState.deployments.find(d => d.rentalId === rentalId && d.status === 'Dispatched');
+      const tech = globalState.techs.find(t => t.name === (dep ? dep.tech : v.driver));
+
+      // 1. Dispatch Tab (With Inline Driver Search)
       let dHtml = '';
       if (v.status === 'Warehouse (Ready)') {
         dHtml = `
           <h4 style="margin-top:0;">Deploy Vehicle</h4>
           <input type="text" id="live-driver-search" class="form-control" placeholder="Search Tech Roster..." onkeyup="searchDriver()">
-          <div id="driver-result-card"></div>
-          <select id="sel-zone" class="form-control" multiple style="height:100px;">
+          <div id="driver-result-card" style="margin-bottom:12px;"></div>
+          <label style="font-size:12px; font-weight:700;">Zone(s)</label>
+          <select id="sel-zone" class="form-control" multiple style="height:100px; margin-bottom:16px;">
             ${globalState.config.zones.map(z=>`<option value="${z}">${z}</option>`).join('')}
           </select>
           <button class="btn btn-primary" onclick="submitDispatch()">🚀 Dispatch Now</button>
         `;
       } else if (v.status === 'Dispatched') {
-        const dep = globalState.deployments.find(d => d.rentalId === rentalId && d.status === 'Dispatched');
         dHtml = `
           <h4 style="margin-top:0; color:var(--dispatched);">Active Route</h4>
           <p><strong>Tech:</strong> ${dep ? dep.tech : v.driver}</p>
           <p><strong>Zones:</strong> ${dep ? dep.zone : v.zone}</p>
+          <p><strong>Focus:</strong> ${dep ? dep.goals : '—'}</p>
           <p><strong>Out Since:</strong> ${dep ? dep.departureTime : 'Unknown'}</p>
           <button class="btn btn-primary" style="background:#000;" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>
         `;
@@ -188,14 +218,37 @@
       }
       document.getElementById('dispatch-view').innerHTML = dHtml;
 
-      // Build Specs Tab
+      // 2. Driver Tab
+      if (tech) {
+        document.getElementById('driver-view').innerHTML = `
+          <h4 style="margin-top:0;">${tech.name}</h4>
+          <p><strong>Drive Test:</strong> ${tech.passedTest ? 'Pass' : 'Fail'}</p>
+          <p><strong>Coast Enrolled:</strong> ${tech.coastEnrolled ? 'Yes' : 'No'}</p>
+          <p><strong>Samsara Violation:</strong> ${tech.samsaraViolation ? '<span style="color:var(--oos)">YES</span>' : 'No'}</p>
+          <p><strong>Flags:</strong> ${tech.flagged || 'None'}</p>
+        `;
+      } else {
+        document.getElementById('driver-view').innerHTML = `<p>No active driver assigned.</p>`;
+      }
+
+      // 3. Specs Tab
       document.getElementById('specs-view').innerHTML = `
         <p><strong>Type:</strong> ${v.type}</p>
         <p><strong>Plate:</strong> ${v.plate}</p>
         <p><strong>Samsara:</strong> <a href="${v.samsaraLink}" target="_blank">View GPS</a></p>
       `;
 
-      // Build Service Tab
+      // 4. Service Tab
+      let openIncidents = globalState.incidents.filter(i => i.rentalId === rentalId);
+      let incHtml = openIncidents.map(i => `
+        <div style="border:1px solid var(--border-color); padding:12px; border-radius:6px; margin-bottom:8px;">
+          <div style="font-weight:700; color:${i.severity === 'OOS' ? 'var(--oos)' : 'var(--warning)'};">${i.severity} Issue</div>
+          <div style="font-size:13px; margin:4px 0 8px 0;">${i.issue}</div>
+          <input type="text" id="res-${i.id}" class="form-control" placeholder="Resolution notes..." style="padding:6px; font-size:12px;">
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="closeService('${i.id}', '${rentalId}')">Close Issue</button>
+        </div>
+      `).join('');
+
       document.getElementById('service-view').innerHTML = `
         <div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
           <div style="display:flex; justify-content:space-between; font-size:12px;">
@@ -203,34 +256,104 @@
             <span>Last Tires: <strong>${v.lastTires}</strong></span>
           </div>
         </div>
-        <p style="color:var(--oos); font-weight:600;">${v.notes || 'No active service notes.'}</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
+          <strong style="font-size:14px;">Open Tickets</strong>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ New</button>
+        </div>
+        ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
       `;
 
-      switchTab('dispatch');
+      // Default to dispatch tab
+      document.querySelectorAll('.tab-btn')[0].click();
       document.getElementById('van-modal').showModal();
     }
 
     /* --- LIVE DRIVER SEARCH --- */
     function searchDriver() {
       const q = document.getElementById('live-driver-search').value.toLowerCase();
-      if(q.length < 2) { document.getElementById('driver-result-card').innerHTML = ''; return; }
+      if(q.length < 2) { document.getElementById('driver-result-card').innerHTML = ''; document.getElementById('vm-selected-tech').value = ''; return; }
       
       const match = globalState.techs.find(t => t.name.toLowerCase().includes(q));
       if(match) {
+        document.getElementById('vm-selected-tech').value = match.name;
         let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
+        let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
+        
         document.getElementById('driver-result-card').innerHTML = `
-          <div class="driver-card" data-tech="${match.name}">
-            <div>
+          <div class="driver-card" style="border-color:var(--veo-cyan-dark);">
+            <div style="display:flex; justify-content:space-between;">
               <strong>${match.name}</strong>
-              ${flagAlert}
+              <div>
+                <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
+                <span class="d-badge ${match.coastEnrolled ? 'b-pass' : 'b-fail'}">Coast</span>
+                ${vioAlert}
+              </div>
             </div>
-            <div style="text-align:right;">
-              <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
-              <span class="d-badge ${match.coastEnrolled ? 'b-pass' : 'b-fail'}" style="margin-left:4px;">Coast</span>
-            </div>
+            ${flagAlert}
           </div>
         `;
       }
+    }
+
+    /* --- SUBMISSION HANDLERS --- */
+    function submitDispatch() {
+      const tech = document.getElementById('vm-selected-tech').value;
+      if (!tech) { alert('Please select a driver from the search.'); return; }
+      
+      const payload = {
+        rentalId: document.getElementById('vm-rental-id').value,
+        assignedTech: tech,
+        workZone: Array.from(document.getElementById('sel-zone').selectedOptions).map(o => o.value).join(', '),
+        shift: 'First Shift'
+      };
+      
+      document.getElementById('van-modal').close();
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData).processDispatchCheckout(payload);
+    }
+
+    function submitEndShift(depId) {
+      if(!depId) return;
+      const payload = {
+        deploymentId: depId,
+        rentalId: document.getElementById('vm-rental-id').value
+      };
+      document.getElementById('van-modal').close();
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData).endShift(payload);
+    }
+
+    /* --- SERVICE ENGINE --- */
+    function openLogService(rentalId, cleanName) {
+      document.getElementById('ls-rental-id').value = rentalId;
+      document.getElementById('ls-clean-name').value = cleanName;
+      document.getElementById('ls-category').value = '';
+      document.getElementById('ls-desc').value = '';
+      document.getElementById('ls-oos').checked = false;
+      document.getElementById('log-service-modal').showModal();
+    }
+
+    function submitNewService() {
+      const payload = {
+        rentalId: document.getElementById('ls-rental-id').value,
+        cleanName: document.getElementById('ls-clean-name').value,
+        category: document.getElementById('ls-category').value,
+        description: document.getElementById('ls-desc').value,
+        isOos: document.getElementById('ls-oos').checked
+      };
+      document.getElementById('log-service-modal').close();
+      document.getElementById('van-modal').close();
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData).logNewServiceNeed(payload);
+    }
+
+    function closeService(incId, rentalId) {
+      const notes = document.getElementById('res-' + incId).value;
+      if (!notes) { alert('Please enter resolution notes to close the issue.'); return; }
+      
+      document.getElementById('van-modal').close();
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData).closeServiceIssue({ incidentId: incId, rentalId: rentalId, resolutionNotes: notes });
     }
   </script>
 </body>

@@ -41,7 +41,7 @@ function getDashboardState() {
       }
       normalZones.sort();
       ozGroups.sort();
-      cfg.zones = normalZones.concat(ozGroups); // OZ Groups at the end
+      cfg.zones = normalZones.concat(ozGroups); 
     }
 
     // 2. Fetch Vehicles (Adding Type, Oil, Tires, and Severity)
@@ -56,14 +56,14 @@ function getDashboardState() {
         vehicles.push({
           cleanName: String(r[0] || '').trim(),
           rentalId: String(r[1] || '').trim(),
-          type: String(r[2] || 'Cargo Van').trim(), // Assuming Col C is Vehicle Type now
+          type: String(r[2] || 'Cargo Van').trim(), 
           plate: String(r[5] || ''),
           samsaraLink: String(r[8] || ''), 
           status: String(r[9] || 'Warehouse (Ready)').trim(),
           zone: String(r[12] || ''),
           driver: String(r[13] || ''),
           notes: String(r[15] || ''),
-          safeToDrive: String(r[16] || '').toLowerCase() === 'yes', // Maintenance needed but safe
+          safeToDrive: String(r[16] || '').toLowerCase() === 'yes', 
           lastOil: String(r[17] || 'N/A'),
           lastTires: String(r[18] || 'N/A')
         });
@@ -105,8 +105,24 @@ function getDashboardState() {
         });
       }
     }
+    
+    // 5. Fetch Open Incidents
+    const iSheet = ss.getSheetByName('Incidents_Service');
+    const incidents = [];
+    if (iSheet && iSheet.getLastRow() > 1) {
+      const iData = iSheet.getDataRange().getValues();
+      for (let i = 1; i < iData.length; i++) {
+        if (!iData[i][0] || iData[i][8]) continue; // Skip if no ID or already resolved
+        incidents.push({
+          id: String(iData[i][0]),
+          rentalId: String(iData[i][3]),
+          issue: String(iData[i][4]) + ': ' + String(iData[i][5]),
+          severity: String(iData[i][6]) === 'YES' ? 'OOS' : 'Minor'
+        });
+      }
+    }
 
-    return { config: cfg, vehicles: vehicles, deployments: deployments, techs: techs };
+    return { config: cfg, vehicles: vehicles, deployments: deployments, techs: techs, incidents: incidents };
   } catch (err) {
     throw new Error("Backend Crash: " + err.message);
   }
