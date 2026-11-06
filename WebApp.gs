@@ -9,12 +9,6 @@ function doGet(e) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-
-function getDashboardState() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const tz = Session.getScriptTimeZone();
-
 function getDashboardState() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -37,7 +31,6 @@ function getDashboardState() {
 
     // 1. Fetch Config Zones (Col E / Index 4)
     const cfg = { zones: [] };
-    const cSheet = ss.getSheetByName('_Config');
     if (cSheet && cSheet.getLastRow() > 1) {
       const cData = cSheet.getDataRange().getValues();
       let normalZones = [];
