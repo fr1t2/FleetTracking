@@ -203,6 +203,81 @@
     </div>
   </dialog>
 
+
+<!-- EDIT VEHICLE MODAL -->
+  <dialog id="edit-vehicle-modal" style="max-width: 600px; z-index: 1003;">
+    <div class="modal-head">✏️ Edit Vehicle Specs</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitEditVehicle(event)">
+        <input type="hidden" id="ev_rental_id">
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van Name *</label>
+            <input type="text" id="ev_name" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van ID (Read-Only)</label>
+            <input type="text" id="ev_rental_display" class="form-control" disabled style="background:#f1f3f4; color:#5f6368;">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="ev_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Make & Model</label>
+            <input type="text" id="ev_model" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="ev_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">VIN</label>
+            <input type="text" id="ev_vin" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">License Plate *</label>
+            <input type="text" id="ev_plate" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Plate Expiration</label>
+            <input type="date" id="ev_plate_exp" class="form-control">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Serial #</label>
+            <input type="text" id="ev_samsara" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Link</label>
+            <input type="text" id="ev_sam_link" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="ev_coast" class="form-control">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+             </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Notes & Addons</label>
+          <input type="text" id="ev_notes" class="form-control">
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-vehicle-modal').close()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- EDIT DISPATCH MODAL -->
   <dialog id="edit-dispatch-modal" style="max-width: 500px; z-index: 1005;">
     <div class="modal-head">✏️ Edit Active Shift</div>
@@ -903,6 +978,102 @@
       if (pendingCloseDialog) { pendingCloseDialog.close(); pendingCloseDialog.dataset.dirty = 'false'; pendingCloseDialog = null; }
       document.getElementById('unsaved-modal').close();
     }
+
+function openEditVehicleModal(rentalId) {
+      // 1. Find the vehicle in memory
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if(!v) return;
+
+      // 2. Pre-fill the dropdowns from Config
+      const typeSelect = document.getElementById('ev_type');
+      if (globalState.vehicleTypes) typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+      else typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
+      
+      const ownerSelect = document.getElementById('ev_owner');
+      if (globalState.rentalAgencies) ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      else ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
+
+      // 3. Populate existing data
+      document.getElementById('ev_rental_id').value = v.rentalId;
+      document.getElementById('ev_rental_display').value = v.rentalId;
+      document.getElementById('ev_name').value = v.cleanName || '';
+      
+      // Auto-select correct dropdowns if they match
+      if (v.agency) document.getElementById('ev_owner').value = v.agency;
+      if (v.type) document.getElementById('ev_type').value = v.type;
+      
+      document.getElementById('ev_model').value = v.makeModel || '';
+      document.getElementById('ev_vin').value = v.vin || '';
+      document.getElementById('ev_plate').value = v.plate || '';
+      
+      // Format plate exp date for <input type="date"> (Requires YYYY-MM-DD)
+      document.getElementById('ev_plate_exp').value = (v.plateExpDate && v.plateExpDate !== '—') ? v.plateExpDate : '';
+      
+      document.getElementById('ev_samsara').value = v.samsaraSerial || '';
+      document.getElementById('ev_sam_link').value = v.samsaraLink || '';
+      document.getElementById('ev_coast').value = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes') ? 'Yes' : 'No';
+      document.getElementById('ev_notes').value = v.notes || v.addons || '';
+      
+      // 4. Open the Dialog
+      const evm = document.getElementById('edit-vehicle-modal');
+      evm.dataset.dirty = 'false';
+      evm.showModal();
+    }
+
+    function submitEditVehicle(e) {
+      e.preventDefault();
+      
+      const payload = {
+        rentalId: document.getElementById('ev_rental_id').value, 
+        vanName: document.getElementById('ev_name').value,
+        owner: document.getElementById('ev_owner').value, 
+        makeModel: document.getElementById('ev_model').value,
+        type: document.getElementById('ev_type').value, 
+        vin: document.getElementById('ev_vin').value,
+        licensePlate: document.getElementById('ev_plate').value, 
+        plateExpDate: document.getElementById('ev_plate_exp').value,
+        samsaraSerial: document.getElementById('ev_samsara').value, 
+        samsaraLink: document.getElementById('ev_sam_link').value,
+        coast: document.getElementById('ev_coast').value, 
+        addons: document.getElementById('ev_notes').value
+      };
+      
+      document.getElementById('edit-vehicle-modal').close();
+      
+      // --- OPTIMISTIC SYNC ---
+      const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if(vIdx > -1) {
+        globalState.vehicles[vIdx].cleanName = payload.vanName; 
+        globalState.vehicles[vIdx].agency = payload.owner;
+        globalState.vehicles[vIdx].makeModel = payload.makeModel; 
+        globalState.vehicles[vIdx].type = payload.type;
+        globalState.vehicles[vIdx].vin = payload.vin; 
+        globalState.vehicles[vIdx].plate = payload.licensePlate; 
+        globalState.vehicles[vIdx].plateExpDate = payload.plateExpDate || '—'; 
+        globalState.vehicles[vIdx].samsaraSerial = payload.samsaraSerial || ''; 
+        globalState.vehicles[vIdx].samsaraLink = payload.samsaraLink || ''; 
+        globalState.vehicles[vIdx].coast = payload.coast; 
+        globalState.vehicles[vIdx].notes = payload.addons;
+      }
+      
+      // Re-render the grid and instantly update the 360-modal if it's open
+      renderGrid();
+      const vm = document.getElementById('van-modal');
+      if (vm && vm.open) {
+          openVanModal(payload.rentalId); // Refresh the active modal
+      }
+
+      // --- BACKGROUND SYNC ---
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display = 'none'; 
+            alert("Error updating specs: " + err.message); 
+            loadData(); 
+        })
+        .updateVehicleDetails(payload);
+    }
+    
   </script>
 </body>
 </html>

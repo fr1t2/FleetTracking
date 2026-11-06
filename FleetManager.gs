@@ -255,3 +255,50 @@ function decommissionVehicle(data) {
     throw new Error('Decommission failed: ' + err.message);
   }
 }
+
+function updateVehicleDetails(formData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Vehicles');
+    const data = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1]).trim().toLowerCase() === String(formData.rentalId).trim().toLowerCase()) {
+        rowIndex = i + 1; 
+        break;
+      }
+    }
+    
+    if (rowIndex === -1) {
+      throw new Error(`Vehicle ${formData.rentalId} not found.`);
+    }
+
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    // Map strictly to the 24-column layout 
+    // (Note: getRange uses 1-based indexing, so Column P is 16)
+    if (formData.vanName !== undefined) sheet.getRange(rowIndex, 1).setValue(formData.vanName);
+    if (formData.owner !== undefined) sheet.getRange(rowIndex, 3).setValue(formData.owner);
+    if (formData.makeModel !== undefined) sheet.getRange(rowIndex, 4).setValue(formData.makeModel);
+    if (formData.vin !== undefined) sheet.getRange(rowIndex, 5).setValue(formData.vin);
+    if (formData.licensePlate !== undefined) sheet.getRange(rowIndex, 6).setValue(formData.licensePlate);
+    if (formData.plateExpDate !== undefined) sheet.getRange(rowIndex, 7).setValue(formData.plateExpDate);
+    if (formData.samsaraSerial !== undefined) sheet.getRange(rowIndex, 8).setValue(formData.samsaraSerial);
+    if (formData.samsaraLink !== undefined) sheet.getRange(rowIndex, 9).setValue(formData.samsaraLink);
+    
+    // Notes/Addons moved to Col P (16)
+    if (formData.addons !== undefined) sheet.getRange(rowIndex, 16).setValue(formData.addons);
+    
+    sheet.getRange(rowIndex, 17).setValue(user); 
+    sheet.getRange(rowIndex, 18).setValue(now); 
+    
+    if (formData.coast !== undefined) sheet.getRange(rowIndex, 20).setValue(formData.coast);
+    if (formData.type !== undefined) sheet.getRange(rowIndex, 21).setValue(formData.type);
+
+    return { success: true, message: `Vehicle ${formData.rentalId} updated successfully.` };
+  } catch (err) {
+    throw new Error('Failed to update vehicle details: ' + err.message);
+  }
+}
