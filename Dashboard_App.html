@@ -8,24 +8,34 @@
   <style>
     :root {
       --veo-cyan: #00E5FF; --veo-cyan-dark: #00B8CC;
-      --bg-main: #f4f7f6; --bg-panel: #ffffff;
+      --bg-main: #f4f7f6; --bg-panel: #ffffff; --bg-modal-head: #f8f9fa;
       --text-main: #202124; --text-muted: #5f6368;
       --border-color: #e0e0e0; --shadow: 0 4px 12px rgba(0,0,0,0.05);
       --ready: #34C759; --dispatched: #00B8CC; --oos: #FF3B30; --warning: #FFCC00;
       --danger: #FF3B30;
     }
-    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); }
+
+    /* DARK MODE VARIABLES */
+    [data-theme="dark"] {
+      --bg-main: #0f1115; --bg-panel: #1a1d24; --bg-modal-head: #252932;
+      --text-main: #ffffff; --text-muted: #9ba1a6;
+      --border-color: #333842; --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); transition: background 0.3s, color 0.3s; }
     * { box-sizing: border-box; }
 
     /* Topbar & Search */
-    .topbar { background: var(--bg-panel); padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
-    .search-box { padding: 10px 16px; width: 250px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Inter'; }
+    .topbar { background: var(--bg-panel); padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); transition: 0.3s; }
+    .search-box { padding: 10px 16px; width: 250px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Inter'; background: var(--bg-main); color: var(--text-main); }
+    .theme-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+    .theme-btn:hover { border-color: var(--veo-cyan-dark); }
 
     /* Snapshot Grid */
     .grid-container { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; max-width: 1800px; margin: 0 auto; }
     
     .van-card { background: var(--bg-panel); border-radius: 12px; padding: 20px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: 0.2s; }
-    .van-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .van-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); border-color: var(--veo-cyan-dark); }
     
     /* Status Colors */
     .st-ready { border-top: 5px solid var(--ready); }
@@ -36,13 +46,13 @@
     .ribbon-warning { position: absolute; top: 0; right: 0; background: var(--warning); color: #000; font-size: 10px; font-weight: 800; padding: 4px 12px; border-bottom-left-radius: 8px; }
 
     /* Tabbed Modal (Native Dialog) */
-    dialog { border: none; border-radius: 16px; padding: 0; width: 95%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); margin: auto; }
+    dialog { border: none; border-radius: 16px; padding: 0; width: 95%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); margin: auto; background: var(--bg-panel); color: var(--text-main); transition: 0.3s; }
     dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
     
     .modal-head { padding: 20px 24px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
-    .modal-tabs { display: flex; background: #f8f9fa; border-bottom: 1px solid var(--border-color); }
+    .modal-tabs { display: flex; background: var(--bg-modal-head); border-bottom: 1px solid var(--border-color); }
     .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; transition: 0.2s; }
-    .tab-btn.active { color: var(--veo-cyan-dark); border-bottom-color: var(--veo-cyan-dark); background: #fff; }
+    .tab-btn.active { color: var(--veo-cyan-dark); border-bottom-color: var(--veo-cyan-dark); background: var(--bg-panel); }
     .tab-content { display: none; padding: 24px; min-height: 250px; max-height: 60vh; overflow-y: auto; }
     .tab-content.active { display: block; }
     
@@ -53,17 +63,17 @@
     .btn-success { background: var(--ready); color: #fff; }
     .btn-dark { background: #202124; color: #fff; }
     .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-    .btn-outline:hover { background: #f4f7f6; }
+    .btn-outline:hover { background: var(--bg-main); }
     
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; box-sizing: border-box; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 12px; font-family: 'Inter'; box-sizing: border-box; background: var(--bg-main); color: var(--text-main); }
     .row { display: flex; gap: 16px; }
     .col { flex: 1; }
 
     /* Dialog Footer */
-    .dlg-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: #fafafa; }
+    .dlg-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-modal-head); }
 
     /* Predictive Driver Card */
-    .driver-card { background: #f8f9fa; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+    .driver-card { background: var(--bg-modal-head); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
     .driver-card:hover { border-color: var(--veo-cyan-dark); }
     .d-badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 800; display: inline-block; margin-right: 4px; }
     .b-pass { background: #d1fae5; color: #065f46; }
@@ -84,6 +94,7 @@
         <option value="name">Sort: Alphabetical (A-Z)</option>
         <option value="type-name">Sort: Group by Type</option>
       </select>
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle">🌙</button>
     </div>
   </div>
 
@@ -93,7 +104,7 @@
   <dialog id="van-modal">
     <div class="modal-head">
       <span id="vm-title">Van Name</span>
-      <button onclick="document.getElementById('van-modal').close()" style="border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+      <button onclick="document.getElementById('van-modal').close()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
     </div>
     
     <div class="modal-tabs">
@@ -103,29 +114,14 @@
       <button class="tab-btn" onclick="switchTab('service')">Service</button>
     </div>
 
-    <!-- TAB: DISPATCH -->
     <div id="tab-dispatch" class="tab-content active">
       <input type="hidden" id="vm-rental-id">
       <input type="hidden" id="vm-selected-tech">
       <div id="dispatch-view"></div>
     </div>
-
-    <!-- TAB: DRIVER INFO -->
-    <div id="tab-driver" class="tab-content">
-      <div id="driver-view"></div>
-    </div>
-
-    <!-- TAB: SPECS -->
-    <div id="tab-specs" class="tab-content">
-      <div id="specs-view"></div>
-    </div>
-
-    <!-- TAB: SERVICE -->
-    <div id="tab-service" class="tab-content">
-      <div id="service-view"></div>
-    </div>
-    
-    <!-- DYNAMIC ACTION FOOTER -->
+    <div id="tab-driver" class="tab-content"><div id="driver-view"></div></div>
+    <div id="tab-specs" class="tab-content"><div id="specs-view"></div></div>
+    <div id="tab-service" class="tab-content"><div id="service-view"></div></div>
     <div class="dlg-footer" id="vm-footer"></div>
   </dialog>
 
@@ -229,7 +225,21 @@
   <script>
     let globalState = null;
 
-    window.onload = function() { loadData(); };
+    // Theme Management
+    function toggleTheme() {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('theme-toggle').innerText = isDark ? '🌙' : '☀️';
+      localStorage.setItem('veo_theme', isDark ? 'light' : 'dark');
+    }
+
+    window.onload = function() { 
+      if (localStorage.getItem('veo_theme') === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-toggle').innerText = '☀️';
+      }
+      loadData(); 
+    };
 
     function loadData() {
       document.getElementById('global-loader').style.display = 'block';
@@ -365,7 +375,7 @@
         footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
         footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
       } else {
-        dHtml = `<div style="padding:20px; background:#fee2e2; color:#991b1b; border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
+        dHtml = `<div style="padding:20px; background:rgba(255, 59, 48, 0.1); color:var(--danger); border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
         footerHtml += `<button class="btn btn-success" type="button" onclick="submitCheckIn()">✅ Check In to Warehouse</button>`;
       }
       document.getElementById('dispatch-view').innerHTML = dHtml;
@@ -408,27 +418,27 @@
       `).join('');
 
       let histHtml = closedIncidents.map(i => `
-        <div style="font-size:12px; color:var(--text-muted); border-bottom:1px solid #eee; padding:6px 0;">
+        <div style="font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding:6px 0;">
           <strong>${i.dateReported}</strong>: ${i.desc || i.issue} <br>
           <em style="color:var(--ready);">Resolved: ${i.resolution}</em>
         </div>
       `).join('');
 
       document.getElementById('service-view').innerHTML = `
-        <div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
+        <div style="background:var(--bg-modal-head); padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
           <div style="display:flex; justify-content:space-between; font-size:12px;">
             <span>Last Oil: <strong>${v.lastOil || 'N/A'}</strong></span>
             <span>Last Tires: <strong>${v.lastTires || 'N/A'}</strong></span>
           </div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Open Tickets</strong>
           <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">+ Report New Issue</button>
         </div>
         <div style="margin-bottom:16px;">
           ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Service History</strong>
         </div>
         <div style="max-height:150px; overflow-y:auto;">
@@ -485,7 +495,7 @@
       
       document.querySelectorAll('#driver-result-card .driver-card').forEach(c => {
         c.style.borderColor = 'var(--border-color)';
-        c.style.backgroundColor = '#f8f9fa';
+        c.style.backgroundColor = 'var(--bg-modal-head)';
       });
       const sel = document.getElementById('dcard-' + name.replace(/\s+/g, ''));
       if(sel) {
@@ -504,12 +514,11 @@
       document.getElementById('ed-rental-id').value = dep.rentalId;
       document.getElementById('ed-selected-tech').value = dep.tech;
       document.getElementById('ed-driver-search').value = dep.tech;
-      document.getElementById('ed-driver-result-card').innerHTML = ''; // Clear prior search
+      document.getElementById('ed-driver-result-card').innerHTML = ''; 
       
       const zoneSel = document.getElementById('ed-zone');
       zoneSel.innerHTML = (globalState.zones || []).map(z=>`<option value="${z}">${z}</option>`).join('');
       
-      // Select existing zones
       const activeZones = (dep.zone || '').split(',').map(z => z.trim());
       Array.from(zoneSel.options).forEach(opt => {
           if(activeZones.includes(opt.value)) opt.selected = true;
@@ -554,7 +563,7 @@
       
       document.querySelectorAll('#ed-driver-result-card .driver-card').forEach(c => {
         c.style.borderColor = 'var(--border-color)';
-        c.style.backgroundColor = '#f8f9fa';
+        c.style.backgroundColor = 'var(--bg-modal-head)';
       });
       const sel = document.getElementById('edcard-' + name.replace(/\s+/g, ''));
       if(sel) {
@@ -579,7 +588,6 @@
       edm.dataset.dirty = 'false';
       edm.close();
       
-      // OPTIMISTIC SYNC
       const d = globalState.deployments.find(x => x.id === payload.id);
       if (d) { d.tech = payload.assignedTech; d.zone = payload.workZone; d.goals = payload.goals; }
       const v = globalState.vehicles.find(x => x.rentalId === payload.rentalId);
@@ -596,7 +604,7 @@
         .updateDeploymentRecord(payload);
     }
 
-    /* --- OPTIMISTIC UI SUBMISSION HANDLERS --- */
+    /* --- SUBMISSION HANDLERS --- */
     function submitDispatch() {
       const tech = document.getElementById('vm-selected-tech').value;
       if (!tech) { alert('Please select a driver from the search.'); return; }
@@ -615,7 +623,6 @@
       vm.dataset.dirty = 'false';
       vm.close();
 
-      // OPTIMISTIC SYNC
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { v.status = 'Dispatched'; v.driver = payload.assignedTech; v.zone = payload.workZone; }
       globalState.deployments.unshift({ id: 'temp-' + Date.now(), rentalId: rentalId, tech: payload.assignedTech, zone: payload.workZone, goals: payload.goals, battery: payload.batteryTarget, status: 'Dispatched', departureTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
@@ -635,12 +642,10 @@
       if(!depId) return;
       const rentalId = document.getElementById('vm-rental-id').value;
       const payload = { deploymentId: depId, rentalId: rentalId };
-      
       const vm = document.getElementById('van-modal');
       vm.dataset.dirty = 'false';
       vm.close();
 
-      // OPTIMISTIC SYNC
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { v.status = 'Warehouse (Ready)'; v.driver = '—'; v.zone = '—'; }
       const d = globalState.deployments.find(x => x.id === depId);
@@ -664,7 +669,6 @@
       vm.dataset.dirty = 'false';
       vm.close();
       
-      // OPTIMISTIC SYNC
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { v.status = 'Warehouse (Ready)'; v.driver = '—'; v.zone = '—'; v.safeToDrive = 'false'; }
       (globalState.incidents || []).forEach(i => { if (i.rentalId === rentalId && !i.dateResolved) { i.dateResolved = new Date().toISOString(); } });
@@ -714,7 +718,6 @@
       lsm.dataset.dirty = 'false';
       lsm.close();
 
-      // OPTIMISTIC SYNC
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) {
           if (payload.isOos) {
@@ -742,13 +745,16 @@
       
       document.getElementById('van-modal').close();
 
-      // OPTIMISTIC SYNC
       const inc = globalState.incidents.find(i => i.id === incId);
       if (inc) inc.dateResolved = new Date().toISOString();
       const hasOtherOpen = globalState.incidents.some(i => i.rentalId === rentalId && !i.dateResolved && i.id !== incId);
-      if (!hasOtherOpen) {
-          const v = globalState.vehicles.find(x => x.rentalId === rentalId);
-          if (v && v.status !== 'Out of Service') v.safeToDrive = 'false';
+      
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if (!hasOtherOpen && v) {
+          if (v.status === 'Out of Service') {
+              v.status = 'Warehouse (Ready)';
+          }
+          v.safeToDrive = 'false';
       }
       renderGrid();
       

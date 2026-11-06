@@ -116,6 +116,7 @@ function closeServiceIssue(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const iSheet = ss.getSheetByName('Incidents_Service');
+    const vSheet = ss.getSheetByName('Vehicles');
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
@@ -128,6 +129,32 @@ function closeServiceIssue(data) {
         break;
       }
     }
+
+    // Check if there are any other open tickets for this van
+    let hasOtherOpen = false;
+    for (let i = 1; i < iData.length; i++) {
+      if (String(iData[i][3]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase() && 
+          !iData[i][9] && 
+          String(iData[i][0]).trim() !== data.incidentId) {
+        hasOtherOpen = true;
+        break;
+      }
+    }
+
+    // If no other open issues, move vehicle back to Warehouse (Ready)
+    if (!hasOtherOpen) {
+      const vData = vSheet.getDataRange().getValues();
+      for (let i = 1; i < vData.length; i++) {
+        if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+          const currentStatus = String(vData[i][9]).trim();
+          if (currentStatus === 'Out of Service') {
+            vSheet.getRange(i + 1, 10).setValue('Warehouse (Ready)');
+          }
+          break;
+        }
+      }
+    }
+
     return { success: true };
   } catch (err) {
     throw new Error('Close ticket failed: ' + err.message);
