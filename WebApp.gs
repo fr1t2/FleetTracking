@@ -21,13 +21,17 @@ function getDashboardState() {
     const cSheet = ss.getSheetByName('_Config');
     
     const zones = [];
-    const issueCategories = []; // NEW: Array to hold categories
+    const issueCategories = []; 
+    const rentalAgencies = [];
+    const vehicleTypes = []; 
     
     if (cSheet && cSheet.getLastRow() > 1) {
       const cData = cSheet.getDataRange().getValues();
       for (let i = 1; i < cData.length; i++) {
-        if (cData[i][4]) zones.push(String(cData[i][4]).trim()); // Col E
-        if (cData[i][5]) issueCategories.push(String(cData[i][5]).trim()); // Col F (Index 5)
+        if (cData[i][4]) zones.push(String(cData[i][4]).trim()); // Col E: Zones
+        if (cData[i][5]) issueCategories.push(String(cData[i][5]).trim()); // Col F: Issues
+        if (cData[i][8]) rentalAgencies.push(String(cData[i][8]).trim()); // Col I: Agencies (Owner)
+        if (cData[i][10]) vehicleTypes.push(String(cData[i][10]).trim()); // Col K: Vehicle Types
       }
     }
 
@@ -191,8 +195,10 @@ function getDashboardState() {
       }
     });
 
-    return JSON.stringify({ vehicles, techs, incidents, deployments, zones, issueCategories });
-
+    return JSON.stringify({ 
+        vehicles, techs, incidents, deployments, zones, 
+        issueCategories, rentalAgencies, vehicleTypes 
+    });
   } catch (err) {
     throw new Error("Backend Crash: " + err.message);
   }

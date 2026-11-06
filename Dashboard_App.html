@@ -125,37 +125,45 @@
     </div>
   </dialog>
 
-  <!-- ADD VAN MODAL -->
+  <!-- ADD VAN MODAL (UPDATED) -->
   <dialog id="add-van-modal" style="max-width: 600px; z-index: 1002;">
     <div class="modal-head">➕ Add New Van</div>
     <div style="padding: 24px;">
-      <div class="row">
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Clean Name *</label><input type="text" id="av_name" class="form-control" required></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Rental ID *</label><input type="text" id="av_rental" class="form-control" required></div>
-      </div>
-      <div class="row">
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Agency</label><input type="text" id="av_agency" class="form-control"></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Make & Model</label><input type="text" id="av_model" class="form-control"></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Vehicle Type</label><input type="text" id="av_type" class="form-control" placeholder="Cargo Van"></div>
-      </div>
-      <div class="row">
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">VIN</label><input type="text" id="av_vin" class="form-control"></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">License Plate</label><input type="text" id="av_plate" class="form-control"></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Plate Expiration</label><input type="date" id="av_plate_exp" class="form-control"></div>
-      </div>
-      <div class="row">
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Serial #</label><input type="text" id="av_samsara" class="form-control"></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Link</label><input type="text" id="av_sam_link" class="form-control"></div>
-        <div class="col form-group"><label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
-           <select id="av_coast" class="form-control"><option value="Yes">Yes</option><option value="No" selected>No</option></select>
+      <form onsubmit="submitAddVan(event)">
+        <div class="row">
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Van Name *</label><input type="text" id="av_name" class="form-control" required></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Van ID *</label><input type="text" id="av_rental" class="form-control" required></div>
         </div>
-      </div>
-      <div class="form-group"><label style="font-size:12px; font-weight:700;">Addons & Interior Builds</label><input type="text" id="av_addons" class="form-control" placeholder="e.g. Inverter, Shelving"></div>
-      
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="document.getElementById('add-van-modal').close()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="submitAddVan()">Save Van</button>
-      </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="av_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Make & Model</label><input type="text" id="av_model" class="form-control"></div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="av_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">VIN</label><input type="text" id="av_vin" class="form-control"></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">License Plate *</label><input type="text" id="av_plate" class="form-control" required></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Plate Expiration</label><input type="date" id="av_plate_exp" class="form-control"></div>
+        </div>
+        <div class="row">
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Serial #</label><input type="text" id="av_samsara" class="form-control"></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Link</label><input type="text" id="av_sam_link" class="form-control"></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="av_coast" class="form-control"><option value="Yes">Yes</option><option value="No" selected>No</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Notes</label><input type="text" id="av_notes" class="form-control" placeholder="e.g. Inverter, Shelving, Dents..."></div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="document.getElementById('add-van-modal').close()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Van</button>
+        </div>
+      </form>
     </div>
   </dialog>
 
@@ -328,7 +336,7 @@
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
           subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted); margin-top:2px;">📍 ${v.zone}</div>${focusStr}</div>`;
         } else {
-          subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Cargo Van'}</div></div>`;
+          subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Van'}</div></div>`;
         }
 
         const isCoast = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
@@ -449,7 +457,7 @@
         <p><strong>Type:</strong> ${v.type || 'Cargo Van'}</p>
         <p><strong>Plate:</strong> ${v.plate} <span style="font-size:12px; color:var(--text-muted);">(Exp: ${v.plateExpDate || 'N/A'})</span></p>
         <p><strong>Coast Card:</strong> ${v.coast || 'No'}</p>
-        <p><strong>Addons:</strong> ${v.addons || 'None'}</p>
+        <p><strong>Notes:</strong> ${v.notes || 'None'}</p>
         <p><strong>Samsara:</strong> <a href="${v.samsaraLink}" target="_blank" style="color:var(--veo-cyan-dark);">View GPS</a></p>
       `;
 
@@ -490,12 +498,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Service History</strong>
         </div>
-        <div style="max-height:150px; overflow-y:auto; margin-bottom: 24px;">
+        <div style="max-height:150px; overflow-y:auto;">
           ${histHtml || '<p style="font-size:13px; color:var(--text-muted);">No past service records.</p>'}
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px;">
-          <strong style="font-size:14px;">Vehicle Lifecycle</strong>
-          <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>
         </div>
       `;
 
@@ -507,36 +511,56 @@
 
     /* --- FLEET MANAGEMENT --- */
     function openAddVanModal() {
-      document.getElementById('av_name').value = ''; document.getElementById('av_rental').value = '';
-      document.getElementById('av_agency').value = ''; document.getElementById('av_model').value = '';
-      document.getElementById('av_type').value = ''; document.getElementById('av_vin').value = '';
-      document.getElementById('av_plate').value = ''; document.getElementById('av_plate_exp').value = '';
-      document.getElementById('av_samsara').value = ''; document.getElementById('av_sam_link').value = '';
-      document.getElementById('av_coast').value = 'No'; document.getElementById('av_addons').value = '';
-      
+      document.getElementById('av_name').value = ''; 
+      document.getElementById('av_rental').value = '';
+      document.getElementById('av_model').value = ''; 
+      document.getElementById('av_vin').value = '';
+      document.getElementById('av_plate').value = ''; 
+      document.getElementById('av_plate_exp').value = '';
+      document.getElementById('av_samsara').value = ''; 
+      document.getElementById('av_sam_link').value = '';
+      document.getElementById('av_coast').value = 'No'; 
+      document.getElementById('av_notes').value = '';
+
+      // Populate Dropdowns from Config
+      const typeSelect = document.getElementById('av_type');
+      if (globalState.vehicleTypes) typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+      else typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
+
+      const ownerSelect = document.getElementById('av_owner');
+      if (globalState.rentalAgencies) ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      else ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
+
       const avm = document.getElementById('add-van-modal');
       avm.dataset.dirty = 'false';
       avm.showModal();
     }
 
-    function submitAddVan() {
+    function submitAddVan(e) {
+      e.preventDefault(); // Protect from native form refresh
       const p = {
-        vanName: document.getElementById('av_name').value, rentalId: document.getElementById('av_rental').value,
-        agency: document.getElementById('av_agency').value, makeModel: document.getElementById('av_model').value,
-        type: document.getElementById('av_type').value, vin: document.getElementById('av_vin').value,
-        plate: document.getElementById('av_plate').value, plateExp: document.getElementById('av_plate_exp').value,
-        samsaraSerial: document.getElementById('av_samsara').value, samsaraLink: document.getElementById('av_sam_link').value,
-        coast: document.getElementById('av_coast').value, addons: document.getElementById('av_addons').value
+        vanName: document.getElementById('av_name').value, 
+        rentalId: document.getElementById('av_rental').value,
+        owner: document.getElementById('av_owner').value, 
+        makeModel: document.getElementById('av_model').value,
+        type: document.getElementById('av_type').value, 
+        vin: document.getElementById('av_vin').value,
+        plate: document.getElementById('av_plate').value, 
+        plateExp: document.getElementById('av_plate_exp').value,
+        samsaraSerial: document.getElementById('av_samsara').value, 
+        samsaraLink: document.getElementById('av_sam_link').value,
+        coast: document.getElementById('av_coast').value, 
+        notes: document.getElementById('av_notes').value
       };
       
       document.getElementById('add-van-modal').close();
       
       globalState.vehicles.push({
-        cleanName: p.vanName, rentalId: p.rentalId, agency: p.agency,
-        makeModel: p.makeModel, type: p.type || 'Cargo Van', vin: p.vin, plate: p.plate,
+        cleanName: p.vanName, rentalId: p.rentalId, agency: p.owner,
+        makeModel: p.makeModel, type: p.type, vin: p.vin, plate: p.plate,
         plateExpDate: p.plateExp, samsaraSerial: p.samsaraSerial, samsaraLink: p.samsaraLink,
         status: 'Warehouse (Ready)', pickupDate: new Date().toISOString().split('T')[0],
-        coast: p.coast, addons: p.addons, safeToDrive: 'false'
+        coast: p.coast, notes: p.notes, safeToDrive: 'false'
       });
       
       renderGrid();
@@ -693,6 +717,7 @@
         .updateDeploymentRecord(payload);
     }
 
+    /* --- SUBMISSION HANDLERS --- */
     function submitDispatch() {
       const tech = document.getElementById('vm-selected-tech').value;
       if (!tech) { alert('Please select a driver from the search.'); return; }

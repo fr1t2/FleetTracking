@@ -186,37 +186,35 @@ function processAddVehicle(data) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
-    // Maps directly to the 24-column layout
+    // 24-column layout mapping
     const rowData = [
-      data.vanName || '',
-      data.rentalId || '',
-      data.agency || '',
-      data.makeModel || '',
-      data.vin || '',
-      data.plate || '',
-      data.plateExp || '',
-      data.samsaraSerial || '',
-      data.samsaraLink || '',
-      'Warehouse (Ready)', // Col 10: Status
-      now,                 // Col 11: Pickup Date
-      '',                  // Col 12: Service Num
-      '',                  // Col 13: Zone
-      '',                  // Col 14: Tech
-      now,                 // Col 15: Last Service Date
-      'Newly Added',       // Col 16: Notes
-      user,                // Col 17: Updated By
-      now,                 // Col 18: Updated At
-      data.addons || '',   // Col 19: Addons
-      data.coast || 'No',  // Col 20: Coast
-      data.type || 'Cargo Van', // Col 21: Vehicle Type
-      '',                  // Col 22: Oil Date
-      '',                  // Col 23: Oil Miles
-      ''                   // Col 24: Tires
+      data.vanName || '',       // Col A (1): Van Name
+      data.rentalId || '',      // Col B (2): Van ID
+      data.owner || '',         // Col C (3): Owner (Agency)
+      data.makeModel || '',     // Col D (4): Make Model
+      data.vin || '',           // Col E (5): VIN
+      data.plate || '',         // Col F (6): Plate (Mandatory)
+      data.plateExp || '',      // Col G (7): Plate Exp
+      data.samsaraSerial || '', // Col H (8): Samsara Serial
+      data.samsaraLink || '',   // Col I (9): Samsara Link
+      'Warehouse (Ready)',      // Col J (10): Status
+      now,                      // Col K (11): Pickup Date
+      '',                       // Col L (12): Service Num
+      '',                       // Col M (13): Zone
+      '',                       // Col N (14): Tech
+      now,                      // Col O (15): Last Service
+      data.notes || '',         // Col P (16): NOTES (was addons)
+      user,                     // Col Q (17): Updated By
+      now,                      // Col R (18): Updated At
+      '',                       // Col S (19): (Empty - Old Addons)
+      data.coast || 'No',       // Col T (20): Coast
+      data.type || '',          // Col U (21): Vehicle Type
+      '',                       // Col V (22): Oil Date
+      '',                       // Col W (23): Oil Miles
+      ''                        // Col X (24): Tires
     ];
     
-    // Ensure array padding prevents out-of-bounds crashes
     while (rowData.length < 24) rowData.push('');
-    
     vSheet.appendRow(rowData);
     return { success: true };
   } catch (err) {
@@ -235,17 +233,17 @@ function decommissionVehicle(data) {
     for (let i = 1; i < vData.length; i++) {
       if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
         const row = i + 1;
-        vSheet.getRange(row, 10).setValue('Decommissioned'); // Status
-        vSheet.getRange(row, 13).clearContent(); // Zone
-        vSheet.getRange(row, 14).clearContent(); // Tech
+        vSheet.getRange(row, 10).setValue('Decommissioned'); 
+        vSheet.getRange(row, 13).clearContent(); 
+        vSheet.getRange(row, 14).clearContent(); 
         
-        // Bundle the checklist into the history notes
+        // Write the retirement checklist to Column Y (Index 25)
         const tz = Session.getScriptTimeZone();
         const dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
         const decomNotes = `RETIRED (${dateStr}) - Reason: ${data.reason} | Samsara Removed: ${data.samRemoved ? 'Yes' : 'No'} | Assets Removed: ${data.assetsRemoved ? 'Yes' : 'No'} | Ops Notified: ${data.opsNotified ? 'Yes' : 'No'} | Cleaned: ${data.clean ? 'Yes' : 'No'}`;
         
-        const existingNotes = vSheet.getRange(row, 16).getValue();
-        vSheet.getRange(row, 16).setValue((existingNotes ? existingNotes + ' | ' : '') + decomNotes);
+        const existingNotes = vSheet.getRange(row, 25).getValue();
+        vSheet.getRange(row, 25).setValue((existingNotes ? existingNotes + '\n' : '') + decomNotes);
         
         vSheet.getRange(row, 17).setValue(user);
         vSheet.getRange(row, 18).setValue(now);
