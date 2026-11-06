@@ -34,7 +34,7 @@
     /* Snapshot Grid */
     .grid-container { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; max-width: 1800px; margin: 0 auto; }
     
-    .van-card { background: var(--bg-panel); border-radius: 12px; padding: 20px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: 0.2s; }
+    .van-card { background: var(--bg-panel); border-radius: 12px; padding: 20px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
     .van-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); border-color: var(--veo-cyan-dark); }
     
     /* Status Colors */
@@ -166,7 +166,7 @@
       <div class="form-group">
         <label style="font-size:12px; font-weight:700;">Issue Category</label>
         <select id="ls-category" class="form-control">
-          <!-- Populated dynamically via config -->
+          <!-- Dynamically Populated -->
         </select>
       </div>
       
@@ -259,44 +259,44 @@
         let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-dispatched' : 'st-oos');
         let ribbon = (String(v.safeToDrive) === 'true') ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
         
-        // Contextual Subtext
+        // Contextual Subtext (Bottom Left)
         let subText = '';
         if (v.status === 'Dispatched') {
           const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
-          subText = `<div style="font-weight:700; color:var(--dispatched); margin-top:8px;">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted);">📍 ${v.zone}</div>${focusStr}`;
+          subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted); margin-top:2px;">📍 ${v.zone}</div>${focusStr}</div>`;
         } else {
-          subText = `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Type: ${v.type || 'Van'}</div>`;
+          subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Van'}</div></div>`;
         }
 
-        // --- NEW: Visual Badges (Coast & Samsara) ---
+        // Visual Badges (Bottom Right)
         const isCoast = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
-        const coastBadge = isCoast ? `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;">💳 COAST</span>` : '';
+        const coastBadge = isCoast 
+            ? `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Coast Active">💳 ✅</span>` 
+            : `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Not Enrolled in Coast">💳 ❌</span>`;
 
         const hasSamsaraSerial = v.samsaraSerial && v.samsaraSerial.trim() !== '';
-        // Check if there's an open ticket with "Samsara" in the category
         const openSamsaraTicket = (globalState.incidents || []).some(i => 
             i.rentalId === v.rentalId && 
             !i.dateResolved && 
             (i.category || '').toLowerCase().includes('samsara')
         );
         
-        // Show Red X if missing serial or open ticket, otherwise Green Check
         const samsaraBadge = (!hasSamsaraSerial || openSamsaraTicket) 
-            ? `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Samsara Issue or Missing">📡 ❌</span>` 
-            : `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Samsara Active">📡 ✅</span>`;
-        
-        let indicatorHtml = `<div style="display:flex; gap:6px; margin-top:8px;">${samsaraBadge} ${coastBadge}</div>`;
+            ? `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Samsara Issue or Missing">📡 ❌</span>` 
+            : `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Samsara Active">📡 ✅</span>`;
 
         html += `
           <div class="van-card ${bClass}" onclick="openVanModal('${v.rentalId}')">
             ${ribbon}
-            <div style="font-size:18px; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
-                ${v.cleanName} 
+            <div style="font-size:18px; font-weight:800; display:flex; justify-content:space-between; align-items:flex-start;">
+                <span>${v.cleanName}</span>
                 <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">${v.rentalId}</span>
             </div>
-            ${indicatorHtml}
-            ${subText}
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:12px; flex: 1;">
+                ${subText}
+                <div style="display:flex; gap:6px; flex-shrink:0;">${samsaraBadge} ${coastBadge}</div>
+            </div>
           </div>
         `;
       });
@@ -394,7 +394,7 @@
 
       // 3. Specs Tab
       document.getElementById('specs-view').innerHTML = `
-        <p><strong>Type:</strong> ${v.type || 'Van'}</p>
+        <p><strong>Type:</strong> ${v.type || 'Cargo Van'}</p>
         <p><strong>Plate:</strong> ${v.plate} <span style="font-size:12px; color:var(--text-muted);">(Exp: ${v.plateExpDate || 'N/A'})</span></p>
         <p><strong>Coast Card:</strong> ${v.coast || 'No'}</p>
         <p><strong>Addons:</strong> ${v.addons || 'None'}</p>
@@ -692,7 +692,6 @@
       document.getElementById('ls-impact').value = '';
       document.getElementById('ls-desc').value = '';
       
-      // Inject dynamic categories
       const catSelect = document.getElementById('ls-category');
       if (globalState.issueCategories && globalState.issueCategories.length > 0) {
         catSelect.innerHTML = globalState.issueCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
