@@ -13,6 +13,7 @@ function doGet(e) {
 function getDashboardState() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const tz = Session.getScriptTimeZone();
     const vSheet = ss.getSheetByName('Vehicles');
     const tSheet = ss.getSheetByName('Tech_Profiles');
     const iSheet = ss.getSheetByName('Incidents_Service');
@@ -52,6 +53,7 @@ function getDashboardState() {
     }
 
     // 2. Fetch Vehicles (24 Columns)
+    const vSheet = ss.getSheetByName('Vehicles');
     const vehicles = [];
     if (vSheet && vSheet.getLastRow() > 1) {
       const vData = vSheet.getDataRange().getValues();
@@ -89,6 +91,7 @@ function getDashboardState() {
     }
 
     // 3. Fetch Tech Profiles (17 Columns)
+    const tSheet = ss.getSheetByName('Tech_Profiles');
     const techs = [];
     if (tSheet && tSheet.getLastRow() > 1) {
       const tData = tSheet.getDataRange().getValues();
@@ -123,6 +126,7 @@ function getDashboardState() {
     }
 
     // 4. Fetch Deployments (21 Columns)
+    const dSheet = ss.getSheetByName('Deployments');
     const deployments = [];
     if (dSheet && dSheet.getLastRow() > 1) {
       const dData = dSheet.getDataRange().getValues();
@@ -156,6 +160,7 @@ function getDashboardState() {
     }
 
     // 5. Fetch Incidents (14 Columns)
+    const iSheet = ss.getSheetByName('Incidents_Service');
     const incidents = [];
     if (iSheet && iSheet.getLastRow() > 1) {
       const iData = iSheet.getDataRange().getValues();
