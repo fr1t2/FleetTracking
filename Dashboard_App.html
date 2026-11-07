@@ -75,13 +75,12 @@
     .b-fail { background: #fee2e2; color: #991b1b; }
 
     #global-loader { display: none; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--veo-cyan); z-index: 9999; }
-
+    
     /* Spec Grid */
     .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px; margin-bottom: 20px; }
     .spec-item { background: var(--bg-modal-head); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
     .spec-label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
     .spec-val { color: var(--text-main); font-weight: 600; font-size: 14px; word-break: break-word; }
-
   </style>
 </head>
 <body>
@@ -123,88 +122,7 @@
     <div class="dlg-footer" id="vm-footer"></div>
   </dialog>
 
-  <!-- FLEET MANAGEMENT HUB MODAL -->
-  <dialog id="manage-fleet-modal" style="max-width: 400px; z-index: 1001;">
-    <div class="modal-head">⚙️ Manage Fleet</div>
-    <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
-      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="document.getElementById('manage-fleet-modal').close(); openAddVanModal();">➕ Add New Van</button>
-      <button class="btn btn-outline" style="padding: 16px; font-size: 16px; color: var(--danger); border-color: var(--danger);" onclick="document.getElementById('manage-fleet-modal').close(); openDecomModal();">🛑 Retire Existing Van</button>
-    </div>
-  </dialog>
-
-  <!-- ADD VAN MODAL (UPDATED) -->
-  <dialog id="add-van-modal" style="max-width: 600px; z-index: 1002;">
-    <div class="modal-head">➕ Add New Van</div>
-    <div style="padding: 24px;">
-      <form onsubmit="submitAddVan(event)">
-        <div class="row">
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Van Name *</label><input type="text" id="av_name" class="form-control" required></div>
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Van ID *</label><input type="text" id="av_rental" class="form-control" required></div>
-        </div>
-        <div class="row">
-          <div class="col form-group">
-            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
-            <select id="av_owner" class="form-control"></select>
-          </div>
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Make & Model</label><input type="text" id="av_model" class="form-control"></div>
-          <div class="col form-group">
-            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
-            <select id="av_type" class="form-control"></select>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">VIN</label><input type="text" id="av_vin" class="form-control"></div>
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">License Plate *</label><input type="text" id="av_plate" class="form-control" required></div>
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Plate Expiration</label><input type="date" id="av_plate_exp" class="form-control"></div>
-        </div>
-        <div class="row">
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Serial #</label><input type="text" id="av_samsara" class="form-control"></div>
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Link</label><input type="text" id="av_sam_link" class="form-control"></div>
-          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
-             <select id="av_coast" class="form-control"><option value="Yes">Yes</option><option value="No" selected>No</option></select>
-          </div>
-        </div>
-        <div class="form-group"><label style="font-size:12px; font-weight:700;">Notes</label><input type="text" id="av_notes" class="form-control" placeholder="e.g. Inverter, Shelving, Dents..."></div>
-        
-        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-          <button class="btn btn-outline" type="button" onclick="document.getElementById('add-van-modal').close()">Cancel</button>
-          <button class="btn btn-primary" type="submit">Save Van</button>
-        </div>
-      </form>
-    </div>
-  </dialog>
-
-  <!-- DECOMMISSION MODAL -->
-  <dialog id="decom-van-modal" style="max-width: 450px; z-index: 1002;">
-    <div class="modal-head" style="color:var(--danger)">🛑 Retire Vehicle</div>
-    <div style="padding: 24px;">
-      <div class="form-group">
-        <label style="font-size:12px; font-weight:700;">Select Vehicle *</label>
-        <select id="dec_van" class="form-control" required></select>
-      </div>
-      
-      <label style="font-size:12px; font-weight:700; margin-bottom:8px; display:block;">Retirement Checklist</label>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom:16px;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_sam"> Samsara Removed</label>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_assets"> Assets Removed</label>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_ops"> Fleet Ops Notified</label>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_clean"> Cleaned</label>
-      </div>
-
-      <div class="form-group">
-        <label style="font-size:12px; font-weight:700;">Reason for Retirement *</label>
-        <textarea id="dec_reason" class="form-control" rows="2" placeholder="e.g. Lease expired, totaled..."></textarea>
-      </div>
-      
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="document.getElementById('decom-van-modal').close()">Cancel</button>
-        <button class="btn btn-danger" type="button" onclick="submitDecomVan()">Retire Vehicle</button>
-      </div>
-    </div>
-  </dialog>
-
-
-<!-- EDIT VEHICLE MODAL -->
+  <!-- EDIT VEHICLE MODAL -->
   <dialog id="edit-vehicle-modal" style="max-width: 600px; z-index: 1003;">
     <div class="modal-head">✏️ Edit Vehicle Specs</div>
     <div style="padding: 24px;">
@@ -278,6 +196,86 @@
     </div>
   </dialog>
 
+  <!-- FLEET MANAGEMENT HUB MODAL -->
+  <dialog id="manage-fleet-modal" style="max-width: 400px; z-index: 1001;">
+    <div class="modal-head">⚙️ Manage Fleet</div>
+    <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="document.getElementById('manage-fleet-modal').close(); openAddVanModal();">➕ Add New Van</button>
+      <button class="btn btn-outline" style="padding: 16px; font-size: 16px; color: var(--danger); border-color: var(--danger);" onclick="document.getElementById('manage-fleet-modal').close(); openDecomModal();">🛑 Retire Existing Van</button>
+    </div>
+  </dialog>
+
+  <!-- ADD VAN MODAL -->
+  <dialog id="add-van-modal" style="max-width: 600px; z-index: 1002;">
+    <div class="modal-head">➕ Add New Van</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitAddVan(event)">
+        <div class="row">
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Van Name *</label><input type="text" id="av_name" class="form-control" required></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Van ID *</label><input type="text" id="av_rental" class="form-control" required></div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="av_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Make & Model</label><input type="text" id="av_model" class="form-control"></div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="av_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">VIN</label><input type="text" id="av_vin" class="form-control"></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">License Plate *</label><input type="text" id="av_plate" class="form-control" required></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Plate Expiration</label><input type="date" id="av_plate_exp" class="form-control"></div>
+        </div>
+        <div class="row">
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Serial #</label><input type="text" id="av_samsara" class="form-control"></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Samsara Link</label><input type="text" id="av_sam_link" class="form-control"></div>
+          <div class="col form-group"><label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="av_coast" class="form-control"><option value="Yes">Yes</option><option value="No" selected>No</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Notes</label><input type="text" id="av_notes" class="form-control" placeholder="e.g. Inverter, Shelving, Dents..."></div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="document.getElementById('add-van-modal').close()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Van</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DECOMMISSION MODAL -->
+  <dialog id="decom-van-modal" style="max-width: 450px; z-index: 1002;">
+    <div class="modal-head" style="color:var(--danger)">🛑 Retire Vehicle</div>
+    <div style="padding: 24px;">
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Select Vehicle *</label>
+        <select id="dec_van" class="form-control" required></select>
+      </div>
+      
+      <label style="font-size:12px; font-weight:700; margin-bottom:8px; display:block;">Retirement Checklist</label>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom:16px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_sam"> Samsara Removed</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_assets"> Assets Removed</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_ops"> Fleet Ops Notified</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_clean"> Cleaned</label>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Reason for Retirement *</label>
+        <textarea id="dec_reason" class="form-control" rows="2" placeholder="e.g. Lease expired, totaled..."></textarea>
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="document.getElementById('decom-van-modal').close()">Cancel</button>
+        <button class="btn btn-danger" type="button" onclick="submitDecomVan()">Retire Vehicle</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- EDIT DISPATCH MODAL -->
   <dialog id="edit-dispatch-modal" style="max-width: 500px; z-index: 1005;">
     <div class="modal-head">✏️ Edit Active Shift</div>
@@ -305,6 +303,10 @@
             <option value="Standard Route">Standard Route</option>
           </select>
         </div>
+      </div>
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Battery Count</label>
+        <input type="number" id="ed_target" class="form-control" placeholder="e.g. 30">
       </div>
 
       <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
@@ -392,14 +394,12 @@
         .getDashboardState();
     }
 
-function renderGrid() {
+    function renderGrid() {
       if(!globalState) return;
       const q = document.getElementById('global-search').value.toLowerCase();
-      
       let vans = [...(globalState.vehicles || [])];
       const statusWeight = { 'Dispatched': 1, 'Warehouse (Ready)': 2, 'Out of Service': 3 };
       
-      // Default seamless sort (Status ➔ Type ➔ Name)
       vans.sort((a, b) => {
         if (statusWeight[a.status] !== statusWeight[b.status]) return statusWeight[a.status] - statusWeight[b.status];
         if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
@@ -415,17 +415,30 @@ function renderGrid() {
         let ribbon = (String(v.safeToDrive) === 'true') ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
         
         let subText = '';
-        let zoneRightSide = ''; // For our new layout structure
+        let zoneRightSide = '';
 
         if (v.status === 'Dispatched') {
           const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
           
-          // Driver details bottom-left (removed Zone from here)
           subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}</div>${focusStr}</div>`;
           
-          // Zone details boldly stamped top-right under the ID
-          zoneRightSide = `<div style="font-size:16px; font-weight:800; color:var(--veo-cyan-dark); margin-top:4px; text-align:right;">${v.zone}</div>`;
+          let rawZone = v.zone || '';
+          let displayZone = '';
+          if (rawZone && rawZone !== '—') {
+             let zArray = rawZone.split(',').map(z => z.trim()).filter(Boolean);
+             if (zArray.length === 1) {
+                 let zText = zArray[0];
+                 if (!zText.toLowerCase().startsWith('zone')) zText = 'Zone ' + zText;
+                 displayZone = zText;
+             } else if (zArray.length > 1) {
+                 displayZone = zArray.join(', ');
+             }
+          }
+          
+          // Scaled font size to prevent overflow if they have multiple zones assigned
+          let zSize = displayZone.length > 12 ? '13px' : '15px';
+          zoneRightSide = `<div style="font-size:${zSize}; font-weight:800; color:var(--veo-cyan-dark); margin-top:4px; text-align:right; max-width:140px; line-height:1.2;">${displayZone}</div>`;
         } else {
           subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Cargo Van'}</div></div>`;
         }
@@ -439,7 +452,6 @@ function renderGrid() {
         const openSamsaraTicket = (globalState.incidents || []).some(i => 
             i.rentalId === v.rentalId && !i.dateResolved && (i.category || '').toLowerCase().includes('samsara')
         );
-        
         const samsaraBadge = (!hasSamsaraSerial || openSamsaraTicket) 
             ? `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Samsara Issue or Missing">📡 ❌</span>` 
             : `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Samsara Active">📡 ✅</span>`;
@@ -447,9 +459,9 @@ function renderGrid() {
         html += `
           <div class="van-card ${bClass}" onclick="openVanModal('${v.rentalId}')">
             ${ribbon}
-            <div style="font-size:18px; font-weight:800; display:flex; justify-content:space-between; align-items:flex-start;">
-                <span>${v.cleanName}</span>
-                <div style="text-align:right;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                <span style="font-size:18px; font-weight:800; line-height:1.2;">${v.cleanName}</span>
+                <div style="text-align:right; flex-shrink:0;">
                     <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">${v.rentalId}</span>
                     ${zoneRightSide}
                 </div>
@@ -547,15 +559,10 @@ function renderGrid() {
       } else {
         document.getElementById('driver-view').innerHTML = `<p>No active driver assigned.</p>`;
       }
-    // 3. Specs Tab
+
       const isCoastEnrolled = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
-      const coastStr = isCoastEnrolled 
-          ? `<span style="color:var(--ready);">✅ Enrolled</span>` 
-          : `<span style="color:var(--danger);">❌ Not Enrolled</span>`;
-          
-      const samsaraStr = v.samsaraSerial 
-          ? `${v.samsaraSerial} <br><a href="${v.samsaraLink || '#'}" target="_blank" style="color:var(--veo-cyan-dark); font-size:11px; text-decoration:none;">🔗 View GPS</a>` 
-          : `<span style="color:var(--danger);">Unassigned</span>`;
+      const coastStr = isCoastEnrolled ? `<span style="color:var(--ready);">✅ Enrolled</span>` : `<span style="color:var(--danger);">❌ Not Enrolled</span>`;
+      const samsaraStr = v.samsaraSerial ? `${v.samsaraSerial} <br><a href="${v.samsaraLink || '#'}" target="_blank" style="color:var(--veo-cyan-dark); font-size:11px; text-decoration:none;">🔗 View GPS</a>` : `<span style="color:var(--danger);">Unassigned</span>`;
 
       document.getElementById('specs-view').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -641,8 +648,12 @@ function renderGrid() {
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Service History</strong>
         </div>
-        <div style="max-height:150px; overflow-y:auto;">
+        <div style="max-height:150px; overflow-y:auto; margin-bottom: 24px;">
           ${histHtml || '<p style="font-size:13px; color:var(--text-muted);">No past service records.</p>'}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px;">
+          <strong style="font-size:14px;">Vehicle Lifecycle</strong>
+          <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>
         </div>
       `;
 
@@ -652,20 +663,94 @@ function renderGrid() {
       vm.showModal();
     }
 
+    function openEditVehicleModal(rentalId) {
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if(!v) return;
+
+      const typeSelect = document.getElementById('ev_type');
+      if (globalState.vehicleTypes) typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+      else typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
+      
+      const ownerSelect = document.getElementById('ev_owner');
+      if (globalState.rentalAgencies) ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      else ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
+
+      document.getElementById('ev_rental_id').value = v.rentalId;
+      document.getElementById('ev_rental_display').value = v.rentalId;
+      document.getElementById('ev_name').value = v.cleanName || '';
+      if (v.agency) document.getElementById('ev_owner').value = v.agency;
+      if (v.type) document.getElementById('ev_type').value = v.type;
+      
+      document.getElementById('ev_model').value = v.makeModel || '';
+      document.getElementById('ev_vin').value = v.vin || '';
+      document.getElementById('ev_plate').value = v.plate || '';
+      document.getElementById('ev_plate_exp').value = (v.plateExpDate && v.plateExpDate !== '—') ? v.plateExpDate : '';
+      document.getElementById('ev_samsara').value = v.samsaraSerial || '';
+      document.getElementById('ev_sam_link').value = v.samsaraLink || '';
+      document.getElementById('ev_coast').value = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes') ? 'Yes' : 'No';
+      document.getElementById('ev_notes').value = v.notes || v.addons || '';
+      
+      const evm = document.getElementById('edit-vehicle-modal');
+      evm.dataset.dirty = 'false';
+      evm.showModal();
+    }
+
+    function submitEditVehicle(e) {
+      e.preventDefault();
+      const payload = {
+        rentalId: document.getElementById('ev_rental_id').value, 
+        vanName: document.getElementById('ev_name').value,
+        owner: document.getElementById('ev_owner').value, 
+        makeModel: document.getElementById('ev_model').value,
+        type: document.getElementById('ev_type').value, 
+        vin: document.getElementById('ev_vin').value,
+        licensePlate: document.getElementById('ev_plate').value, 
+        plateExpDate: document.getElementById('ev_plate_exp').value,
+        samsaraSerial: document.getElementById('ev_samsara').value, 
+        samsaraLink: document.getElementById('ev_sam_link').value,
+        coast: document.getElementById('ev_coast').value, 
+        addons: document.getElementById('ev_notes').value
+      };
+      
+      document.getElementById('edit-vehicle-modal').close();
+      
+      const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if(vIdx > -1) {
+        globalState.vehicles[vIdx].cleanName = payload.vanName; 
+        globalState.vehicles[vIdx].agency = payload.owner;
+        globalState.vehicles[vIdx].makeModel = payload.makeModel; 
+        globalState.vehicles[vIdx].type = payload.type;
+        globalState.vehicles[vIdx].vin = payload.vin; 
+        globalState.vehicles[vIdx].plate = payload.licensePlate; 
+        globalState.vehicles[vIdx].plateExpDate = payload.plateExpDate || '—'; 
+        globalState.vehicles[vIdx].samsaraSerial = payload.samsaraSerial || ''; 
+        globalState.vehicles[vIdx].samsaraLink = payload.samsaraLink || ''; 
+        globalState.vehicles[vIdx].coast = payload.coast; 
+        globalState.vehicles[vIdx].notes = payload.addons;
+      }
+      
+      renderGrid();
+      const vm = document.getElementById('van-modal');
+      if (vm && vm.open) openVanModal(payload.rentalId); 
+
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display = 'none'; 
+            alert("Error updating specs: " + err.message); 
+            loadData(); 
+        })
+        .updateVehicleDetails(payload);
+    }
+
     /* --- FLEET MANAGEMENT --- */
     function openAddVanModal() {
-      document.getElementById('av_name').value = ''; 
-      document.getElementById('av_rental').value = '';
-      document.getElementById('av_model').value = ''; 
-      document.getElementById('av_vin').value = '';
-      document.getElementById('av_plate').value = ''; 
-      document.getElementById('av_plate_exp').value = '';
-      document.getElementById('av_samsara').value = ''; 
-      document.getElementById('av_sam_link').value = '';
-      document.getElementById('av_coast').value = 'No'; 
-      document.getElementById('av_notes').value = '';
+      document.getElementById('av_name').value = ''; document.getElementById('av_rental').value = '';
+      document.getElementById('av_model').value = ''; document.getElementById('av_vin').value = '';
+      document.getElementById('av_plate').value = ''; document.getElementById('av_plate_exp').value = '';
+      document.getElementById('av_samsara').value = ''; document.getElementById('av_sam_link').value = '';
+      document.getElementById('av_coast').value = 'No'; document.getElementById('av_notes').value = '';
 
-      // Populate Dropdowns from Config
       const typeSelect = document.getElementById('av_type');
       if (globalState.vehicleTypes) typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
       else typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
@@ -680,24 +765,17 @@ function renderGrid() {
     }
 
     function submitAddVan(e) {
-      e.preventDefault(); // Protect from native form refresh
+      e.preventDefault(); 
       const p = {
-        vanName: document.getElementById('av_name').value, 
-        rentalId: document.getElementById('av_rental').value,
-        owner: document.getElementById('av_owner').value, 
-        makeModel: document.getElementById('av_model').value,
-        type: document.getElementById('av_type').value, 
-        vin: document.getElementById('av_vin').value,
-        plate: document.getElementById('av_plate').value, 
-        plateExp: document.getElementById('av_plate_exp').value,
-        samsaraSerial: document.getElementById('av_samsara').value, 
-        samsaraLink: document.getElementById('av_sam_link').value,
-        coast: document.getElementById('av_coast').value, 
-        notes: document.getElementById('av_notes').value
+        vanName: document.getElementById('av_name').value, rentalId: document.getElementById('av_rental').value,
+        owner: document.getElementById('av_owner').value, makeModel: document.getElementById('av_model').value,
+        type: document.getElementById('av_type').value, vin: document.getElementById('av_vin').value,
+        plate: document.getElementById('av_plate').value, plateExp: document.getElementById('av_plate_exp').value,
+        samsaraSerial: document.getElementById('av_samsara').value, samsaraLink: document.getElementById('av_sam_link').value,
+        coast: document.getElementById('av_coast').value, notes: document.getElementById('av_notes').value
       };
       
       document.getElementById('add-van-modal').close();
-      
       globalState.vehicles.push({
         cleanName: p.vanName, rentalId: p.rentalId, agency: p.owner,
         makeModel: p.makeModel, type: p.type, vin: p.vin, plate: p.plate,
@@ -705,7 +783,6 @@ function renderGrid() {
         status: 'Warehouse (Ready)', pickupDate: new Date().toISOString().split('T')[0],
         coast: p.coast, notes: p.notes, safeToDrive: 'false'
       });
-      
       renderGrid();
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
@@ -716,19 +793,15 @@ function renderGrid() {
     function openDecomModal(rentalId) {
       const vm = document.getElementById('van-modal');
       if (vm && vm.open) vm.close();
-      
       const select = document.getElementById('dec_van');
       select.innerHTML = '<option value="">-- Select Active Vehicle --</option>' + 
         globalState.vehicles.filter(v => v.status !== 'Decommissioned').map(v => `<option value="${v.rentalId}">${v.cleanName}</option>`).join('');
-      
       if (rentalId) select.value = rentalId;
-      
       document.getElementById('dec_chk_sam').checked = false;
       document.getElementById('dec_chk_assets').checked = false;
       document.getElementById('dec_chk_ops').checked = false;
       document.getElementById('dec_chk_clean').checked = false;
       document.getElementById('dec_reason').value = '';
-      
       const dvm = document.getElementById('decom-van-modal');
       dvm.dataset.dirty = 'false';
       dvm.showModal();
@@ -738,7 +811,6 @@ function renderGrid() {
       const sel = document.getElementById('dec_van');
       const rentalId = sel.value;
       if (!rentalId) { alert('Please select a van.'); return; }
-      
       const p = {
         rentalId: rentalId,
         samRemoved: document.getElementById('dec_chk_sam').checked,
@@ -748,13 +820,10 @@ function renderGrid() {
         reason: document.getElementById('dec_reason').value
       };
       if (!p.reason) { alert('Please provide a reason for retirement.'); return; }
-      
       document.getElementById('decom-van-modal').close();
-      
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { v.status = 'Decommissioned'; v.zone = '—'; v.driver = '—'; }
       renderGrid();
-      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error: " + err.message); loadData(); })
@@ -765,10 +834,8 @@ function renderGrid() {
     function searchDriver() {
       const q = document.getElementById('live-driver-search').value.toLowerCase();
       const container = document.getElementById('driver-result-card');
-
       if(q.length < 1) { container.innerHTML = ''; document.getElementById('vm-selected-tech').value = ''; return; }
       const matches = (globalState.techs || []).filter(t => t.name.toLowerCase().includes(q));
-      
       if(matches.length > 0) {
         container.innerHTML = matches.map(match => {
           let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
@@ -860,8 +927,7 @@ function renderGrid() {
         .updateDeploymentRecord(payload);
     }
 
-    /* --- SUBMISSION HANDLERS --- */
-function submitDispatch() {
+    function submitDispatch() {
       const tech = document.getElementById('vm-selected-tech').value;
       if (!tech) { alert('Please select a driver from the search.'); return; }
       
@@ -869,62 +935,30 @@ function submitDispatch() {
       const workZone = Array.from(document.getElementById('sel-zone').selectedOptions).map(o => o.value).join(', ');
       
       const payload = {
-        rentalId: rentalId,
-        assignedTech: tech,
-        workZone: workZone,
+        rentalId: rentalId, assignedTech: tech, workZone: workZone,
         goals: document.getElementById('sel-focus') ? document.getElementById('sel-focus').value : '',
-        batteryTarget: document.getElementById('sel-batt') ? document.getElementById('sel-batt').value : '',
-        shift: 'First Shift'
+        batteryTarget: document.getElementById('sel-batt') ? document.getElementById('sel-batt').value : '', shift: 'First Shift'
       };
       
       const vm = document.getElementById('van-modal');
-      if (vm) {
-        vm.dataset.dirty = 'false';
-        vm.close();
-      }
+      if (vm) { vm.dataset.dirty = 'false'; vm.close(); }
 
-      // --- ⚡ OPTIMISTIC UI: AUTO-RELEASE OLD VAN ---
-      // Scour memory to find if this tech is already assigned to a DIFFERENT van
       (globalState.vehicles || []).forEach(v => {
         if (v.status === 'Dispatched' && v.driver === tech && v.rentalId !== rentalId) {
-          // Release the old van
-          v.status = 'Warehouse (Ready)';
-          v.driver = '—';
-          v.zone = '—';
-          // Auto-complete their old deployment in memory
+          v.status = 'Warehouse (Ready)'; v.driver = '—'; v.zone = '—';
           const oldDep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           if (oldDep) oldDep.status = 'Completed';
         }
       });
 
-      // --- ⚡ OPTIMISTIC UI: ASSIGN NEW VAN ---
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
-      if (v) { 
-        v.status = 'Dispatched'; 
-        v.driver = payload.assignedTech; 
-        v.zone = payload.workZone; 
-      }
-      
-      globalState.deployments.unshift({ 
-        id: 'temp-' + Date.now(), 
-        rentalId: rentalId, 
-        tech: payload.assignedTech, 
-        zone: payload.workZone, 
-        goals: payload.goals, 
-        battery: payload.batteryTarget, 
-        status: 'Dispatched', 
-        departureTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-      });
-      
+      if (v) { v.status = 'Dispatched'; v.driver = payload.assignedTech; v.zone = payload.workZone; }
+      globalState.deployments.unshift({ id: 'temp-' + Date.now(), rentalId: rentalId, tech: payload.assignedTech, zone: payload.workZone, goals: payload.goals, battery: payload.batteryTarget, status: 'Dispatched', departureTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
       renderGrid(); 
 
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
-        .withFailureHandler(err => {
-            document.getElementById('global-loader').style.display = 'none';
-            alert("Error: " + err.message);
-            loadData();
-        })
+        .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error: " + err.message); loadData(); })
         .processDispatchCheckout(payload);
     }
 
@@ -932,12 +966,16 @@ function submitDispatch() {
       if(!depId) return;
       const rentalId = document.getElementById('vm-rental-id').value;
       const payload = { deploymentId: depId, rentalId: rentalId };
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      vm.close();
+
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { v.status = 'Warehouse (Ready)'; v.driver = '—'; v.zone = '—'; }
       const d = globalState.deployments.find(x => x.id === depId);
       if (d) d.status = 'Completed';
       renderGrid();
+      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error: " + err.message); loadData(); })
@@ -947,11 +985,15 @@ function submitDispatch() {
     function submitCheckIn() {
       const rentalId = document.getElementById('vm-rental-id').value;
       const payload = { rentalId: rentalId };
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      vm.close();
+      
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { v.status = 'Warehouse (Ready)'; v.driver = '—'; v.zone = '—'; v.safeToDrive = 'false'; }
       (globalState.incidents || []).forEach(i => { if (i.rentalId === rentalId && !i.dateResolved) { i.dateResolved = new Date().toISOString(); } });
       renderGrid();
+      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error: " + err.message); loadData(); })
@@ -1038,102 +1080,6 @@ function submitDispatch() {
       if (pendingCloseDialog) { pendingCloseDialog.close(); pendingCloseDialog.dataset.dirty = 'false'; pendingCloseDialog = null; }
       document.getElementById('unsaved-modal').close();
     }
-
-function openEditVehicleModal(rentalId) {
-      // 1. Find the vehicle in memory
-      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
-      if(!v) return;
-
-      // 2. Pre-fill the dropdowns from Config
-      const typeSelect = document.getElementById('ev_type');
-      if (globalState.vehicleTypes) typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
-      else typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
-      
-      const ownerSelect = document.getElementById('ev_owner');
-      if (globalState.rentalAgencies) ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
-      else ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
-
-      // 3. Populate existing data
-      document.getElementById('ev_rental_id').value = v.rentalId;
-      document.getElementById('ev_rental_display').value = v.rentalId;
-      document.getElementById('ev_name').value = v.cleanName || '';
-      
-      // Auto-select correct dropdowns if they match
-      if (v.agency) document.getElementById('ev_owner').value = v.agency;
-      if (v.type) document.getElementById('ev_type').value = v.type;
-      
-      document.getElementById('ev_model').value = v.makeModel || '';
-      document.getElementById('ev_vin').value = v.vin || '';
-      document.getElementById('ev_plate').value = v.plate || '';
-      
-      // Format plate exp date for <input type="date"> (Requires YYYY-MM-DD)
-      document.getElementById('ev_plate_exp').value = (v.plateExpDate && v.plateExpDate !== '—') ? v.plateExpDate : '';
-      
-      document.getElementById('ev_samsara').value = v.samsaraSerial || '';
-      document.getElementById('ev_sam_link').value = v.samsaraLink || '';
-      document.getElementById('ev_coast').value = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes') ? 'Yes' : 'No';
-      document.getElementById('ev_notes').value = v.notes || v.addons || '';
-      
-      // 4. Open the Dialog
-      const evm = document.getElementById('edit-vehicle-modal');
-      evm.dataset.dirty = 'false';
-      evm.showModal();
-    }
-
-    function submitEditVehicle(e) {
-      e.preventDefault();
-      
-      const payload = {
-        rentalId: document.getElementById('ev_rental_id').value, 
-        vanName: document.getElementById('ev_name').value,
-        owner: document.getElementById('ev_owner').value, 
-        makeModel: document.getElementById('ev_model').value,
-        type: document.getElementById('ev_type').value, 
-        vin: document.getElementById('ev_vin').value,
-        licensePlate: document.getElementById('ev_plate').value, 
-        plateExpDate: document.getElementById('ev_plate_exp').value,
-        samsaraSerial: document.getElementById('ev_samsara').value, 
-        samsaraLink: document.getElementById('ev_sam_link').value,
-        coast: document.getElementById('ev_coast').value, 
-        addons: document.getElementById('ev_notes').value
-      };
-      
-      document.getElementById('edit-vehicle-modal').close();
-      
-      // --- OPTIMISTIC SYNC ---
-      const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
-      if(vIdx > -1) {
-        globalState.vehicles[vIdx].cleanName = payload.vanName; 
-        globalState.vehicles[vIdx].agency = payload.owner;
-        globalState.vehicles[vIdx].makeModel = payload.makeModel; 
-        globalState.vehicles[vIdx].type = payload.type;
-        globalState.vehicles[vIdx].vin = payload.vin; 
-        globalState.vehicles[vIdx].plate = payload.licensePlate; 
-        globalState.vehicles[vIdx].plateExpDate = payload.plateExpDate || '—'; 
-        globalState.vehicles[vIdx].samsaraSerial = payload.samsaraSerial || ''; 
-        globalState.vehicles[vIdx].samsaraLink = payload.samsaraLink || ''; 
-        globalState.vehicles[vIdx].coast = payload.coast; 
-        globalState.vehicles[vIdx].notes = payload.addons;
-      }
-      
-      // Re-render the grid and instantly update the 360-modal if it's open
-      renderGrid();
-      const vm = document.getElementById('van-modal');
-      if (vm && vm.open) {
-          openVanModal(payload.rentalId); // Refresh the active modal
-      }
-
-      // --- BACKGROUND SYNC ---
-      document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData)
-        .withFailureHandler(err => { 
-            document.getElementById('global-loader').style.display = 'none'; 
-            alert("Error updating specs: " + err.message); 
-            loadData(); 
-        })
-        .updateVehicleDetails(payload);
-    }
-    
   </script>
 </body>
 </html>
