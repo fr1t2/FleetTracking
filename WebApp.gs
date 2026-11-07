@@ -94,7 +94,6 @@ function getDashboardState() {
     }
 
     // 3. Fetch Tech Profiles (17 Columns)
-    const tSheet = ss.getSheetByName('Tech_Profiles');
     const techs = [];
     if (tSheet && tSheet.getLastRow() > 1) {
       const tRows = tSheet.getRange(2, 1, tSheet.getLastRow() - 1, 17).getValues();
