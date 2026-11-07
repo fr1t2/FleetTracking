@@ -1978,21 +1978,29 @@
         .closeServiceIssue({ incidentId: incId, rentalId: rentalId, resolutionNotes: notes });
     }
 
-    /* --- NATIVE MODAL CLICK-OFF PROTECTION --- */
-    // Native <dialog> handles backdrop stacking flawlessly. We only need to 
-    // intercept the click if they hit the specific backdrop layer of the TOPMOST dialog.
+/* --- NATIVE MODAL CLICK-OFF PROTECTION --- */
+    let pendingCloseDialog = null;
+
     document.querySelectorAll('dialog').forEach(dlg => {
-      dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
-      dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
+      // Define which modals are just "Hubs" and should NEVER trigger unsaved warnings
+      const isHubModal = ['van-modal', 'tech-roster-modal', 'manage-fleet-modal', 'unsaved-modal'].includes(dlg.id);
+      
+      // Only track typing/changes if it is an actual form
+      if (!isHubModal) {
+        dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
+        dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
+      }
       
       dlg.addEventListener('click', (e) => {
-        // e.target === dlg only evaluates to true when clicking the ::backdrop of that specific dialog
+        // e.target === dlg ensures we only trigger when clicking the dark background (backdrop)
         if (e.target === dlg) {
           if (dlg.id === 'unsaved-modal') { 
               dlg.close(); 
               return; 
           }
-          if (dlg.dataset.dirty === 'true') { 
+          // If it's a form with unsaved changes, warn the user. Otherwise, just close it.
+          if (!isHubModal && dlg.dataset.dirty === 'true') { 
+              pendingCloseDialog = dlg;
               document.getElementById('unsaved-modal').showModal(); 
           } else { 
               dlg.close(); 
@@ -2000,6 +2008,15 @@
         }
       });
     });
+
+    function forceCloseModal() {
+      if (pendingCloseDialog) { 
+          pendingCloseDialog.close(); 
+          pendingCloseDialog.dataset.dirty = 'false'; 
+          pendingCloseDialog = null; 
+      }
+      document.getElementById('unsaved-modal').close();
+    }
 
   </script>
 </body>
