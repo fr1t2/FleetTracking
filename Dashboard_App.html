@@ -392,12 +392,14 @@
         .getDashboardState();
     }
 
-    function renderGrid() {
+function renderGrid() {
       if(!globalState) return;
       const q = document.getElementById('global-search').value.toLowerCase();
+      
       let vans = [...(globalState.vehicles || [])];
       const statusWeight = { 'Dispatched': 1, 'Warehouse (Ready)': 2, 'Out of Service': 3 };
       
+      // Default seamless sort (Status ➔ Type ➔ Name)
       vans.sort((a, b) => {
         if (statusWeight[a.status] !== statusWeight[b.status]) return statusWeight[a.status] - statusWeight[b.status];
         if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
@@ -413,12 +415,19 @@
         let ribbon = (String(v.safeToDrive) === 'true') ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
         
         let subText = '';
+        let zoneRightSide = ''; // For our new layout structure
+
         if (v.status === 'Dispatched') {
           const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
-          subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}</div><div style="font-size:12px; color:var(--text-muted); margin-top:2px;">📍 ${v.zone}</div>${focusStr}</div>`;
+          
+          // Driver details bottom-left (removed Zone from here)
+          subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}</div>${focusStr}</div>`;
+          
+          // Zone details boldly stamped top-right under the ID
+          zoneRightSide = `<div style="font-size:16px; font-weight:800; color:var(--veo-cyan-dark); margin-top:4px; text-align:right;">${v.zone}</div>`;
         } else {
-          subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Van'}</div></div>`;
+          subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Cargo Van'}</div></div>`;
         }
 
         const isCoast = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
@@ -430,6 +439,7 @@
         const openSamsaraTicket = (globalState.incidents || []).some(i => 
             i.rentalId === v.rentalId && !i.dateResolved && (i.category || '').toLowerCase().includes('samsara')
         );
+        
         const samsaraBadge = (!hasSamsaraSerial || openSamsaraTicket) 
             ? `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Samsara Issue or Missing">📡 ❌</span>` 
             : `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Samsara Active">📡 ✅</span>`;
@@ -439,7 +449,10 @@
             ${ribbon}
             <div style="font-size:18px; font-weight:800; display:flex; justify-content:space-between; align-items:flex-start;">
                 <span>${v.cleanName}</span>
-                <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">${v.rentalId}</span>
+                <div style="text-align:right;">
+                    <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">${v.rentalId}</span>
+                    ${zoneRightSide}
+                </div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:12px; flex: 1;">
                 ${subText}
@@ -848,23 +861,70 @@
     }
 
     /* --- SUBMISSION HANDLERS --- */
-    function submitDispatch() {
+function submitDispatch() {
       const tech = document.getElementById('vm-selected-tech').value;
       if (!tech) { alert('Please select a driver from the search.'); return; }
+      
       const rentalId = document.getElementById('vm-rental-id').value;
+      const workZone = Array.from(document.getElementById('sel-zone').selectedOptions).map(o => o.value).join(', ');
+      
       const payload = {
-        rentalId: rentalId, assignedTech: tech,
-        workZone: Array.from(document.getElementById('sel-zone').selectedOptions).map(o => o.value).join(', '),
-        goals: document.getElementById('sel-focus').value, batteryTarget: document.getElementById('sel-batt').value, shift: 'First Shift'
+        rentalId: rentalId,
+        assignedTech: tech,
+        workZone: workZone,
+        goals: document.getElementById('sel-focus') ? document.getElementById('sel-focus').value : '',
+        batteryTarget: document.getElementById('sel-batt') ? document.getElementById('sel-batt').value : '',
+        shift: 'First Shift'
       };
-      document.getElementById('van-modal').close();
+      
+      const vm = document.getElementById('van-modal');
+      if (vm) {
+        vm.dataset.dirty = 'false';
+        vm.close();
+      }
+
+      // --- ⚡ OPTIMISTIC UI: AUTO-RELEASE OLD VAN ---
+      // Scour memory to find if this tech is already assigned to a DIFFERENT van
+      (globalState.vehicles || []).forEach(v => {
+        if (v.status === 'Dispatched' && v.driver === tech && v.rentalId !== rentalId) {
+          // Release the old van
+          v.status = 'Warehouse (Ready)';
+          v.driver = '—';
+          v.zone = '—';
+          // Auto-complete their old deployment in memory
+          const oldDep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
+          if (oldDep) oldDep.status = 'Completed';
+        }
+      });
+
+      // --- ⚡ OPTIMISTIC UI: ASSIGN NEW VAN ---
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
-      if (v) { v.status = 'Dispatched'; v.driver = payload.assignedTech; v.zone = payload.workZone; }
-      globalState.deployments.unshift({ id: 'temp-' + Date.now(), rentalId: rentalId, tech: payload.assignedTech, zone: payload.workZone, goals: payload.goals, battery: payload.batteryTarget, status: 'Dispatched', departureTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+      if (v) { 
+        v.status = 'Dispatched'; 
+        v.driver = payload.assignedTech; 
+        v.zone = payload.workZone; 
+      }
+      
+      globalState.deployments.unshift({ 
+        id: 'temp-' + Date.now(), 
+        rentalId: rentalId, 
+        tech: payload.assignedTech, 
+        zone: payload.workZone, 
+        goals: payload.goals, 
+        battery: payload.batteryTarget, 
+        status: 'Dispatched', 
+        departureTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+      });
+      
       renderGrid(); 
+
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
-        .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error: " + err.message); loadData(); })
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error: " + err.message);
+            loadData();
+        })
         .processDispatchCheckout(payload);
     }
 
