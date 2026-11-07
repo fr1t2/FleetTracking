@@ -1174,12 +1174,12 @@
 
     function formatTechTime(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '?';
-      // If Google Sheets returns a full nasty string "Sat Dec 30 1899 05:30:00 GMT-0700", parse it down
-      const match = timeStr.match(/(\d{2}:\d{2}:\d{2})/);
+      // Parses "Sat Dec 30 1899 05:30:00 GMT-0700" -> "5:30 AM"
+      const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
       if (match) {
-          // Convert 24h to 12h AM/PM
-          let [hours, minutes] = match[1].split(':');
-          let ampm = hours >= 12 ? 'PM' : 'AM';
+          let hours = parseInt(match[1], 10);
+          const minutes = match[2];
+          const ampm = hours >= 12 ? 'PM' : 'AM';
           hours = hours % 12;
           hours = hours ? hours : 12; 
           return `${hours}:${minutes} ${ampm}`;
@@ -1225,56 +1225,23 @@
             </div>
          `;
       });
-      document.getElementById('tr-grid').innerHTML = html || `<p>No techs found.</p>`;
-    }
-
-    function renderTechRoster() {
-      const q = document.getElementById('tr-search').value.toLowerCase();
-      let ts = [...(globalState.techs || [])];
       
-      // Auto-Sort: Active first, then Shift, then Start Time
-      ts.sort((a,b) => {
-         const wA = (a.status === 'Available') ? 1 : 2;
-         const wB = (b.status === 'Available') ? 1 : 2;
-         if (wA !== wB) return wA - wB;
-         if (a.shift !== b.shift) return (a.shift || '').localeCompare(b.shift || '');
-         return (a.start || '').localeCompare(b.start || '');
-      });
-
-      let html = '';
-      ts.forEach(t => {
-         if (q && !t.name.toLowerCase().includes(q)) return;
-         
-         const isMuted = (t.status !== 'Available') ? 'b-mute' : '';
-         const restrFlag = t.restricted ? `<span class="d-badge b-fail">RESTRICTED</span>` : '';
-         const samFlag = t.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
-         
-         html += `
-            <div class="driver-card ${isMuted}" onclick="openEditTechModal('${t.name}')">
-               <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                 <strong style="font-size:16px;">${t.name}</strong>
-                 <span style="font-size:12px; font-weight:bold; color:var(--text-muted);">${t.status}</span>
-               </div>
-               <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-                 Shift ${t.shift || '-'} | ${t.start || '?'} to ${t.end || '?'}
-               </div>
-               <div>${restrFlag} ${samFlag}</div>
-            </div>
-         `;
-      });
-      document.getElementById('tr-grid').innerHTML = html || `<p>No techs found.</p>`;
+      const grid = document.getElementById('tr-grid');
+      if (grid) grid.innerHTML = html || `<p>No techs found.</p>`;
     }
 
-    function openEditTechModal(techName) {
+function openEditTechModal(techName) {
       const t = (globalState.techs || []).find(x => x.name === techName);
       
-      document.getElementById('et_orig_name').value = techName;
+      document.getElementById('et_orig_name').value = techName || '';
       document.getElementById('et_name').value = t ? t.name : '';
       document.getElementById('et_phone').value = t ? t.phone : '';
       document.getElementById('et_hr').value = t ? t.hrStatus : '';
       document.getElementById('et_shift').value = t ? t.shift : '';
+      
       document.getElementById('et_start').value = t ? t.start : '';
       document.getElementById('et_end').value = t ? t.end : '';
+      
       document.getElementById('et_days').value = t ? t.workDays : '';
       document.getElementById('et_status').value = t ? t.status : 'Available';
       
@@ -1291,14 +1258,21 @@
 
       const etm = document.getElementById('edit-tech-modal');
       etm.dataset.dirty = 'false';
-      
-      // We DO NOT close the previous modal, we just overlay this new one natively
-      etm.showModal();
+      etm.showModal(); // Opens perfectly over the previous modal
     }
 
-/*
     function submitEditTech(e) {
       e.preventDefault();
+      
+      const isRestricted = document.getElementById('et_restricted').checked;
+      const notes = document.getElementById('et_notes').value;
+      
+      // Enforce note requirement for restricted drivers
+      if (isRestricted && notes.trim() === '') {
+          alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
+          return;
+      }
+
       const payload = {
         origName: document.getElementById('et_orig_name').value,
         name: document.getElementById('et_name').value,
@@ -1314,16 +1288,14 @@
         coast: document.getElementById('et_coast').checked,
         evgo: document.getElementById('et_evgo').checked,
         trainer: document.getElementById('et_trainer').checked,
-        restricted: document.getElementById('et_restricted').checked,
+        restricted: isRestricted,
         samsaraViolation: document.getElementById('et_samsara').checked,
-        notes: document.getElementById('et_notes').value,
+        notes: notes,
         flagged: document.getElementById('et_flag').value
       };
 
-      // ONLY close the Edit Tech modal. The one beneath it is perfectly safe!
       document.getElementById('edit-tech-modal').close(); 
       
-      // Update local state instantly
       let tIdx = globalState.techs.findIndex(t => t.name === payload.origName);
       if(tIdx > -1) {
          globalState.techs[tIdx] = {...globalState.techs[tIdx], ...payload};
@@ -1331,15 +1303,12 @@
          globalState.techs.push(payload);
       }
       
-      // Conditionally refresh whichever modal is lingering beneath it
-      if (document.getElementById('tech-roster-modal').open) {
+      // Refresh the Hub if it's open beneath
+      const techRoster = document.getElementById('tech-roster-modal');
+      if (techRoster && techRoster.open) {
           renderTechRoster();
       }
-      if (document.getElementById('van-modal').open) {
-          const activeRental = document.getElementById('vm-rental-id').value;
-          openVanModal(activeRental); 
-      }
-
+      
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { 
@@ -1349,7 +1318,7 @@
         })
         .processEditTech(payload);
     }
-*/
+
 
     /* --- FLEET MANAGEMENT (Rebuilt to Stack Cleanly) --- */
     function openAddVanModal() {
@@ -1694,15 +1663,14 @@
       }
     }
 
-function selectDriver(name) {
+    function selectDriver(name) {
       const tech = (globalState.techs || []).find(t => t.name === name);
       
-      // Check if restricted BEFORE assigning
+      // CRITICAL UPDATE: Prevent dispatch if restricted!
       if (tech && tech.restricted) {
           const reason = tech.notes || "Co-Driver required or administrative hold.";
           alert(`⚠️ DRIVER RESTRICTED\n\n${tech.name} is restricted from operating a vehicle.\n\nReason: ${reason}\n\nPlease assign a valid primary driver, or lift the restriction in the Tech Profile.`);
-          // We intentionally do NOT select the driver, forcing them to pick someone else.
-          return; 
+          return; // Blocks the driver from being selected
       }
 
       document.getElementById('vm-selected-tech').value = name;
@@ -1739,7 +1707,7 @@ function selectDriver(name) {
       }
     }
 
-function openEditTechModal(techName) {
+    function openEditTechModal(techName) {
       const t = (globalState.techs || []).find(x => x.name === techName);
       
       document.getElementById('et_orig_name').value = techName;
@@ -1771,66 +1739,6 @@ function openEditTechModal(techName) {
       
       // Natively stack the modal.
       etm.showModal();
-    }
-
-    function submitEditTech(e) {
-      e.preventDefault();
-      
-      // If restricting, force them to enter a note/reason
-      const isRestricted = document.getElementById('et_restricted').checked;
-      const notes = document.getElementById('et_notes').value;
-      
-      if (isRestricted && notes.trim() === '') {
-          alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
-          return;
-      }
-
-      const payload = {
-        origName: document.getElementById('et_orig_name').value,
-        name: document.getElementById('et_name').value,
-        phone: document.getElementById('et_phone').value,
-        shift: document.getElementById('et_shift').value,
-        start: document.getElementById('et_start').value,
-        end: document.getElementById('et_end').value,
-        workDays: document.getElementById('et_days').value,
-        status: document.getElementById('et_status').value,
-        hrStatus: document.getElementById('et_hr').value,
-        passedTest: document.getElementById('et_test').checked,
-        goFast: document.getElementById('et_gofast').checked,
-        coast: document.getElementById('et_coast').checked,
-        evgo: document.getElementById('et_evgo').checked,
-        trainer: document.getElementById('et_trainer').checked,
-        restricted: isRestricted,
-        samsaraViolation: document.getElementById('et_samsara').checked,
-        notes: notes,
-        flagged: document.getElementById('et_flag').value
-      };
-
-      // ONLY close the Edit Tech modal.
-      document.getElementById('edit-tech-modal').close(); 
-      
-      // Update local state instantly
-      let tIdx = globalState.techs.findIndex(t => t.name === payload.origName);
-      if(tIdx > -1) {
-         globalState.techs[tIdx] = {...globalState.techs[tIdx], ...payload};
-      } else {
-         globalState.techs.push(payload);
-      }
-      
-      // Conditionally refresh whichever modal is lingering beneath it
-      if (document.getElementById('tech-roster-modal').open) {
-          renderTechRoster();
-      }
-      
-      // Send to backend
-      document.getElementById('global-loader').style.display = 'block';
-      google.script.run.withSuccessHandler(loadData)
-        .withFailureHandler(err => { 
-            document.getElementById('global-loader').style.display='none'; 
-            alert("Error: "+err.message); 
-            loadData();
-        })
-        .processEditTech(payload);
     }
 
 
