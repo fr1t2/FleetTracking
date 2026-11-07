@@ -1165,11 +1165,67 @@
     }
 
 
-    /* --- NEW TECH ROSTER HUB --- */
+/* --- NEW TECH ROSTER HUB --- */
     function openTechRoster() {
       document.getElementById('tr-search').value = '';
       renderTechRoster();
       document.getElementById('tech-roster-modal').showModal();
+    }
+
+    function formatTechTime(timeStr) {
+      if (!timeStr || timeStr === '?' || timeStr === '—') return '?';
+      // If Google Sheets returns a full nasty string "Sat Dec 30 1899 05:30:00 GMT-0700", parse it down
+      const match = timeStr.match(/(\d{2}:\d{2}:\d{2})/);
+      if (match) {
+          // Convert 24h to 12h AM/PM
+          let [hours, minutes] = match[1].split(':');
+          let ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12; 
+          return `${hours}:${minutes} ${ampm}`;
+      }
+      return timeStr;
+    }
+
+    function renderTechRoster() {
+      const q = document.getElementById('tr-search').value.toLowerCase();
+      let ts = [...(globalState.techs || [])];
+      
+      // Auto-Sort: Active first, then Shift, then Start Time
+      ts.sort((a,b) => {
+         const wA = (a.status === 'Available') ? 1 : 2;
+         const wB = (b.status === 'Available') ? 1 : 2;
+         if (wA !== wB) return wA - wB;
+         if (a.shift !== b.shift) return (a.shift || '').localeCompare(b.shift || '');
+         return (a.start || '').localeCompare(b.start || '');
+      });
+
+      let html = '';
+      ts.forEach(t => {
+         if (q && !t.name.toLowerCase().includes(q)) return;
+         
+         const isMuted = (t.status !== 'Available') ? 'b-mute' : '';
+         const passFlag = t.passedTest ? `<span class="d-badge b-pass">PASS</span>` : `<span class="d-badge b-fail">FAIL</span>`;
+         const restrFlag = t.restricted ? `<span class="d-badge b-fail">RESTRICTED</span>` : '';
+         const samFlag = t.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
+         
+         const cleanStart = formatTechTime(t.start);
+         const cleanEnd = formatTechTime(t.end);
+
+         html += `
+            <div class="driver-card ${isMuted}" onclick="openEditTechModal('${t.name}')">
+               <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                 <strong style="font-size:16px; color:var(--text-main);">${t.name}</strong>
+                 <span style="font-size:12px; font-weight:bold; color:var(--text-muted);">${t.status}</span>
+               </div>
+               <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                 Shift ${t.shift || '-'} | ${cleanStart} to ${cleanEnd}
+               </div>
+               <div>${passFlag} ${restrFlag} ${samFlag}</div>
+            </div>
+         `;
+      });
+      document.getElementById('tr-grid').innerHTML = html || `<p>No techs found.</p>`;
     }
 
     function renderTechRoster() {
@@ -1240,6 +1296,7 @@
       etm.showModal();
     }
 
+/*
     function submitEditTech(e) {
       e.preventDefault();
       const payload = {
@@ -1292,7 +1349,7 @@
         })
         .processEditTech(payload);
     }
-
+*/
 
     /* --- FLEET MANAGEMENT (Rebuilt to Stack Cleanly) --- */
     function openAddVanModal() {
@@ -1637,7 +1694,17 @@
       }
     }
 
-    function selectDriver(name) {
+function selectDriver(name) {
+      const tech = (globalState.techs || []).find(t => t.name === name);
+      
+      // Check if restricted BEFORE assigning
+      if (tech && tech.restricted) {
+          const reason = tech.notes || "Co-Driver required or administrative hold.";
+          alert(`⚠️ DRIVER RESTRICTED\n\n${tech.name} is restricted from operating a vehicle.\n\nReason: ${reason}\n\nPlease assign a valid primary driver, or lift the restriction in the Tech Profile.`);
+          // We intentionally do NOT select the driver, forcing them to pick someone else.
+          return; 
+      }
+
       document.getElementById('vm-selected-tech').value = name;
       document.getElementById('van-modal').dataset.dirty = 'true';
       
@@ -1671,6 +1738,101 @@
         container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px;">No matching drivers found.</div>`;
       }
     }
+
+function openEditTechModal(techName) {
+      const t = (globalState.techs || []).find(x => x.name === techName);
+      
+      document.getElementById('et_orig_name').value = techName;
+      document.getElementById('et_name').value = t ? t.name : '';
+      document.getElementById('et_phone').value = t ? t.phone : '';
+      document.getElementById('et_hr').value = t ? t.hrStatus : '';
+      document.getElementById('et_shift').value = t ? t.shift : '';
+      
+      // Convert standard time to HTML time input friendly format if needed, or leave as string
+      document.getElementById('et_start').value = t ? t.start : '';
+      document.getElementById('et_end').value = t ? t.end : '';
+      
+      document.getElementById('et_days').value = t ? t.workDays : '';
+      document.getElementById('et_status').value = t ? t.status : 'Available';
+      
+      document.getElementById('et_test').checked = t ? t.passedTest : false;
+      document.getElementById('et_gofast').checked = t ? t.goFast : false;
+      document.getElementById('et_coast').checked = t ? t.coastEnrolled : false;
+      document.getElementById('et_evgo').checked = t ? t.evgo : false;
+      document.getElementById('et_trainer').checked = t ? t.trainer : false;
+      document.getElementById('et_restricted').checked = t ? t.restricted : false;
+      document.getElementById('et_samsara').checked = t ? t.samsaraViolation : false;
+      
+      document.getElementById('et_notes').value = t ? t.notes : '';
+      document.getElementById('et_flag').value = t ? t.flagged : '';
+
+      const etm = document.getElementById('edit-tech-modal');
+      etm.dataset.dirty = 'false';
+      
+      // Natively stack the modal.
+      etm.showModal();
+    }
+
+    function submitEditTech(e) {
+      e.preventDefault();
+      
+      // If restricting, force them to enter a note/reason
+      const isRestricted = document.getElementById('et_restricted').checked;
+      const notes = document.getElementById('et_notes').value;
+      
+      if (isRestricted && notes.trim() === '') {
+          alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
+          return;
+      }
+
+      const payload = {
+        origName: document.getElementById('et_orig_name').value,
+        name: document.getElementById('et_name').value,
+        phone: document.getElementById('et_phone').value,
+        shift: document.getElementById('et_shift').value,
+        start: document.getElementById('et_start').value,
+        end: document.getElementById('et_end').value,
+        workDays: document.getElementById('et_days').value,
+        status: document.getElementById('et_status').value,
+        hrStatus: document.getElementById('et_hr').value,
+        passedTest: document.getElementById('et_test').checked,
+        goFast: document.getElementById('et_gofast').checked,
+        coast: document.getElementById('et_coast').checked,
+        evgo: document.getElementById('et_evgo').checked,
+        trainer: document.getElementById('et_trainer').checked,
+        restricted: isRestricted,
+        samsaraViolation: document.getElementById('et_samsara').checked,
+        notes: notes,
+        flagged: document.getElementById('et_flag').value
+      };
+
+      // ONLY close the Edit Tech modal.
+      document.getElementById('edit-tech-modal').close(); 
+      
+      // Update local state instantly
+      let tIdx = globalState.techs.findIndex(t => t.name === payload.origName);
+      if(tIdx > -1) {
+         globalState.techs[tIdx] = {...globalState.techs[tIdx], ...payload};
+      } else {
+         globalState.techs.push(payload);
+      }
+      
+      // Conditionally refresh whichever modal is lingering beneath it
+      if (document.getElementById('tech-roster-modal').open) {
+          renderTechRoster();
+      }
+      
+      // Send to backend
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display='none'; 
+            alert("Error: "+err.message); 
+            loadData();
+        })
+        .processEditTech(payload);
+    }
+
 
     function selectDriverEdit(name) {
       document.getElementById('ed-selected-tech').value = name;
