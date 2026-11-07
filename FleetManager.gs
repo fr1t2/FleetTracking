@@ -186,39 +186,50 @@ function processAddVehicle(data) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
-    // 24-column layout mapping
     const rowData = [
-      data.vanName || '',       // Col A (1): Van Name
-      data.rentalId || '',      // Col B (2): Van ID
-      data.owner || '',         // Col C (3): Owner (Agency)
-      data.makeModel || '',     // Col D (4): Make Model
-      data.vin || '',           // Col E (5): VIN
-      data.plate || '',         // Col F (6): Plate (Mandatory)
-      data.plateExp || '',      // Col G (7): Plate Exp
-      data.samsaraSerial || '', // Col H (8): Samsara Serial
-      data.samsaraLink || '',   // Col I (9): Samsara Link
-      'Warehouse (Ready)',      // Col J (10): Status
-      now,                      // Col K (11): Pickup Date
-      '',                       // Col L (12): Service Num
-      '',                       // Col M (13): Zone
-      '',                       // Col N (14): Tech
-      now,                      // Col O (15): Last Service
-      data.notes || '',         // Col P (16): NOTES (was addons)
-      user,                     // Col Q (17): Updated By
-      now,                      // Col R (18): Updated At
-      '',                       // Col S (19): (Empty - Old Addons)
-      data.coast || 'No',       // Col T (20): Coast
-      data.type || '',          // Col U (21): Vehicle Type
-      '',                       // Col V (22): Oil Date
-      '',                       // Col W (23): Oil Miles
-      ''                        // Col X (24): Tires
+      data.vanName || '', data.rentalId || '', data.owner || '', data.makeModel || '',
+      data.vin || '', data.plate || '', data.plateExp || '', data.samsaraSerial || '',
+      data.samsaraLink || '', 'Warehouse (Ready)', now, '', '', '', now,
+      data.notes || '', user, now, '', data.coast || 'No', data.type || '',
+      data.lastOil || '', data.lastOilMiles || '', data.lastTires || '' // Cols V, W, X
     ];
     
     while (rowData.length < 24) rowData.push('');
     vSheet.appendRow(rowData);
     return { success: true };
+  } catch (err) { throw new Error('Add vehicle failed: ' + err.message); }
+}
+
+function logRoutineMaintenance(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Vehicles');
+    const vData = sheet.getDataRange().getValues();
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+    let rowIndex = -1;
+
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        rowIndex = i + 1; break;
+      }
+    }
+    
+    if (rowIndex === -1) throw new Error(`Vehicle ${data.rentalId} not found.`);
+
+    if (data.type === 'oil') {
+      sheet.getRange(rowIndex, 22).setValue(data.date); // Col V
+      sheet.getRange(rowIndex, 23).setValue(data.miles); // Col W
+    } else if (data.type === 'tires') {
+      sheet.getRange(rowIndex, 24).setValue(data.date); // Col X
+    }
+
+    sheet.getRange(rowIndex, 17).setValue(user); // Updated By
+    sheet.getRange(rowIndex, 18).setValue(now);  // Updated At
+
+    return { success: true };
   } catch (err) {
-    throw new Error('Add vehicle failed: ' + err.message);
+    throw new Error('Failed to log maintenance: ' + err.message);
   }
 }
 

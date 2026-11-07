@@ -534,6 +534,7 @@
               <input type="date" id="av_plate_exp" class="form-control">
           </div>
         </div>
+
         <div class="row">
           <div class="col form-group">
               <label style="font-size:12px; font-weight:700;">Samsara Serial #</label>
@@ -551,11 +552,28 @@
              </select>
           </div>
         </div>
+
+
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Last Oil Date</label>
+            <input type="date" id="av_oil_date" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Last Oil Miles</label>
+            <input type="number" id="av_oil_miles" class="form-control" placeholder="e.g. 45000">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Last Tires Date</label>
+            <input type="date" id="av_tires_date" class="form-control">
+          </div>
+        </div>
         <div class="form-group">
             <label style="font-size:12px; font-weight:700;">Notes</label>
             <input type="text" id="av_notes" class="form-control" placeholder="e.g. Inverter, Shelving, Dents...">
         </div>
         
+
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
           <button class="btn btn-outline" type="button" onclick="document.getElementById('add-van-modal').close()">Cancel</button>
           <button class="btn btn-primary" type="submit">Save Van</button>
@@ -847,6 +865,38 @@
       </div>
     </div>
   </dialog>
+
+<!-- LOG OIL MODAL -->
+  <dialog id="log-oil-modal" style="max-width: 400px; z-index: 1010;">
+    <div class="modal-head">🛢️ Log Oil Change</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitLogRoutine(event, 'oil')">
+        <input type="hidden" id="lo_rental_id">
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Date of Oil Change *</label><input type="date" id="lo_date" class="form-control" required></div>
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Mileage</label><input type="number" id="lo_miles" class="form-control" placeholder="e.g. 45000"></div>
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- LOG TIRES MODAL -->
+  <dialog id="log-tires-modal" style="max-width: 400px; z-index: 1010;">
+    <div class="modal-head">🛞 Log Tire Replacement</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitLogRoutine(event, 'tires')">
+        <input type="hidden" id="lt_rental_id">
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Date of Tire Replacement *</label><input type="date" id="lt_date" class="form-control" required></div>
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
 
   <!-- UNSAVED CHANGES WARNING MODAL -->
   <dialog id="unsaved-modal" style="max-width: 350px; z-index: 1002;">
@@ -1160,10 +1210,21 @@
       }
 
       document.getElementById('service-view').innerHTML = `
-        <div style="background:var(--bg-modal-head); padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>Last Oil: <strong>${v.lastOil || 'N/A'}</strong></span>
-            <span>Last Tires: <strong>${v.lastTires || 'N/A'}</strong></span>
+        <div style="background:var(--bg-modal-head); padding:16px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Last Oil Change</div>
+                <div style="font-size:14px; margin-top:2px;"><strong>${v.lastOil || 'N/A'}</strong> <span style="font-size:12px; color:var(--text-muted);">(${v.lastOilMiles ? v.lastOilMiles + ' mi' : 'No mileage logged'})</span></div>
+            </div>
+            <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogOilModal('${rentalId}')">🛢️ Log Oil Change</button>
+          </div>
+          <hr style="border:0; border-top:1px solid var(--border-color); margin:12px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Last Tires Replaced</div>
+                <div style="font-size:14px; margin-top:2px;"><strong>${v.lastTires || 'N/A'}</strong></div>
+            </div>
+            <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogTiresModal('${rentalId}')">🛞 Log Tires</button>
           </div>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
@@ -1362,6 +1423,9 @@ function openEditTechModal(techName) {
       document.getElementById('av_sam_link').value = '';
       document.getElementById('av_coast').value = 'No'; 
       document.getElementById('av_notes').value = '';
+      document.getElementById('av_oil_date').value = '';
+      document.getElementById('av_oil_miles').value = '';
+      document.getElementById('av_tires_date').value = '';
 
       const typeSelect = document.getElementById('av_type');
       if (globalState.vehicleTypes) {
@@ -1397,6 +1461,9 @@ function openEditTechModal(techName) {
         samsaraLink: document.getElementById('av_sam_link').value,
         coast: document.getElementById('av_coast').value, 
         notes: document.getElementById('av_notes').value
+        lastOil: document.getElementById('av_oil_date').value,      // NEW
+        lastOilMiles: document.getElementById('av_oil_miles').value, // NEW
+        lastTires: document.getElementById('av_tires_date').value    // NEW
       };
       
       document.getElementById('add-van-modal').close();
@@ -2167,6 +2234,57 @@ function openEditTechModal(techName) {
           pendingCloseDialog = null; 
       }
       document.getElementById('unsaved-modal').close();
+    }
+
+function openLogOilModal(rentalId) {
+      document.getElementById('lo_rental_id').value = rentalId;
+      document.getElementById('lo_date').value = new Date().toISOString().split('T')[0]; // Default to today
+      document.getElementById('lo_miles').value = '';
+      openStackModal('log-oil-modal');
+    }
+
+    function openLogTiresModal(rentalId) {
+      document.getElementById('lt_rental_id').value = rentalId;
+      document.getElementById('lt_date').value = new Date().toISOString().split('T')[0]; // Default to today
+      openStackModal('log-tires-modal');
+    }
+
+    function submitLogRoutine(e, type) {
+      e.preventDefault();
+      
+      const payload = { type: type };
+      if (type === 'oil') {
+        payload.rentalId = document.getElementById('lo_rental_id').value;
+        payload.date = document.getElementById('lo_date').value;
+        payload.miles = document.getElementById('lo_miles').value;
+        document.getElementById('log-oil-modal').close();
+      } else {
+        payload.rentalId = document.getElementById('lt_rental_id').value;
+        payload.date = document.getElementById('lt_date').value;
+        document.getElementById('log-tires-modal').close();
+      }
+
+      // Optimistic Update
+      const v = globalState.vehicles.find(x => x.rentalId === payload.rentalId);
+      if (v) {
+        if (type === 'oil') {
+          v.lastOil = payload.date;
+          v.lastOilMiles = payload.miles;
+        } else {
+          v.lastTires = payload.date;
+        }
+      }
+
+      // Refresh the Van Modal beneath it
+      if (document.getElementById('van-modal').open) {
+          openVanModal(payload.rentalId); 
+      }
+      renderGrid();
+
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error saving maintenance: " + err.message); loadData(); })
+        .logRoutineMaintenance(payload);
     }
 
   </script>
