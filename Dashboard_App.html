@@ -29,7 +29,8 @@
     .search-box { padding: 10px 16px; width: 300px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Inter'; background: var(--bg-main); color: var(--text-main); }
     .theme-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.2s; }
     .theme-btn:hover { border-color: var(--veo-cyan-dark); }
-
+    .st-decom { border-top: 5px solid #9aa0a6; opacity: 0.6; filter: grayscale(100%); }
+    
     /* Snapshot Grid */
     .grid-container { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; max-width: 1800px; margin: 0 auto; }
     
@@ -86,10 +87,15 @@
 <body>
   <div id="global-loader"></div>
 
-  <div class="topbar">
+<div class="topbar">
     <div style="font-size:20px; font-weight:900; letter-spacing:-0.5px;">VEO Snapshot</div>
     <div style="display:flex; gap:12px; align-items:center;">
       <input type="text" id="global-search" class="search-box" placeholder="Search Vans or Drivers..." onkeyup="renderGrid()">
+      
+      <label style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; cursor:pointer;">
+        <input type="checkbox" id="show-retired-toggle" onchange="renderGrid()"> Show Retired
+      </label>
+
       <button class="btn btn-outline" onclick="document.getElementById('manage-fleet-modal').showModal()">⚙️ Manage Fleet</button>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle">🌙</button>
     </div>
@@ -394,25 +400,44 @@
         .getDashboardState();
     }
 
-    function renderGrid() {
+function renderGrid() {
       if(!globalState) return;
       const q = document.getElementById('global-search').value.toLowerCase();
-      let vans = [...(globalState.vehicles || [])];
-      const statusWeight = { 'Dispatched': 1, 'Warehouse (Ready)': 2, 'Out of Service': 3 };
+      const showRetired = document.getElementById('show-retired-toggle').checked;
       
+      let vans = [...(globalState.vehicles || [])];
+      
+      // Status weights to force retired vans to the very bottom
+      const statusWeight = { 
+          'Dispatched': 1, 
+          'Warehouse (Ready)': 2, 
+          'Out of Service': 3,
+          'Decommissioned': 4 
+      };
+      
+      // Default seamless sort (Status ➔ Type ➔ Name)
       vans.sort((a, b) => {
-        if (statusWeight[a.status] !== statusWeight[b.status]) return statusWeight[a.status] - statusWeight[b.status];
+        const weightA = statusWeight[a.status] || 99;
+        const weightB = statusWeight[b.status] || 99;
+        if (weightA !== weightB) return weightA - weightB;
         if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
         return a.cleanName.localeCompare(b.cleanName);
       });
 
       let html = '';
       vans.forEach(v => {
-        if (v.status === 'Decommissioned') return;
+        // Hide retired vans unless the toggle is switched on
+        if (v.status === 'Decommissioned' && !showRetired) return;
+        
+        // Search filter
         if (q && !v.cleanName.toLowerCase().includes(q) && !(v.driver || '').toLowerCase().includes(q)) return;
 
-        let bClass = v.status === 'Warehouse (Ready)' ? 'st-ready' : (v.status === 'Dispatched' ? 'st-dispatched' : 'st-oos');
-        let ribbon = (String(v.safeToDrive) === 'true') ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
+        let bClass = 'st-ready';
+        if (v.status === 'Dispatched') bClass = 'st-dispatched';
+        if (v.status === 'Out of Service') bClass = 'st-oos';
+        if (v.status === 'Decommissioned') bClass = 'st-decom';
+        
+        let ribbon = (String(v.safeToDrive) === 'true' && v.status !== 'Decommissioned') ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' : '';
         
         let subText = '';
         let zoneRightSide = '';
@@ -435,10 +460,11 @@
                  displayZone = zArray.join(', ');
              }
           }
-          
-          // Scaled font size to prevent overflow if they have multiple zones assigned
           let zSize = displayZone.length > 12 ? '13px' : '15px';
           zoneRightSide = `<div style="font-size:${zSize}; font-weight:800; color:var(--veo-cyan-dark); margin-top:4px; text-align:right; max-width:140px; line-height:1.2;">${displayZone}</div>`;
+        
+        } else if (v.status === 'Decommissioned') {
+          subText = `<div><div style="font-size:12px; color:var(--text-muted); font-weight:700;">🛑 RETIRED</div></div>`;
         } else {
           subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Cargo Van'}</div></div>`;
         }
