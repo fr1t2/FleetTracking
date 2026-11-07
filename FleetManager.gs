@@ -350,3 +350,42 @@ function unretireVehicle(data) {
     throw new Error('Un-retire failed: ' + err.message);
   }
 }
+
+function processEditTech(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Tech_Profiles');
+    const tData = sheet.getDataRange().getValues();
+    let row = -1;
+
+    for (let i = 1; i < tData.length; i++) {
+      if (String(tData[i][0]).trim().toLowerCase() === String(data.origName).trim().toLowerCase()) {
+        row = i + 1; break;
+      }
+    }
+
+    if (row === -1) {
+      row = sheet.getLastRow() + 1; // Add new tech if not found
+    }
+
+    sheet.getRange(row, 1).setValue(data.name);
+    sheet.getRange(row, 2).setValue(data.phone);
+    sheet.getRange(row, 3).setValue(data.shift);
+    sheet.getRange(row, 4).setValue(data.start);
+    sheet.getRange(row, 5).setValue(data.end);
+    sheet.getRange(row, 6).setValue(data.workDays);
+    sheet.getRange(row, 7).setValue(data.passedTest ? 'Yes' : 'No');
+    sheet.getRange(row, 8).setValue(data.goFast ? 'Yes' : 'No');
+    sheet.getRange(row, 9).setValue(data.restricted ? 'Yes' : 'No');
+    sheet.getRange(row, 10).setValue(data.status);
+    sheet.getRange(row, 11).setValue(data.notes);
+    sheet.getRange(row, 12).setValue(data.hrStatus);
+    sheet.getRange(row, 13).setValue(data.coast ? 'Yes' : 'No');
+    sheet.getRange(row, 14).setValue(data.evgo ? 'Yes' : 'No');
+    sheet.getRange(row, 15).setValue(data.trainer ? 'Yes' : 'No');
+    sheet.getRange(row, 16).setValue(data.samsaraViolation ? 'Yes' : 'No');
+    sheet.getRange(row, 17).setValue(data.flagged);
+
+    return { success: true };
+  } catch (err) { throw new Error('Tech update failed: ' + err.message); }
+}

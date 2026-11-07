@@ -94,37 +94,32 @@ function getDashboardState() {
     }
 
     // 3. Fetch Tech Profiles (17 Columns)
+    const tSheet = ss.getSheetByName('Tech_Profiles');
     const techs = [];
     if (tSheet && tSheet.getLastRow() > 1) {
-      const tData = tSheet.getDataRange().getValues();
-      for (let i = 1; i < tData.length; i++) {
-        const r = tData[i];
-        while (r.length < 17) r.push(''); 
-        if (!r[0]) continue;
-        
-        let sTime = r[3] instanceof Date ? Utilities.formatDate(r[3], tz, 'HH:mm') : String(r[3] || '');
-        let eTime = r[4] instanceof Date ? Utilities.formatDate(r[4], tz, 'HH:mm') : String(r[4] || '');
-        
+      const tRows = tSheet.getRange(2, 1, tSheet.getLastRow() - 1, 17).getValues();
+      tRows.forEach(r => {
+        if (!r[0]) return;
         techs.push({
-          name: String(r[0]).trim(), 
-          phone: String(r[1] || ''), 
-          shift: String(r[2] || 'First Shift'), 
-          startTime: sTime, 
-          endTime: eTime, 
-          workDays: String(r[5] || 'Mon-Fri'), 
-          passedTest: String(r[6] || 'No').trim().toLowerCase() === 'yes', 
-          goFast: String(r[7] || 'No').trim().toLowerCase() === 'yes', 
-          restricted: String(r[8] || 'No').trim().toLowerCase() === 'yes', 
-          status: String(r[9] || 'Available'), 
-          notes: String(r[10] || ''), 
-          hrStatus: String(r[11] || 'Active'),
-          coastEnrolled: String(r[12] || 'No').trim().toLowerCase() === 'yes', 
-          evGo: String(r[13] || 'No').trim().toLowerCase() === 'yes', 
-          trainer: String(r[14] || 'No').trim().toLowerCase() === 'yes',
-          samsaraViolation: String(r[15] || 'No').trim().toLowerCase() === 'yes',
-          flagged: String(r[16] || '').trim() !== '' ? String(r[16]) : null
+          name: String(r[0]).trim(),
+          phone: String(r[1] || '').trim(),
+          shift: String(r[2] || '').trim(),
+          start: String(r[3] || '').trim(),
+          end: String(r[4] || '').trim(),
+          workDays: String(r[5] || '').trim(),
+          passedTest: (String(r[6] || '').trim().toLowerCase() === 'yes'),
+          goFast: (String(r[7] || '').trim().toLowerCase() === 'yes'),
+          restricted: (String(r[8] || '').trim().toLowerCase() === 'yes'),
+          status: String(r[9] || 'Available').trim(),
+          notes: String(r[10] || '').trim(),
+          hrStatus: String(r[11] || 'Active').trim(),
+          coastEnrolled: (String(r[12] || '').trim().toLowerCase() === 'yes'),
+          evgo: (String(r[13] || '').trim().toLowerCase() === 'yes'),
+          trainer: (String(r[14] || '').trim().toLowerCase() === 'yes'),
+          samsaraViolation: (String(r[15] || '').trim().toLowerCase() === 'yes'),
+          flagged: String(r[16] || '').trim()
         });
-      }
+      });
     }
 
     // 4. Fetch Deployments (21 Columns)
