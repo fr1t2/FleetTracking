@@ -282,6 +282,82 @@
     </div>
   </dialog>
 
+<!-- UN-RETIRE MODAL -->
+  <dialog id="unretire-van-modal" style="max-width: 600px; z-index: 1003;">
+    <div class="modal-head" style="color:var(--ready)">🔄 Bring Back to Service</div>
+    <div style="padding: 24px;">
+      <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Update any missing or changed specs before bringing this van back into the active fleet.</p>
+      <form onsubmit="submitUnretireVan(event)">
+        <input type="hidden" id="ur_rental_id">
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van Name *</label>
+            <input type="text" id="ur_name" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van ID (Read-Only)</label>
+            <input type="text" id="ur_rental_display" class="form-control" disabled style="background:#f1f3f4; color:#5f6368;">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="ur_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Make & Model</label>
+            <input type="text" id="ur_model" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="ur_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">VIN</label>
+            <input type="text" id="ur_vin" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">License Plate *</label>
+            <input type="text" id="ur_plate" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Plate Expiration</label>
+            <input type="date" id="ur_plate_exp" class="form-control">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Serial #</label>
+            <input type="text" id="ur_samsara" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Link</label>
+            <input type="text" id="ur_sam_link" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="ur_coast" class="form-control">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+             </select>
+          </div>
+        </div>
+        
+        <div class="form-group" style="padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px;">
+          <label style="font-size:12px; font-weight:700;">Reason for Reactivation *</label>
+          <input type="text" id="ur_reason" class="form-control" placeholder="e.g. Returned from Penske, repairs completed..." required>
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="document.getElementById('unretire-van-modal').close()">Cancel</button>
+          <button class="btn btn-success" type="submit">Reactivate Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- EDIT DISPATCH MODAL -->
   <dialog id="edit-dispatch-modal" style="max-width: 500px; z-index: 1005;">
     <div class="modal-head">✏️ Edit Active Shift</div>
@@ -509,8 +585,8 @@ function renderGrid() {
       document.getElementById('tab-' + tab).classList.add('active');
     }
 
-    function openVanModal(rentalId) {
-      const v = (globalState.vehicles || []).find(x => x.rentalId === rentalId);
+function openVanModal(rentalId) {
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (!v) return;
       
       document.getElementById('vm-rental-id').value = rentalId;
@@ -586,9 +662,15 @@ function renderGrid() {
         document.getElementById('driver-view').innerHTML = `<p>No active driver assigned.</p>`;
       }
 
+    // 3. Specs Tab
       const isCoastEnrolled = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
-      const coastStr = isCoastEnrolled ? `<span style="color:var(--ready);">✅ Enrolled</span>` : `<span style="color:var(--danger);">❌ Not Enrolled</span>`;
-      const samsaraStr = v.samsaraSerial ? `${v.samsaraSerial} <br><a href="${v.samsaraLink || '#'}" target="_blank" style="color:var(--veo-cyan-dark); font-size:11px; text-decoration:none;">🔗 View GPS</a>` : `<span style="color:var(--danger);">Unassigned</span>`;
+      const coastStr = isCoastEnrolled 
+          ? `<span style="color:var(--ready);">✅ Enrolled</span>` 
+          : `<span style="color:var(--danger);">❌ Not Enrolled</span>`;
+          
+      const samsaraStr = v.samsaraSerial 
+          ? `${v.samsaraSerial} <br><a href="${v.samsaraLink || '#'}" target="_blank" style="color:var(--veo-cyan-dark); font-size:11px; text-decoration:none;">🔗 View GPS</a>` 
+          : `<span style="color:var(--danger);">Unassigned</span>`;
 
       document.getElementById('specs-view').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -637,6 +719,7 @@ function renderGrid() {
         </div>
       `;
 
+      // 4. Service Tab Logic
       let allIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
       let openIncidents = allIncidents.filter(i => !i.dateResolved);
       let closedIncidents = allIncidents.filter(i => i.dateResolved);
@@ -656,6 +739,14 @@ function renderGrid() {
           <em style="color:var(--ready);">Resolved: ${i.resolution}</em>
         </div>
       `).join('');
+
+      // Build the dynamic Vehicle Lifecycle button based on current status
+      let lifecycleBtn = '';
+      if (v.status === 'Decommissioned') {
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openUnretireModal('${rentalId}')">🔄 Bring Back to Service</button>`;
+      } else {
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>`;
+      }
 
       document.getElementById('service-view').innerHTML = `
         <div style="background:var(--bg-modal-head); padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
@@ -677,9 +768,11 @@ function renderGrid() {
         <div style="max-height:150px; overflow-y:auto; margin-bottom: 24px;">
           ${histHtml || '<p style="font-size:13px; color:var(--text-muted);">No past service records.</p>'}
         </div>
+        
+        <!-- NEW LIFECYCLE CONTROLS -->
         <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px;">
           <strong style="font-size:14px;">Vehicle Lifecycle</strong>
-          <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>
+          ${lifecycleBtn}
         </div>
       `;
 
@@ -854,6 +947,89 @@ function renderGrid() {
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { document.getElementById('global-loader').style.display = 'none'; alert("Error: " + err.message); loadData(); })
         .decommissionVehicle(p);
+    }
+
+function openUnretireModal(rentalId) {
+      const vm = document.getElementById('van-modal');
+      if (vm && vm.open) vm.close();
+      
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if(!v) return;
+
+      const typeSelect = document.getElementById('ur_type');
+      if (globalState.vehicleTypes) typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+      else typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
+      
+      const ownerSelect = document.getElementById('ur_owner');
+      if (globalState.rentalAgencies) ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      else ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
+
+      document.getElementById('ur_rental_id').value = v.rentalId;
+      document.getElementById('ur_rental_display').value = v.rentalId;
+      document.getElementById('ur_name').value = v.cleanName || '';
+      if (v.agency) document.getElementById('ur_owner').value = v.agency;
+      if (v.type) document.getElementById('ur_type').value = v.type;
+      
+      document.getElementById('ur_model').value = v.makeModel || '';
+      document.getElementById('ur_vin').value = v.vin || '';
+      document.getElementById('ur_plate').value = v.plate || '';
+      document.getElementById('ur_plate_exp').value = (v.plateExpDate && v.plateExpDate !== '—') ? v.plateExpDate : '';
+      document.getElementById('ur_samsara').value = v.samsaraSerial || '';
+      document.getElementById('ur_sam_link').value = v.samsaraLink || '';
+      document.getElementById('ur_coast').value = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes') ? 'Yes' : 'No';
+      document.getElementById('ur_reason').value = ''; // Require a new reason
+      
+      const uvm = document.getElementById('unretire-van-modal');
+      uvm.dataset.dirty = 'false';
+      uvm.showModal();
+    }
+
+    function submitUnretireVan(e) {
+      e.preventDefault();
+      
+      const payload = {
+        rentalId: document.getElementById('ur_rental_id').value, 
+        vanName: document.getElementById('ur_name').value,
+        owner: document.getElementById('ur_owner').value, 
+        makeModel: document.getElementById('ur_model').value,
+        type: document.getElementById('ur_type').value, 
+        vin: document.getElementById('ur_vin').value,
+        licensePlate: document.getElementById('ur_plate').value, 
+        plateExpDate: document.getElementById('ur_plate_exp').value,
+        samsaraSerial: document.getElementById('ur_samsara').value, 
+        samsaraLink: document.getElementById('ur_sam_link').value,
+        coast: document.getElementById('ur_coast').value, 
+        reason: document.getElementById('ur_reason').value
+      };
+      
+      document.getElementById('unretire-van-modal').close();
+      
+      // Optimistic UI Update
+      const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if(vIdx > -1) {
+        globalState.vehicles[vIdx].status = 'Warehouse (Ready)'; 
+        globalState.vehicles[vIdx].cleanName = payload.vanName; 
+        globalState.vehicles[vIdx].agency = payload.owner;
+        globalState.vehicles[vIdx].makeModel = payload.makeModel; 
+        globalState.vehicles[vIdx].type = payload.type;
+        globalState.vehicles[vIdx].vin = payload.vin; 
+        globalState.vehicles[vIdx].plate = payload.licensePlate; 
+        globalState.vehicles[vIdx].plateExpDate = payload.plateExpDate || '—'; 
+        globalState.vehicles[vIdx].samsaraSerial = payload.samsaraSerial || ''; 
+        globalState.vehicles[vIdx].samsaraLink = payload.samsaraLink || ''; 
+        globalState.vehicles[vIdx].coast = payload.coast; 
+      }
+      
+      renderGrid();
+      
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display = 'none'; 
+            alert("Error: " + err.message); 
+            loadData(); 
+        })
+        .unretireVehicle(payload);
     }
 
     /* --- DISPATCH ENGINE --- */

@@ -302,3 +302,51 @@ function updateVehicleDetails(formData) {
     throw new Error('Failed to update vehicle details: ' + err.message);
   }
 }
+
+function unretireVehicle(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const vSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    const vData = vSheet.getDataRange().getValues();
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        const row = i + 1;
+        
+        // 1. Reactivate Status
+        vSheet.getRange(row, 10).setValue('Warehouse (Ready)');
+        
+        // 2. Apply Updated Specs
+        if (data.vanName) vSheet.getRange(row, 1).setValue(data.vanName);
+        if (data.owner) vSheet.getRange(row, 3).setValue(data.owner);
+        if (data.makeModel) vSheet.getRange(row, 4).setValue(data.makeModel);
+        if (data.type) vSheet.getRange(row, 21).setValue(data.type);
+        if (data.vin) vSheet.getRange(row, 5).setValue(data.vin);
+        if (data.licensePlate) vSheet.getRange(row, 6).setValue(data.licensePlate);
+        if (data.plateExpDate) vSheet.getRange(row, 7).setValue(data.plateExpDate);
+        if (data.samsaraSerial !== undefined) vSheet.getRange(row, 8).setValue(data.samsaraSerial);
+        if (data.samsaraLink !== undefined) vSheet.getRange(row, 9).setValue(data.samsaraLink);
+        if (data.coast) vSheet.getRange(row, 20).setValue(data.coast);
+        if (data.addons) vSheet.getRange(row, 16).setValue(data.addons);
+        
+        // 3. Append to Lifecycle History (Column Y / Index 25)
+        const tz = Session.getScriptTimeZone();
+        const dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
+        const unretireLog = `UN-RETIRED (${dateStr}) - Reason: ${data.reason}`;
+        
+        const existingNotes = vSheet.getRange(row, 25).getValue();
+        vSheet.getRange(row, 25).setValue((existingNotes ? existingNotes + '\n' : '') + unretireLog);
+        
+        // 4. Stamp Audit 
+        vSheet.getRange(row, 17).setValue(user);
+        vSheet.getRange(row, 18).setValue(now);
+        break;
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    throw new Error('Un-retire failed: ' + err.message);
+  }
+}
