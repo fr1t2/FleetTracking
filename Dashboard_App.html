@@ -785,6 +785,36 @@
     </div>
   </dialog>
 
+<!-- RESTRICTED DRIVER WARNING MODAL -->
+  <dialog id="restricted-driver-modal" style="max-width: 450px; z-index: 1010; border-top: 5px solid var(--oos);">
+    <div class="modal-head" style="color:var(--oos);">⚠️ Driver Restricted</div>
+    <div style="padding: 24px;">
+      <p style="font-size:15px; font-weight:600; margin-top:0;" id="rd-msg">Tech is restricted from operating a vehicle.</p>
+      
+      <div style="background: rgba(255, 59, 48, 0.05); padding: 12px; border-radius: 6px; border: 1px dashed var(--oos); margin-bottom: 20px;">
+        <strong style="font-size:12px; color:var(--oos);">Restriction Reason:</strong>
+        <div id="rd-reason" style="font-size:14px; font-weight:600; margin-top:4px;"></div>
+      </div>
+
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom: 16px;">
+        To dispatch this driver, you must lift the restriction below and provide a resolution note.
+      </p>
+
+      <form onsubmit="submitLiftRestriction(event)">
+        <input type="hidden" id="rd-tech-name">
+        <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Resolution Note / Action Taken *</label>
+          <input type="text" id="rd-lift-note" class="form-control" placeholder="e.g. Cleared by HR, Retraining completed..." required>
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel Dispatch</button>
+          <button class="btn btn-danger" type="submit">Lift Restriction & Assign</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- LOG MAINTENANCE MODAL -->
   <dialog id="log-service-modal" style="max-width: 450px; z-index: 1001;">
     <div class="modal-head">📝 Log Maintenance</div>
@@ -1666,13 +1696,18 @@ function openEditTechModal(techName) {
     function selectDriver(name) {
       const tech = (globalState.techs || []).find(t => t.name === name);
       
-      // CRITICAL UPDATE: Prevent dispatch if restricted!
+      // If the tech is restricted, intercept and show the native modal
       if (tech && tech.restricted) {
-          const reason = tech.notes || "Co-Driver required or administrative hold.";
-          alert(`⚠️ DRIVER RESTRICTED\n\n${tech.name} is restricted from operating a vehicle.\n\nReason: ${reason}\n\nPlease assign a valid primary driver, or lift the restriction in the Tech Profile.`);
-          return; // Blocks the driver from being selected
+          document.getElementById('rd-tech-name').value = tech.name;
+          document.getElementById('rd-msg').innerText = `${tech.name} is restricted from operating a vehicle.`;
+          document.getElementById('rd-reason').innerText = tech.notes || "Administrative hold or Co-Driver only.";
+          document.getElementById('rd-lift-note').value = '';
+          
+          openStackModal('restricted-driver-modal');
+          return; // Stop the assignment process
       }
 
+      // Standard assignment process if NOT restricted
       document.getElementById('vm-selected-tech').value = name;
       document.getElementById('van-modal').dataset.dirty = 'true';
       
@@ -1686,6 +1721,52 @@ function openEditTechModal(techName) {
           sel.style.borderColor = 'var(--veo-cyan-dark)'; 
           sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)'; 
       }
+    }
+
+    function submitLiftRestriction(e) {
+      e.preventDefault();
+      
+      const techName = document.getElementById('rd-tech-name').value;
+      const liftNote = document.getElementById('rd-lift-note').value;
+      const t = (globalState.techs || []).find(x => x.name === techName);
+      
+      if (!t) return;
+      
+      closeCurrentModal(); // Close the restriction warning modal
+      
+      // 1. Optmistic UI Update: Lift the restriction and append the note
+      t.restricted = false;
+      const dateStr = new Date().toLocaleDateString();
+      t.notes = t.notes ? `${t.notes} | Lifted ${dateStr}: ${liftNote}` : `Restriction Lifted ${dateStr}: ${liftNote}`;
+      
+      // 2. Select the driver in the UI now that they are clear
+      document.getElementById('vm-selected-tech').value = techName;
+      document.getElementById('van-modal').dataset.dirty = 'true';
+      
+      document.querySelectorAll('#driver-result-card .driver-card').forEach(c => {
+        c.style.borderColor = 'var(--border-color)'; 
+        c.style.backgroundColor = 'var(--bg-modal-head)';
+      });
+      
+      const sel = document.getElementById('dcard-' + techName.replace(/\s+/g, ''));
+      if(sel) { 
+          sel.style.borderColor = 'var(--veo-cyan-dark)'; 
+          sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)'; 
+          // Strip the red restricted flag visually from the card
+          sel.innerHTML = sel.innerHTML.replace(/RESTRICTED/g, 'CLEARED');
+      }
+
+      // 3. Sync the updated Tech Profile to the backend (re-using your processEditTech logic)
+      const payload = {
+        origName: t.name, name: t.name, phone: t.phone, shift: t.shift,
+        start: t.start, end: t.end, workDays: t.workDays, status: t.status,
+        hrStatus: t.hrStatus, passedTest: t.passedTest, goFast: t.goFast,
+        coast: t.coastEnrolled, evgo: t.evgo, trainer: t.trainer,
+        restricted: false, samsaraViolation: t.samsaraViolation,
+        notes: t.notes, flagged: t.flagged
+      };
+
+      google.script.run.withFailureHandler(err => alert("Error saving restriction lift: " + err.message)).processEditTech(payload);
     }
 
     function searchDriverEdit() {
