@@ -109,3 +109,46 @@ function endShift(payload) {
     throw new Error('End shift failed: ' + err.message);
   }
 }
+
+function updateDeploymentRecord(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const deploySheet = ss.getSheetByName('Deployments');
+    const vehicleSheet = ss.getSheetByName('Vehicles');
+    const now = new Date();
+    const user = Session.getActiveUser().getEmail() || 'local-user';
+
+    // 1. UPDATE DEPLOYMENT LOG
+    const dData = deploySheet.getDataRange().getValues();
+    let dRow = -1;
+    for (let i = 1; i < dData.length; i++) {
+      if (String(dData[i][0]).trim() === String(data.id).trim()) {
+        dRow = i + 1;
+        if (data.assignedTech !== undefined) deploySheet.getRange(dRow, 6).setValue(data.assignedTech);
+        if (data.workZone !== undefined) deploySheet.getRange(dRow, 7).setValue(data.workZone);
+        if (data.goals !== undefined) deploySheet.getRange(dRow, 8).setValue(data.goals);
+        
+        deploySheet.getRange(dRow, 13).setValue(user); // Logged By
+        deploySheet.getRange(dRow, 14).setValue(now);  // Timestamp
+        break;
+      }
+    }
+    if (dRow === -1) throw new Error("Deployment record not found.");
+
+    // 2. UPDATE ACTIVE VEHICLE
+    const vData = vehicleSheet.getDataRange().getValues();
+    for (let i = 1; i < vData.length; i++) {
+      if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
+        const row = i + 1;
+        if (data.workZone !== undefined) vehicleSheet.getRange(row, 13).setValue(data.workZone);
+        if (data.assignedTech !== undefined) vehicleSheet.getRange(row, 14).setValue(data.assignedTech);
+        vehicleSheet.getRange(row, 17).setValue(user);
+        vehicleSheet.getRange(row, 18).setValue(now);
+        break;
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    throw new Error('Update failed: ' + err.toString());
+  }
+}

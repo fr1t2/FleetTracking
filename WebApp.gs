@@ -99,12 +99,19 @@ function getDashboardState() {
       const tRows = tSheet.getRange(2, 1, tSheet.getLastRow() - 1, 17).getValues();
       tRows.forEach(r => {
         if (!r[0]) return;
+        
+        // Strip Google's ugly Epoch date formatting natively before the frontend sees it
+        let rawStart = r[3];
+        let rawEnd = r[4];
+        if (rawStart instanceof Date) rawStart = Utilities.formatDate(rawStart, tz, 'HH:mm');
+        if (rawEnd instanceof Date) rawEnd = Utilities.formatDate(rawEnd, tz, 'HH:mm');
+
         techs.push({
           name: String(r[0]).trim(),
           phone: String(r[1] || '').trim(),
           shift: String(r[2] || '').trim(),
-          start: String(r[3] || '').trim(),
-          end: String(r[4] || '').trim(),
+          start: String(rawStart || '').trim(),
+          end: String(rawEnd || '').trim(),
           workDays: String(r[5] || '').trim(),
           passedTest: (String(r[6] || '').trim().toLowerCase() === 'yes'),
           goFast: (String(r[7] || '').trim().toLowerCase() === 'yes'),

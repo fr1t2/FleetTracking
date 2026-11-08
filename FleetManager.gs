@@ -381,10 +381,12 @@ function processEditTech(data) {
 
     sheet.getRange(row, 1).setValue(data.name);
     sheet.getRange(row, 2).setValue(data.phone);
+
     sheet.getRange(row, 3).setValue(data.shift);
-    sheet.getRange(row, 4).setValue(data.start);
-    sheet.getRange(row, 5).setValue(data.end);
+    sheet.getRange(row, 4).setValue(data.start ? "'" + data.start : ""); // Forces plain text
+    sheet.getRange(row, 5).setValue(data.end ? "'" + data.end : "");     // Forces plain text
     sheet.getRange(row, 6).setValue(data.workDays);
+    
     sheet.getRange(row, 7).setValue(data.passedTest ? 'Yes' : 'No');
     sheet.getRange(row, 8).setValue(data.goFast ? 'Yes' : 'No');
     sheet.getRange(row, 9).setValue(data.restricted ? 'Yes' : 'No');
