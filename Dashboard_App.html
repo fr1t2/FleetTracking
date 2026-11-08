@@ -1114,18 +1114,20 @@
       document.getElementById('dispatch-view').innerHTML = dHtml;
       document.getElementById('vm-footer').innerHTML = footerHtml;
 
-      // DRIVER TAB (FULL 17 FIELDS RECREATED NATIVELY)
+// DRIVER TAB (FULL 17 FIELDS RECREATED NATIVELY)
       if (tech) {
+        const cleanStart = formatTechTime(tech.start);
+        const cleanEnd = formatTechTime(tech.end);
+
         document.getElementById('driver-view').innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
              <h4 style="margin:0; font-size:18px;">${tech.name}</h4>
-             <!-- Notice NO explicit close command for the active modal, native stacking handles this! -->
              <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openEditTechModal('${tech.name}')">✏️ Edit Tech</button>
           </div>
           <div class="spec-grid">
             <div class="spec-item"><div class="spec-label">Phone</div><div class="spec-val">${tech.phone || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">Shift</div><div class="spec-val">${tech.shift || '—'}</div></div>
-            <div class="spec-item"><div class="spec-label">Schedule</div><div class="spec-val">${tech.start || '—'} to ${tech.end || '—'}</div></div>
+            <div class="spec-item"><div class="spec-label">Schedule</div><div class="spec-val">${cleanStart} - ${cleanEnd}</div></div>
             <div class="spec-item"><div class="spec-label">Work Days</div><div class="spec-val">${tech.workDays || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">HR Status</div><div class="spec-val">${tech.hrStatus || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">Current Status</div><div class="spec-val">${tech.status || 'Available'}</div></div>
@@ -1256,7 +1258,7 @@
     }
 
 
-/* --- NEW TECH ROSTER HUB --- */
+    /* --- NEW TECH ROSTER HUB --- */
     function openTechRoster() {
       document.getElementById('tr-search').value = '';
       renderTechRoster();
@@ -1265,17 +1267,27 @@
 
     function formatTechTime(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '?';
-      // Parses "Sat Dec 30 1899 05:30:00 GMT-0700" -> "5:30 AM"
+      // Parses "Sat Dec 30 1899 05:30:00 GMT-0700" -> "5:30am"
       const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
       if (match) {
           let hours = parseInt(match[1], 10);
           const minutes = match[2];
-          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const ampm = hours >= 12 ? 'pm' : 'am';
           hours = hours % 12;
           hours = hours ? hours : 12; 
-          return `${hours}:${minutes} ${ampm}`;
+          return `${hours}:${minutes}${ampm}`;
       }
       return timeStr;
+    }
+
+    // Translates long strings strictly to HH:mm so <input type="time"> will accept it
+    function formatTimeForInput(timeStr) {
+      if (!timeStr || timeStr === '?' || timeStr === '—') return '';
+      const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
+      if (match) {
+          return `${match[1]}:${match[2]}`; // Returns exactly "05:30" or "15:30"
+      }
+      return '';
     }
 
     function renderTechRoster() {
@@ -1330,8 +1342,9 @@ function openEditTechModal(techName) {
       document.getElementById('et_hr').value = t ? t.hrStatus : '';
       document.getElementById('et_shift').value = t ? t.shift : '';
       
-      document.getElementById('et_start').value = t ? t.start : '';
-      document.getElementById('et_end').value = t ? t.end : '';
+      // FIX: Use the formatter to satisfy the strict <input type="time"> requirements
+      document.getElementById('et_start').value = t ? formatTimeForInput(t.start) : '';
+      document.getElementById('et_end').value = t ? formatTimeForInput(t.end) : '';
       
       document.getElementById('et_days').value = t ? t.workDays : '';
       document.getElementById('et_status').value = t ? t.status : 'Available';
