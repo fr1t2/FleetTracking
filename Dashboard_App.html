@@ -342,7 +342,7 @@
       </label>
 
       <button class="btn btn-outline" onclick="openTechRoster()">👥 Tech Roster</button>
-      <button class="btn btn-outline" onclick="document.getElementById('manage-fleet-modal').showModal()">⚙️ Manage Fleet</button>
+      <button class="btn btn-outline" onclick="openStackModal('manage-fleet-modal')">⚙️ Manage Fleet</button>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle">🌙</button>
     </div>
   </div>
@@ -353,7 +353,7 @@
   <dialog id="van-modal">
     <div class="modal-head">
       <span id="vm-title">Van Name</span>
-      <button onclick="document.getElementById('van-modal').close()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
+      <button onclick="closeCurrentModal()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
     </div>
     
     <div class="modal-tabs">
@@ -365,7 +365,6 @@
 
     <div id="tab-dispatch" class="tab-content active">
       <input type="hidden" id="vm-rental-id">
-      <input type="hidden" id="vm-selected-tech">
       <div id="dispatch-view"></div>
     </div>
     <div id="tab-driver" class="tab-content">
@@ -386,7 +385,7 @@
   <dialog id="tech-roster-modal" style="max-width: 900px; z-index: 1001;">
     <div class="modal-head">
       <span>👥 Tech Roster Hub</span>
-      <button onclick="document.getElementById('tech-roster-modal').close()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
+      <button onclick="closeCurrentModal()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
     </div>
     <div style="padding: 24px;">
        <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
@@ -477,7 +476,7 @@
         </div>
         
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-          <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-tech-modal').close()">Cancel</button>
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
           <button class="btn btn-primary" type="submit">Save Profile</button>
         </div>
       </form>
@@ -489,8 +488,8 @@
   <dialog id="manage-fleet-modal" style="max-width: 400px; z-index: 1001;">
     <div class="modal-head">⚙️ Manage Fleet</div>
     <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
-      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="document.getElementById('manage-fleet-modal').close(); document.getElementById('add-van-modal').showModal();">➕ Add New Van</button>
-      <button class="btn btn-outline" style="padding: 16px; font-size: 16px; color: var(--danger); border-color: var(--danger);" onclick="document.getElementById('manage-fleet-modal').close(); openDecomModal();">🛑 Retire Existing Van</button>
+      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="closeCurrentModal(); openStackModal('add-van-modal');">➕ Add New Van</button>
+      <button class="btn btn-outline" style="padding: 16px; font-size: 16px; color: var(--danger); border-color: var(--danger);" onclick="closeCurrentModal(); openDecomModal();">🛑 Retire Existing Van</button>
     </div>
   </dialog>
 
@@ -556,7 +555,6 @@
           </div>
         </div>
 
-
         <div class="row">
           <div class="col form-group">
             <label style="font-size:12px; font-weight:700;">Last Oil Date</label>
@@ -576,9 +574,8 @@
             <input type="text" id="av_notes" class="form-control" placeholder="e.g. Inverter, Shelving, Dents...">
         </div>
         
-
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-          <button class="btn btn-outline" type="button" onclick="document.getElementById('add-van-modal').close()">Cancel</button>
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
           <button class="btn btn-primary" type="submit">Save Van</button>
         </div>
       </form>
@@ -608,7 +605,7 @@
       </div>
       
       <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="document.getElementById('decom-van-modal').close()">Cancel</button>
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
         <button class="btn btn-danger" type="button" onclick="submitDecomVan()">Retire Vehicle</button>
       </div>
     </div>
@@ -683,7 +680,7 @@
         </div>
         
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-          <button class="btn btn-outline" type="button" onclick="document.getElementById('unretire-van-modal').close()">Cancel</button>
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
           <button class="btn btn-success" type="submit">Reactivate Vehicle</button>
         </div>
       </form>
@@ -758,7 +755,7 @@
         </div>
         
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-          <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-vehicle-modal').close()">Cancel</button>
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
           <button class="btn btn-primary" type="submit">Save Changes</button>
         </div>
       </form>
@@ -800,7 +797,7 @@
       </div>
 
       <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-dispatch-modal').close()">Cancel</button>
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
         <button class="btn btn-primary" type="button" onclick="submitEditDispatch()">Save Changes</button>
       </div>
     </div>
@@ -863,7 +860,7 @@
       </label>
       
       <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="document.getElementById('log-service-modal').close()">Cancel</button>
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
         <button class="btn btn-danger" type="button" onclick="submitNewService()">Submit Ticket</button>
       </div>
     </div>
@@ -915,6 +912,7 @@
 
   <script>
     let globalState = null;
+    let modalStack = []; 
 
     function toggleTheme() {
       const isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -944,6 +942,21 @@
             alert("Error loading data: " + err.message);
         })
         .getDashboardState();
+    }
+
+    /* --- SMART MODAL STACK CONTROLLER --- */
+    function openStackModal(modalId) {
+      const dlg = document.getElementById(modalId);
+      if(!dlg) return;
+      modalStack.push(dlg);
+      dlg.showModal();
+    }
+    
+    function closeCurrentModal() {
+      if(modalStack.length === 0) return;
+      const topDlg = modalStack.pop();
+      topDlg.dataset.dirty = 'false';
+      topDlg.close();
     }
 
     function renderGrid() {
@@ -989,7 +1002,6 @@
           const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
           
-          // NEW: Beautifully render the co-driver if one exists
           let coDriverHtml = (dep && dep.coDriver) ? ` <span style="font-size:11px; color:var(--text-muted); font-weight:600;">+ ${dep.coDriver}</span>` : '';
           
           subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}${coDriverHtml}</div>${focusStr}</div>`;
@@ -1067,17 +1079,11 @@
       const tech = (globalState.techs || []).find(t => t.name === (dep ? dep.tech : v.driver));
 
       let dHtml = '';
-      let footerHtml = `<button class="btn btn-outline" type="button" onclick="document.getElementById('van-modal').close()">Close</button>`;
-
-      if (v.status === 'Warehouse (Ready)') {
-        // Generate Shift & Tech options dynamically
-        let shiftOpts = ['First Shift', 'Second Shift', 'Third Shift'].map(s => `<option value="${s}">${s}</option>`).join('');
-        let techOpts = '<option value="">-- No Co-Driver --</option>' + (globalState.techs || []).filter(t => t.status === 'Available').map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+      let footerHtml = `<button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Close</button>`;
 
       if (v.status === 'Warehouse (Ready)') {
         let shiftOpts = ['First Shift', 'Second Shift', 'Third Shift'].map(s => `<option value="${s}">${s}</option>`).join('');
         
-        // Build custom zone checkboxes
         let zoneCheckboxes = (globalState.zones || []).map(z => 
             `<label class="multi-select-option"><input type="checkbox" value="${z}" onchange="updateZoneDisplay()" style="margin-right:8px; transform:scale(1.2);"> ${z}</label>`
         ).join('');
@@ -1173,7 +1179,7 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-outline" type="button" onclick="document.getElementById('edit-dispatch-modal').showModal(); openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
+        footerHtml += `<button class="btn btn-outline" type="button" onclick="openStackModal('edit-dispatch-modal'); openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
         footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
       } else {
         dHtml = `<div style="padding:20px; background:rgba(255, 59, 48, 0.1); color:var(--danger); border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
@@ -1182,9 +1188,7 @@
       document.getElementById('dispatch-view').innerHTML = dHtml;
       document.getElementById('vm-footer').innerHTML = footerHtml;
 
-      // DRIVER TAB (FULL 17 FIELDS RECREATED NATIVELY)
       if (tech) {
-        // Run the time through the formatter to get clean AM/PM output
         const cleanStart = formatTechTime(tech.start);
         const cleanEnd = formatTechTime(tech.end);
 
@@ -1198,7 +1202,6 @@
             <div class="spec-item"><div class="spec-label">Shift</div><div class="spec-val">${tech.shift || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">Schedule</div><div class="spec-val">${cleanStart} - ${cleanEnd}</div></div>
             <div class="spec-item"><div class="spec-label">Work Days</div><div class="spec-val">${tech.workDays || '—'}</div></div>
-
             <div class="spec-item"><div class="spec-label">HR Status</div><div class="spec-val">${tech.hrStatus || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">Current Status</div><div class="spec-val">${tech.status || 'Available'}</div></div>
             
@@ -1234,7 +1237,7 @@
       document.getElementById('specs-view').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h4 style="margin:0; font-size:16px;">Vehicle Specifications</h4>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="document.getElementById('edit-vehicle-modal').showModal(); openEditVehicleModal('${v.rentalId}')">✏️ Edit Specs</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openStackModal('edit-vehicle-modal'); openEditVehicleModal('${v.rentalId}')">✏️ Edit Specs</button>
         </div>
         
         <div class="spec-grid">
@@ -1276,9 +1279,9 @@
 
       let lifecycleBtn = '';
       if (v.status === 'Decommissioned') {
-          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="document.getElementById('unretire-van-modal').showModal(); openUnretireModal('${rentalId}')">🔄 Bring Back to Service</button>`;
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openStackModal('unretire-van-modal'); openUnretireModal('${rentalId}')">🔄 Bring Back to Service</button>`;
       } else {
-          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="document.getElementById('decom-van-modal').showModal(); openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>`;
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openStackModal('decom-van-modal'); openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>`;
       }
 
       document.getElementById('service-view').innerHTML = `
@@ -1301,7 +1304,7 @@
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Open Tickets</strong>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="document.getElementById('log-service-modal').showModal(); openLogService('${rentalId}', '${v.cleanName}')">➕ Report New Issue</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openStackModal('log-service-modal'); openLogService('${rentalId}', '${v.cleanName}')">➕ Report New Issue</button>
         </div>
         <div style="margin-bottom:16px;">
           ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
@@ -1324,20 +1327,22 @@
       
       const vm = document.getElementById('van-modal');
       vm.dataset.dirty = 'false';
-      vm.showModal();
+      
+      // Smart Stack Engine check
+      if (modalStack.indexOf(vm) === -1) {
+          openStackModal('van-modal');
+      }
     }
-
-
+  
     /* --- NEW TECH ROSTER HUB --- */
     function openTechRoster() {
       document.getElementById('tr-search').value = '';
       renderTechRoster();
-      document.getElementById('tech-roster-modal').showModal();
+      openStackModal('tech-roster-modal');
     }
 
     function formatTechTime(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '?';
-      // Parses "Sat Dec 30 1899 05:30:00 GMT-0700" -> "5:30am"
       const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
       if (match) {
           let hours = parseInt(match[1], 10);
@@ -1350,12 +1355,11 @@
       return timeStr;
     }
 
-    // Translates long strings strictly to HH:mm so <input type="time"> will accept it
     function formatTimeForInput(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '';
       const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
       if (match) {
-          return `${match[1]}:${match[2]}`; // Returns exactly "05:30" or "15:30"
+          return `${match[1]}:${match[2]}`;
       }
       return '';
     }
@@ -1364,7 +1368,6 @@
       const q = document.getElementById('tr-search').value.toLowerCase();
       let ts = [...(globalState.techs || [])];
       
-      // Auto-Sort: Active first, then Shift, then Start Time
       ts.sort((a,b) => {
          const wA = (a.status === 'Available') ? 1 : 2;
          const wB = (b.status === 'Available') ? 1 : 2;
@@ -1412,7 +1415,6 @@
       document.getElementById('et_hr').value = t ? t.hrStatus : '';
       document.getElementById('et_shift').value = t ? t.shift : '';
       
-      // FIX: Use the formatter to satisfy the strict <input type="time"> requirements
       document.getElementById('et_start').value = t ? formatTimeForInput(t.start) : '';
       document.getElementById('et_end').value = t ? formatTimeForInput(t.end) : '';
 
@@ -1432,7 +1434,7 @@
 
       const etm = document.getElementById('edit-tech-modal');
       etm.dataset.dirty = 'false';
-      etm.showModal(); // Opens perfectly over the previous modal
+      openStackModal('edit-tech-modal'); 
     }
 
     function submitEditTech(e) {
@@ -1441,7 +1443,6 @@
       const isRestricted = document.getElementById('et_restricted').checked;
       const notes = document.getElementById('et_notes').value;
       
-      // Enforce note requirement for restricted drivers
       if (isRestricted && notes.trim() === '') {
           alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
           return;
@@ -1468,7 +1469,7 @@
         flagged: document.getElementById('et_flag').value
       };
 
-      document.getElementById('edit-tech-modal').close(); 
+      closeCurrentModal(); 
       
       let tIdx = globalState.techs.findIndex(t => t.name === payload.origName);
       if(tIdx > -1) {
@@ -1477,7 +1478,6 @@
          globalState.techs.push(payload);
       }
       
-      // Refresh the Hub if it's open beneath
       const techRoster = document.getElementById('tech-roster-modal');
       if (techRoster && techRoster.open) {
           renderTechRoster();
@@ -1493,8 +1493,7 @@
         .processEditTech(payload);
     }
 
-
-    /* --- FLEET MANAGEMENT (Rebuilt to Stack Cleanly) --- */
+    /* --- FLEET MANAGEMENT --- */
     function openAddVanModal() {
       document.getElementById('av_name').value = ''; 
       document.getElementById('av_rental').value = '';
@@ -1544,12 +1543,12 @@
         samsaraLink: document.getElementById('av_sam_link').value,
         coast: document.getElementById('av_coast').value, 
         notes: document.getElementById('av_notes').value,
-        lastOil: document.getElementById('av_oil_date').value,      // NEW
-        lastOilMiles: document.getElementById('av_oil_miles').value, // NEW
-        lastTires: document.getElementById('av_tires_date').value    // NEW
+        lastOil: document.getElementById('av_oil_date').value,      
+        lastOilMiles: document.getElementById('av_oil_miles').value, 
+        lastTires: document.getElementById('av_tires_date').value    
       };
       
-      document.getElementById('add-van-modal').close();
+      closeCurrentModal();
       
       globalState.vehicles.push({
         cleanName: p.vanName, 
@@ -1636,7 +1635,7 @@
         addons: document.getElementById('ev_notes').value
       };
       
-      document.getElementById('edit-vehicle-modal').close();
+      closeCurrentModal();
       
       const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
       if(vIdx > -1) {
@@ -1703,9 +1702,12 @@
       
       if (!p.reason) { alert('Please provide a reason for retirement.'); return; }
       
-      document.getElementById('decom-van-modal').close();
+      closeCurrentModal();
       const vm = document.getElementById('van-modal');
-      if(vm && vm.open) vm.close(); // Hard close base modal if retiring active card
+      if(vm && vm.open) {
+          vm.dataset.dirty = 'false';
+          vm.close(); 
+      }
       
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { 
@@ -1776,9 +1778,12 @@
         reason: document.getElementById('ur_reason').value
       };
       
-      document.getElementById('unretire-van-modal').close();
+      closeCurrentModal();
       const vm = document.getElementById('van-modal');
-      if(vm && vm.open) vm.close(); // Hard close base modal if un-retiring active card
+      if(vm && vm.open) {
+          vm.dataset.dirty = 'false';
+          vm.close(); 
+      }
       
       const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
       if(vIdx > -1) {
@@ -1817,7 +1822,7 @@
       container.style.display = 'block';
 
       if (q.length < 1 && type === 'primary') {
-          // Keep dropdown open but show all available if they just click in
+          // Allow empty click to show dropdown
       }
 
       const matches = (globalState.techs || []).filter(t => t.status === 'Available' && t.name.toLowerCase().includes(q));
@@ -1840,7 +1845,6 @@
           `;
         }).join('');
         
-        // Add a "Clear" option for co-driver
         if (type === 'codriver') {
              container.innerHTML = `<div class="driver-card" onmousedown="selectDriver('', 'codriver')" style="margin:0 0 6px 0; text-align:center; font-style:italic;">-- Clear Co-Driver --</div>` + container.innerHTML;
         }
@@ -1853,7 +1857,6 @@
     function selectDriver(name, type) {
       const tech = (globalState.techs || []).find(t => t.name === name);
       
-      // Prevent restricted dispatch for primary drivers
       if (type === 'primary' && tech && tech.restricted) {
           document.getElementById('rd-tech-name').value = tech.name;
           document.getElementById('rd-msg').innerText = `${tech.name} is restricted from operating a vehicle.`;
@@ -1867,13 +1870,11 @@
       const hiddenId = type === 'primary' ? 'vm-selected-tech' : 'vm-selected-codriver';
       const resultId = type === 'primary' ? 'driver-result-card' : 'codriver-result-card';
       
-      // Update hidden storage AND visible input
       document.getElementById(hiddenId).value = name;
       document.getElementById(inputId).value = name;
       document.getElementById(resultId).style.display = 'none';
       document.getElementById('van-modal').dataset.dirty = 'true';
       
-      // Auto-select shift if they chose a Primary driver
       if (type === 'primary' && tech && tech.shift) {
           const shiftEl = document.getElementById('sel-shift');
           if (shiftEl && Array.from(shiftEl.options).some(opt => opt.value === tech.shift)) {
@@ -1883,7 +1884,6 @@
     }
 
     function handleDriverBlur(type) {
-      // Revert the search box to the officially selected tech if they click away without selecting
       setTimeout(() => {
           const inputId = type === 'primary' ? 'live-driver-search' : 'live-codriver-search';
           const hiddenId = type === 'primary' ? 'vm-selected-tech' : 'vm-selected-codriver';
@@ -1903,19 +1903,16 @@
       
       if (!t) return;
       
-      closeCurrentModal(); // Close the restriction warning modal
+      closeCurrentModal(); 
       
-      // 1. Optmistic UI Update: Lift the restriction and append the note
       t.restricted = false;
       const dateStr = new Date().toLocaleDateString();
       t.notes = t.notes ? `${t.notes} | Lifted ${dateStr}: ${liftNote}` : `Restriction Lifted ${dateStr}: ${liftNote}`;
       
-      // 2. Select the driver in the UI now that they are clear
       document.getElementById('vm-selected-tech').value = techName;
       document.getElementById('live-driver-search').value = techName;
       document.getElementById('van-modal').dataset.dirty = 'true';
       
-      // Auto-populate the shift
       if (t.shift) {
           const shiftEl = document.getElementById('sel-shift');
           if (shiftEl && Array.from(shiftEl.options).some(opt => opt.value === t.shift)) {
@@ -1923,20 +1920,13 @@
           }
       }
       
-      document.querySelectorAll('#driver-result-card .driver-card').forEach(c => {
-        c.style.borderColor = 'var(--border-color)'; 
-        c.style.backgroundColor = 'var(--bg-modal-head)';
-      });
-      
       const sel = document.getElementById('dcard-' + techName.replace(/\s+/g, ''));
       if(sel) { 
           sel.style.borderColor = 'var(--veo-cyan-dark)'; 
           sel.style.backgroundColor = 'rgba(0, 229, 255, 0.05)'; 
-          // Strip the red restricted flag visually from the card
           sel.innerHTML = sel.innerHTML.replace(/RESTRICTED/g, 'CLEARED');
       }
 
-      // 3. Sync the updated Tech Profile to the backend 
       const payload = {
         origName: t.name, name: t.name, phone: t.phone, shift: t.shift,
         start: t.start, end: t.end, workDays: t.workDays, status: t.status,
@@ -1967,41 +1957,6 @@
         container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px;">No matching drivers found.</div>`;
       }
     }
-
-    function openEditTechModal(techName) {
-      const t = (globalState.techs || []).find(x => x.name === techName);
-      
-      document.getElementById('et_orig_name').value = techName;
-      document.getElementById('et_name').value = t ? t.name : '';
-      document.getElementById('et_phone').value = t ? t.phone : '';
-      document.getElementById('et_hr').value = t ? t.hrStatus : '';
-      document.getElementById('et_shift').value = t ? t.shift : '';
-      
-      // Convert standard time to HTML time input friendly format if needed, or leave as string
-      document.getElementById('et_start').value = t ? t.start : '';
-      document.getElementById('et_end').value = t ? t.end : '';
-      
-      document.getElementById('et_days').value = t ? t.workDays : '';
-      document.getElementById('et_status').value = t ? t.status : 'Available';
-      
-      document.getElementById('et_test').checked = t ? t.passedTest : false;
-      document.getElementById('et_gofast').checked = t ? t.goFast : false;
-      document.getElementById('et_coast').checked = t ? t.coastEnrolled : false;
-      document.getElementById('et_evgo').checked = t ? t.evgo : false;
-      document.getElementById('et_trainer').checked = t ? t.trainer : false;
-      document.getElementById('et_restricted').checked = t ? t.restricted : false;
-      document.getElementById('et_samsara').checked = t ? t.samsaraViolation : false;
-      
-      document.getElementById('et_notes').value = t ? t.notes : '';
-      document.getElementById('et_flag').value = t ? t.flagged : '';
-
-      const etm = document.getElementById('edit-tech-modal');
-      etm.dataset.dirty = 'false';
-      
-      // Natively stack the modal.
-      etm.showModal();
-    }
-
 
     function selectDriverEdit(name) {
       document.getElementById('ed-selected-tech').value = name;
@@ -2058,7 +2013,7 @@
         goals: document.getElementById('ed-focus').value
       };
       
-      document.getElementById('edit-dispatch-modal').close();
+      closeCurrentModal();
       
       const d = globalState.deployments.find(x => x.id === payload.id);
       if (d) { 
@@ -2091,7 +2046,6 @@
       
       const rentalId = document.getElementById('vm-rental-id').value;
       
-      // Extract from custom checkboxes
       const zoneCheckboxes = document.getElementById('zone-dropdown').querySelectorAll('input[type="checkbox"]:checked');
       const workZone = Array.from(zoneCheckboxes).map(cb => cb.value).join(', ');
       
@@ -2117,7 +2071,11 @@
       };
       
       const vm = document.getElementById('van-modal');
-      if (vm) { vm.dataset.dirty = 'false'; vm.close(); }
+      if (vm) { 
+          vm.dataset.dirty = 'false';
+          modalStack = []; // Reset stack
+          vm.close(); 
+      }
 
       (globalState.vehicles || []).forEach(v => {
         if (v.status === 'Dispatched' && v.driver === tech && v.rentalId !== rentalId) {
@@ -2131,7 +2089,7 @@
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { 
           v.status = 'Dispatched'; 
-          v.driver = payload.assignedTech; 
+          v.driver = payload.coDriver ? `${payload.assignedTech} & ${payload.coDriver}` : payload.assignedTech; 
           v.zone = payload.workZone; 
       }
       
@@ -2163,7 +2121,12 @@
       const rentalId = document.getElementById('vm-rental-id').value;
       const payload = { deploymentId: depId, rentalId: rentalId };
       
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      if(vm) {
+          vm.dataset.dirty = 'false';
+          modalStack = [];
+          vm.close();
+      }
       
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { 
@@ -2191,7 +2154,12 @@
       const rentalId = document.getElementById('vm-rental-id').value;
       const payload = { rentalId: rentalId };
       
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      if(vm) {
+          vm.dataset.dirty = 'false';
+          modalStack = [];
+          vm.close();
+      }
       
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { 
@@ -2242,7 +2210,6 @@
       }
     }
     
-    // Globally close the zone dropdown if clicked outside
     document.addEventListener('click', function(e) {
       const container = document.querySelector('.multi-select-container');
       if (container && !container.contains(e.target)) {
@@ -2250,7 +2217,6 @@
           if (dd) dd.style.display = 'none';
       }
     });
-
 
     /* --- SERVICE ENGINE --- */
     function openLogService(rentalId, cleanName) {
@@ -2270,7 +2236,7 @@
       
       const lsm = document.getElementById('log-service-modal');
       lsm.dataset.dirty = 'false'; 
-      lsm.showModal();
+      openStackModal('log-service-modal');
     }
 
     function submitNewService() {
@@ -2286,7 +2252,7 @@
         isOos: isOos
       };
       
-      document.getElementById('log-service-modal').close();
+      closeCurrentModal();
       
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) {
@@ -2327,7 +2293,12 @@
       const notes = document.getElementById('res-' + incId).value;
       if (!notes) { alert('Please enter resolution notes to close the issue.'); return; }
       
-      document.getElementById('van-modal').close();
+      const vm = document.getElementById('van-modal');
+      if(vm) {
+          vm.dataset.dirty = 'false';
+          modalStack = [];
+          vm.close();
+      }
       
       const inc = globalState.incidents.find(i => i.id === incId);
       if (inc) inc.dateResolved = new Date().toISOString();
@@ -2353,56 +2324,61 @@
         .closeServiceIssue({ incidentId: incId, rentalId: rentalId, resolutionNotes: notes });
     }
 
-/* --- NATIVE MODAL CLICK-OFF PROTECTION --- */
+    /* --- NATIVE MODAL CLICK-OFF PROTECTION --- */
     let pendingCloseDialog = null;
 
     document.querySelectorAll('dialog').forEach(dlg => {
-      // Define which modals are just "Hubs" and should NEVER trigger unsaved warnings
       const isHubModal = ['van-modal', 'tech-roster-modal', 'manage-fleet-modal', 'unsaved-modal'].includes(dlg.id);
       
-      // Only track typing/changes if it is an actual form
       if (!isHubModal) {
         dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
         dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       }
       
       dlg.addEventListener('click', (e) => {
-        // e.target === dlg ensures we only trigger when clicking the dark background (backdrop)
         if (e.target === dlg) {
           if (dlg.id === 'unsaved-modal') { 
               dlg.close(); 
               return; 
           }
-          // If it's a form with unsaved changes, warn the user. Otherwise, just close it.
           if (!isHubModal && dlg.dataset.dirty === 'true') { 
               pendingCloseDialog = dlg;
               document.getElementById('unsaved-modal').showModal(); 
           } else { 
-              dlg.close(); 
+              if (isHubModal && dlg.id !== 'unsaved-modal') {
+                  modalStack = []; // Reset stack if user explicitly clicks off a base hub
+              }
+              closeCurrentModal(); 
           }
         }
       });
     });
-
+ 
     function forceCloseModal() {
       if (pendingCloseDialog) { 
+          pendingCloseDialog.dataset.dirty = 'false';
+          
+          const index = modalStack.indexOf(pendingCloseDialog);
+          if (index > -1) {
+              modalStack.splice(index, 1);
+          }
+          
           pendingCloseDialog.close(); 
-          pendingCloseDialog.dataset.dirty = 'false'; 
           pendingCloseDialog = null; 
       }
       document.getElementById('unsaved-modal').close();
     }
 
-function openLogOilModal(rentalId) {
+    function openLogOilModal(rentalId) {
       document.getElementById('lo_rental_id').value = rentalId;
-      document.getElementById('lo_date').value = new Date().toISOString().split('T')[0]; // Default to today
+      document.getElementById('lo_date').value = new Date().toISOString().split('T')[0]; 
       document.getElementById('lo_miles').value = '';
       openStackModal('log-oil-modal');
     }
 
     function openLogTiresModal(rentalId) {
       document.getElementById('lt_rental_id').value = rentalId;
-      document.getElementById('lt_date').value = new Date().toISOString().split('T')[0]; // Default to today
+      document.getElementById('lt_date').value = new Date().toISOString().split('T')[0]; 
       openStackModal('log-tires-modal');
     }
 
@@ -2414,14 +2390,13 @@ function openLogOilModal(rentalId) {
         payload.rentalId = document.getElementById('lo_rental_id').value;
         payload.date = document.getElementById('lo_date').value;
         payload.miles = document.getElementById('lo_miles').value;
-        document.getElementById('log-oil-modal').close();
       } else {
         payload.rentalId = document.getElementById('lt_rental_id').value;
         payload.date = document.getElementById('lt_date').value;
-        document.getElementById('log-tires-modal').close();
       }
 
-      // Optimistic Update
+      closeCurrentModal();
+
       const v = globalState.vehicles.find(x => x.rentalId === payload.rentalId);
       if (v) {
         if (type === 'oil') {
@@ -2432,7 +2407,6 @@ function openLogOilModal(rentalId) {
         }
       }
 
-      // Refresh the Van Modal beneath it
       if (document.getElementById('van-modal').open) {
           openVanModal(payload.rentalId); 
       }
