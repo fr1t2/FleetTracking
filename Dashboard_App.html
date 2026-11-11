@@ -986,7 +986,10 @@
           const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
           
-          subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}</div>${focusStr}</div>`;
+          // NEW: Beautifully render the co-driver if one exists
+          let coDriverHtml = (dep && dep.coDriver) ? ` <span style="font-size:11px; color:var(--text-muted); font-weight:600;">+ ${dep.coDriver}</span>` : '';
+          
+          subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}${coDriverHtml}</div>${focusStr}</div>`;
           
           let rawZone = v.zone || '';
           let displayZone = '';
@@ -1062,23 +1065,51 @@
 
       let dHtml = '';
       let footerHtml = `<button class="btn btn-outline" type="button" onclick="document.getElementById('van-modal').close()">Close</button>`;
-      
+
       if (v.status === 'Warehouse (Ready)') {
+        // Generate Shift & Tech options dynamically
+        let shiftOpts = ['First Shift', 'Second Shift', 'Third Shift'].map(s => `<option value="${s}">${s}</option>`).join('');
+        let techOpts = '<option value="">-- No Co-Driver --</option>' + (globalState.techs || []).filter(t => t.status === 'Available').map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+
         dHtml = `
           <div style="margin-bottom:16px;">
-            <label style="font-size:12px; font-weight:700;">Assign Driver (Search Tech Roster)</label>
-            <input type="text" id="live-driver-search" class="form-control" placeholder="Type name..." onkeyup="searchDriver()">
-            <div id="driver-result-card" style="margin-bottom:12px; max-height:200px; overflow-y:auto;"></div>
+            <label style="font-size:12px; font-weight:700;">Assign Primary Driver *</label>
+            <input type="text" id="live-driver-search" class="form-control" placeholder="Type name to search..." onkeyup="searchDriver()">
+            <div id="driver-result-card" style="margin-bottom:12px; max-height:150px; overflow-y:auto;"></div>
           </div>
+          
+          <div class="row">
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Shift</label>
+              <select id="sel-shift" class="form-control">${shiftOpts}</select>
+            </div>
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Co-Driver / Trainee</label>
+              <select id="sel-codriver" class="form-control">${techOpts}</select>
+            </div>
+          </div>
+          
+          <div class="row" style="align-items:center;">
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">E-Key Number</label>
+              <input type="text" id="sel-ekey" class="form-control" placeholder="e.g. 1234">
+            </div>
+            <div class="col form-group" style="padding-top:12px;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="sel-training" style="transform:scale(1.2);"> Training Shift
+              </label>
+            </div>
+          </div>
+
           <div class="row">
             <div class="col form-group">
               <label style="font-size:12px; font-weight:700;">Zone(s)</label>
-              <select id="sel-zone" class="form-control" multiple style="height:90px;">
+              <select id="sel-zone" class="form-control" multiple style="height:70px;">
                 ${(globalState.zones || []).map(z=>`<option value="${z}">${z}</option>`).join('')}
               </select>
             </div>
             <div class="col form-group">
-              <label style="font-size:12px; font-weight:700;">Shift Focus</label>
+              <label style="font-size:12px; font-weight:700;">Primary Shift Focus</label>
               <select id="sel-focus" class="form-control">
                 <option value="">-- Select --</option>
                 <option value="Battery Swap">Battery Swap</option>
@@ -1086,9 +1117,24 @@
                 <option value="Retrieval">Retrieval</option>
                 <option value="Standard Route">Standard Route</option>
               </select>
-              <label style="font-size:12px; font-weight:700; margin-top:8px;">Batteries Out</label>
-              <input type="number" id="sel-batt" class="form-control" placeholder="0">
             </div>
+          </div>
+
+          <label style="font-size:12px; font-weight:700; margin-top:12px; display:block;">Action Targets (Hover for details)</label>
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:16px;">
+             <div title="Damaged"><label style="font-size:10px; font-weight:700;">DM</label><input type="number" id="tgt-dm" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Error"><label style="font-size:10px; font-weight:700;">ER</label><input type="number" id="tgt-er" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="IOT Battery"><label style="font-size:10px; font-weight:700;">IB</label><input type="number" id="tgt-ib" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Idle"><label style="font-size:10px; font-weight:700;">ID</label><input type="number" id="tgt-id" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Low Battery"><label style="font-size:10px; font-weight:700;">LB</label><input type="number" id="tgt-lb" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Offline"><label style="font-size:10px; font-weight:700;">OF</label><input type="number" id="tgt-of" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Retrieval"><label style="font-size:10px; font-weight:700;">RT</label><input type="number" id="tgt-rt" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Ticket"><label style="font-size:10px; font-weight:700;">TK</label><input type="number" id="tgt-tk" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+          </div>
+          
+          <div class="form-group">
+            <label style="font-size:12px; font-weight:700;">Dispatch Notes</label>
+            <textarea id="sel-notes" class="form-control" rows="2" placeholder="e.g. Special instructions, access codes..."></textarea>
           </div>
         `;
         footerHtml += `<button class="btn btn-primary" type="button" onclick="submitDispatch()">🚀 Dispatch Now</button>`;
@@ -1130,7 +1176,7 @@
             <div class="spec-item"><div class="spec-label">Shift</div><div class="spec-val">${tech.shift || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">Schedule</div><div class="spec-val">${cleanStart} - ${cleanEnd}</div></div>
             <div class="spec-item"><div class="spec-label">Work Days</div><div class="spec-val">${tech.workDays || '—'}</div></div>
-          
+
             <div class="spec-item"><div class="spec-label">HR Status</div><div class="spec-val">${tech.hrStatus || '—'}</div></div>
             <div class="spec-item"><div class="spec-label">Current Status</div><div class="spec-val">${tech.status || 'Available'}</div></div>
             
@@ -1778,20 +1824,25 @@ function openEditTechModal(techName) {
     function selectDriver(name) {
       const tech = (globalState.techs || []).find(t => t.name === name);
       
-      // If the tech is restricted, intercept and show the native modal
       if (tech && tech.restricted) {
           document.getElementById('rd-tech-name').value = tech.name;
           document.getElementById('rd-msg').innerText = `${tech.name} is restricted from operating a vehicle.`;
           document.getElementById('rd-reason').innerText = tech.notes || "Administrative hold or Co-Driver only.";
           document.getElementById('rd-lift-note').value = '';
-          
           openStackModal('restricted-driver-modal');
-          return; // Stop the assignment process
+          return; 
       }
 
-      // Standard assignment process if NOT restricted
       document.getElementById('vm-selected-tech').value = name;
       document.getElementById('van-modal').dataset.dirty = 'true';
+      
+      // NEW: Auto-select their default shift if they have one assigned
+      if (tech && tech.shift) {
+          const shiftEl = document.getElementById('sel-shift');
+          if (shiftEl && Array.from(shiftEl.options).some(opt => opt.value === tech.shift)) {
+              shiftEl.value = tech.shift;
+          }
+      }
       
       document.querySelectorAll('#driver-result-card .driver-card').forEach(c => {
         c.style.borderColor = 'var(--border-color)'; 
@@ -1997,23 +2048,32 @@ function openEditTechModal(techName) {
       const payload = {
         rentalId: rentalId, 
         assignedTech: tech, 
+        coDriver: document.getElementById('sel-codriver').value,
+        shift: document.getElementById('sel-shift').value,
+        isTraining: document.getElementById('sel-training').checked,
+        eKey: document.getElementById('sel-ekey').value,
         workZone: workZone,
         goals: document.getElementById('sel-focus') ? document.getElementById('sel-focus').value : '',
-        batteryTarget: document.getElementById('sel-batt') ? document.getElementById('sel-batt').value : '', 
-        shift: 'First Shift'
+        dispatchNotes: document.getElementById('sel-notes').value,
+        
+        // Goals (Action Targets)
+        tgtDM: document.getElementById('tgt-dm').value,
+        tgtER: document.getElementById('tgt-er').value,
+        tgtIB: document.getElementById('tgt-ib').value,
+        tgtID: document.getElementById('tgt-id').value,
+        tgtLB: document.getElementById('tgt-lb').value,
+        tgtOF: document.getElementById('tgt-of').value,
+        tgtRT: document.getElementById('tgt-rt').value,
+        tgtTK: document.getElementById('tgt-tk').value
       };
       
       const vm = document.getElementById('van-modal');
-      if (vm) { 
-          vm.dataset.dirty = 'false'; 
-          vm.close(); 
-      }
+      if (vm) { vm.dataset.dirty = 'false'; vm.close(); }
 
       (globalState.vehicles || []).forEach(v => {
         if (v.status === 'Dispatched' && v.driver === tech && v.rentalId !== rentalId) {
           v.status = 'Warehouse (Ready)'; 
-          v.driver = '—'; 
-          v.zone = '—';
+          v.driver = '—'; v.zone = '—';
           const oldDep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
           if (oldDep) oldDep.status = 'Completed';
         }
@@ -2030,9 +2090,9 @@ function openEditTechModal(techName) {
           id: 'temp-' + Date.now(), 
           rentalId: rentalId, 
           tech: payload.assignedTech, 
+          coDriver: payload.coDriver,
           zone: payload.workZone, 
           goals: payload.goals, 
-          battery: payload.batteryTarget, 
           status: 'Dispatched', 
           departureTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
       });

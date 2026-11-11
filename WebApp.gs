@@ -128,14 +128,14 @@ function getDashboardState() {
       });
     }
 
-    // 4. Fetch Deployments (21 Columns)
+    // 4. Fetch Deployments (29 Columns to AC)
     const deployments = [];
     if (dSheet && dSheet.getLastRow() > 1) {
       const dData = dSheet.getDataRange().getValues();
       const startRow = Math.max(1, dData.length - 200); // Only pull latest 200 for speed
       for (let i = startRow; i < dData.length; i++) {
         const r = dData[i];
-        while (r.length < 21) r.push('');
+        while (r.length < 29) r.push(''); // Pad array to reach AC
         if (!r[0]) continue;
         
         let depDate = (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1] || '').split(' ')[0];
@@ -155,8 +155,20 @@ function getDashboardState() {
           status: String(r[9] || 'Dispatched'), 
           departureTime: timeOut, 
           returnTime: timeIn,
+          
           coDriver: String(r[14] || ''), 
-          isTraining: String(r[15] || '') === 'Yes'
+          isTraining: String(r[15] || '') === 'Yes',
+          eKey: String(r[16] || ''),
+          dispatchNotes: String(r[19] || ''),
+          
+          tgtDM: String(r[21] || ''),
+          tgtER: String(r[22] || ''),
+          tgtIB: String(r[23] || ''),
+          tgtID: String(r[24] || ''),
+          tgtLB: String(r[25] || ''),
+          tgtOF: String(r[26] || ''),
+          tgtRT: String(r[27] || ''),
+          tgtTK: String(r[28] || '')
         });
       }
     }

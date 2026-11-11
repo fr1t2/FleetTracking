@@ -8,7 +8,6 @@ function processDispatchCheckout(data) {
     const deployId = 'DEP-' + Utilities.getUuid().substring(0, 6).toUpperCase();
 
     // 1. AUTO-RESOLVE CONFLICTS (Enforce single-van/single-driver rules)
-    // If the tech is already driving a DIFFERENT van, end that shift and release the old van.
     const dData = deploySheet.getDataRange().getValues();
     const vData = vehicleSheet.getDataRange().getValues();
     
@@ -20,18 +19,16 @@ function processDispatchCheckout(data) {
         const targetRental = String(data.rentalId).trim().toLowerCase();
         const targetLead = String(data.assignedTech).trim().toLowerCase();
 
-        // If the tech is already out, but in a different van
+        // If the primary tech is already out in a DIFFERENT van, resolve it
         if (lead === targetLead && depRental !== targetRental) {
-          // Complete the old conflicting shift
           deploySheet.getRange(j + 1, 10).setValue('Completed');
-          deploySheet.getRange(j + 1, 12).setValue(now); // Return Time
+          deploySheet.getRange(j + 1, 12).setValue(now);
           
-          // Reset that old van back to Warehouse (Ready)
           for (let k = 1; k < vData.length; k++) {
             if (String(vData[k][1]).trim().toLowerCase() === depRental) {
               vehicleSheet.getRange(k + 1, 10).setValue('Warehouse (Ready)');
-              vehicleSheet.getRange(k + 1, 13).clearContent(); // Clear Zone
-              vehicleSheet.getRange(k + 1, 14).clearContent(); // Clear Driver
+              vehicleSheet.getRange(k + 1, 13).clearContent(); 
+              vehicleSheet.getRange(k + 1, 14).clearContent(); 
               break;
             }
           }
@@ -39,14 +36,43 @@ function processDispatchCheckout(data) {
       }
     }
 
-    // 2. LOG NEW DEPLOYMENT
+    // 2. BUILD THE PAYLOAD ARRAY (29 Columns wide to reach AC)
     let fullGoals = data.focusCategory ? `[${data.focusCategory}] ${data.goals || ''}` : (data.goals || '');
 
-    deploySheet.appendRow([
-      deployId, now, data.shift || 'First Shift', data.cleanName, data.rentalId,
-      data.assignedTech, data.workZone, fullGoals, data.batteryTarget || '',
-      'Dispatched', now, '', user, now, data.coDriver || '', data.isTraining ? 'Yes' : 'No'
-    ]);
+    const rowData = [];
+    rowData[0] = deployId;                      // Col A (0): ID
+    rowData[1] = now;                           // Col B (1): Date
+    rowData[2] = data.shift || 'First Shift';   // Col C (2): Shift
+    rowData[3] = data.cleanName;                // Col D (3): Vehicle Name
+    rowData[4] = data.rentalId;                 // Col E (4): Rental ID
+    rowData[5] = data.assignedTech;             // Col F (5): Primary Tech
+    rowData[6] = data.workZone;                 // Col G (6): Zone
+    rowData[7] = fullGoals;                     // Col H (7): Goals (Legacy/Combo)
+    rowData[8] = data.batteryTarget || '';      // Col I (8): Battery Target
+    rowData[9] = 'Dispatched';                  // Col J (9): Status
+    rowData[10] = now;                          // Col K (10): Time Out
+    rowData[11] = '';                           // Col L (11): Time In
+    rowData[12] = user;                         // Col M (12): Logged By
+    rowData[13] = now;                          // Col N (13): Timestamp
+    rowData[14] = data.coDriver || '';          // Col O (14): Co-Driver
+    rowData[15] = data.isTraining ? 'Yes' : 'No';// Col P (15): Is Training
+    rowData[16] = data.eKey || '';              // Col Q (16): E-Key Number
+    rowData[17] = '';                           // Col R (17): (Unused)
+    rowData[18] = '';                           // Col S (18): (Unused)
+    rowData[19] = data.dispatchNotes || '';     // Col T (19): Dispatch Notes
+    rowData[20] = '';                           // Col U (20): (Unused)
+    rowData[21] = data.tgtDM || '';             // Col V (21): Damaged
+    rowData[22] = data.tgtER || '';             // Col W (22): Error
+    rowData[23] = data.tgtIB || '';             // Col X (23): IOT Battery
+    rowData[24] = data.tgtID || '';             // Col Y (24): Idle
+    rowData[25] = data.tgtLB || '';             // Col Z (25): Low Battery
+    rowData[26] = data.tgtOF || '';             // Col AA (26): Offline
+    rowData[27] = data.tgtRT || '';             // Col AB (27): Retrieval
+    rowData[28] = data.tgtTK || '';             // Col AC (28): Ticket
+
+    // Ensure array has exactly 29 elements to prevent shifted columns
+    for(let i=0; i<29; i++) { if(rowData[i] === undefined) rowData[i] = ''; }
+    deploySheet.appendRow(rowData);
 
     // 3. UPDATE TARGET VEHICLE
     let foundTarget = false;
