@@ -1073,7 +1073,7 @@
       
       document.getElementById('vm-rental-id').value = rentalId;
       document.getElementById('vm-title').innerText = v.cleanName;
-      document.getElementById('vm-selected-tech').value = '';
+      // Removed premature vm-selected-tech reset
       
       const dep = (globalState.deployments || []).find(d => d.rentalId === rentalId && d.status === 'Dispatched');
       const tech = (globalState.techs || []).find(t => t.name === (dep ? dep.tech : v.driver));
