@@ -910,6 +910,7 @@
     </div>
   </dialog>
 
+
   <!-- END SHIFT MODAL -->
   <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
     <div class="modal-head">🛑 End Shift Details</div>
@@ -1395,6 +1396,30 @@
       return timeStr;
     }
 
+
+    function getTechBadgesHTML(t) {
+        let html = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:11px; margin-top:8px; color:var(--text-muted);">';
+        
+        // Always Show (Blue Circle)
+        html += `<div>${t.passedTest ? '✅' : '❌'} Passed Drive Test</div>`;
+        html += `<div>${t.coastEnrolled ? '💳' : '❌'} Coast Fuel Card</div>`;
+        html += `<div>${t.evgo ? '🔋' : '❌'} EVGo Enabled</div>`;
+        
+        // Show Only if True (Red Circle)
+        if (t.goFast) html += `<div>⚡ Go-Fast Tech</div>`;
+        if (t.trainer) html += `<div>🎓 Trainer</div>`;
+        html += '</div>';
+
+        // Alerts & Restrictions
+        if (t.restricted || t.samsaraViolation || t.flagged) {
+            html += `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px; font-size:11px;">`;
+            if (t.restricted) html += `<div style="color:var(--oos); font-weight:700;">🛑 RESTRICTED (Co-Driver Only)</div>`;
+            if (t.samsaraViolation) html += `<div style="color:var(--oos); font-weight:700;">🚨 Samsara Violation on Record</div>`;
+            if (t.flagged) html += `<div style="color:var(--warning); font-weight:700;">⚠️ ${t.flagged}</div>`;
+            html += `</div>`;
+        }
+        return html;
+    }
     function formatTimeForInput(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '';
       const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
@@ -1428,16 +1453,17 @@
          const cleanStart = formatTechTime(t.start);
          const cleanEnd = formatTechTime(t.end);
 
+         const badgeHTML = getTechBadgesHTML(t);
          html += `
             <div class="driver-card ${isMuted}" onclick="openEditTechModal('${t.name}')">
                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                  <strong style="font-size:16px; color:var(--text-main);">${t.name}</strong>
                  <span style="font-size:12px; font-weight:bold; color:var(--text-muted);">${t.status}</span>
                </div>
-               <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+               <div style="font-size:12px; color:var(--text-muted);">
                  Shift ${t.shift || '-'} | ${cleanStart} to ${cleanEnd}
                </div>
-               <div>${passFlag} ${restrFlag} ${samFlag}</div>
+               ${badgeHTML}
             </div>
          `;
       });
@@ -1871,18 +1897,13 @@
       let html = '';
       if(matches.length > 0) {
         html += matches.map(match => {
-          let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
-          let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
+          const badgeHTML = getTechBadgesHTML(match);
           return `
             <div class="driver-card" onmousedown="selectDriver('${match.name}', '${type}')" style="margin:0 0 6px 0; border:1px solid var(--border-color); box-shadow:none;">
               <div style="display:flex; justify-content:space-between;">
-                <strong>${match.name}</strong>
-                <div>
-                  <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
-                  ${vioAlert}
-                </div>
+                <strong style="font-size:14px;">${match.name}</strong>
               </div>
-              ${flagAlert}
+              ${badgeHTML}
             </div>
           `;
         }).join('');
@@ -2010,7 +2031,15 @@
       
       let html = '';
       if(matches.length > 0) {
-        html += matches.map(match => `<div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')"><strong>${match.name}</strong></div>`).join('');
+        html += matches.map(match => {
+          const badgeHTML = getTechBadgesHTML(match);
+          return `
+            <div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')" style="margin:0 0 6px 0;">
+                <strong style="font-size:14px;">${match.name}</strong>
+                ${badgeHTML}
+            </div>
+          `;
+        }).join('');
       } else {
         html += `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px; margin-bottom: 8px;">No matching drivers found.</div>`;
       }
@@ -2188,7 +2217,7 @@
         .processDispatchCheckout(payload);
     }
 
-    function openEndShiftModal(depId, rentalId) {
+        function openEndShiftModal(depId, rentalId) {
       if(!depId) return;
       document.getElementById('es_dep_id').value = depId;
       document.getElementById('es_rental_id').value = rentalId;
@@ -2432,14 +2461,6 @@
         dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
         dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       }
-
-      // ** ESC KEY & NATIVE CLOSE SYNC **
-      dlg.addEventListener('close', () => {
-         const idx = modalStack.indexOf(dlg);
-         if (idx > -1) {
-             modalStack.splice(idx, 1);
-         }
-      });
       
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
@@ -2453,11 +2474,8 @@
           } else { 
               if (isHubModal && dlg.id !== 'unsaved-modal') {
                   modalStack = []; // Reset stack if user explicitly clicks off a base hub
-                  dlg.dataset.dirty = 'false';
-                  dlg.close(); // Force close the hub modal
-              } else {
-                  closeCurrentModal(); 
               }
+              closeCurrentModal(); 
           }
         }
       });
