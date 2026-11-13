@@ -115,9 +115,12 @@ function closeServiceIssue(data) {
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
     const iData = iSheet.getDataRange().getValues();
+    let issueDesc = 'Unknown Issue';
     
+    // 1. Mark the specific ticket as resolved
     for (let i = 1; i < iData.length; i++) {
       if (String(iData[i][0]).trim() === data.incidentId) {
+        issueDesc = String(iData[i][5]).trim(); // Column F is Description
         iSheet.getRange(i + 1, 9).setValue(data.resolutionNotes);
         iSheet.getRange(i + 1, 10).setValue(now);
         iSheet.getRange(i + 1, 11).setValue(user);
@@ -125,6 +128,7 @@ function closeServiceIssue(data) {
       }
     }
 
+    // 2. Check for any OTHER open tickets, specifically looking for critical OOS ones
     let hasOtherOos = false;
     for (let i = 1; i < iData.length; i++) {
       const rowRentalId = String(iData[i][3]).trim().toLowerCase();
@@ -137,6 +141,7 @@ function closeServiceIssue(data) {
           dateResolved === "" && 
           incId !== String(data.incidentId).trim()) {
         
+        // If we find even one other ticket that triggers OOS, flag it
         if (isOosTriggered || severity === 'OOS') {
           hasOtherOos = true;
           break; 
@@ -144,7 +149,9 @@ function closeServiceIssue(data) {
       }
     }
 
+    // 3. Update the Vehicle status if there are no more OOS tickets holding it back
     const vData = vSheet.getDataRange().getValues();
+    let statusChanged = false;
     for (let i = 1; i < vData.length; i++) {
       if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
         const row = i + 1;
@@ -153,17 +160,27 @@ function closeServiceIssue(data) {
           const currentStatus = String(vData[i][9]).trim().toLowerCase();
           if (currentStatus === 'out of service') {
             vSheet.getRange(row, 10).setValue('Warehouse (Ready)');
+            statusChanged = true;
           }
-          vSheet.getRange(row, 16).clearContent(); 
+          vSheet.getRange(row, 16).clearContent(); // Clear the red OOS notes
         }
         
-        vSheet.getRange(row, 17).setValue(user); 
-        vSheet.getRange(row, 18).setValue(now);  
+        vSheet.getRange(row, 17).setValue(user); // Updated By
+        vSheet.getRange(row, 18).setValue(now);  // Updated At
         break;
       }
     }
 
-    logAudit('SERVICE_CLOSED', 'Incident', data.incidentId, `Resolved for: ${data.rentalId} | Notes: ${data.resolutionNotes}`);
+    // 4. Log the resolution to the Audit Trail
+    let auditDetails = `Issue Resolved: ${issueDesc} | Notes: ${data.resolutionNotes}`;
+    if (statusChanged) {
+        auditDetails += ` | Van returned to Warehouse (Ready)`;
+    } else if (hasOtherOos) {
+        auditDetails += ` | Van remains OOS (other issues pending)`;
+    }
+    
+    logAudit('SERVICE_RESOLVED', 'Incident', data.incidentId, auditDetails);
+
     return { success: true };
   } catch (err) {
     throw new Error('Close ticket failed: ' + err.message);
