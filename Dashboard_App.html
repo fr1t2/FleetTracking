@@ -1910,7 +1910,6 @@
 
       container.innerHTML = html;
     }
-    
 
     function selectDriver(name, type) {
       const tech = (globalState.techs || []).find(t => t.name === name);
@@ -2028,7 +2027,6 @@
       `;
       container.innerHTML = html;
     }
-    
 
     function selectDriverEdit(name) {
       document.getElementById('ed-selected-tech').value = name;
@@ -2448,8 +2446,11 @@
           } else { 
               if (isHubModal && dlg.id !== 'unsaved-modal') {
                   modalStack = []; // Reset stack if user explicitly clicks off a base hub
+                  dlg.dataset.dirty = 'false';
+                  dlg.close(); // Force close the hub modal
+              } else {
+                  closeCurrentModal(); 
               }
-              closeCurrentModal(); 
           }
         }
       });
