@@ -910,6 +910,44 @@
     </div>
   </dialog>
 
+
+<!-- END SHIFT MODAL -->
+  <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
+    <div class="modal-head">🛑 End Shift Details</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitEndShift(event)">
+        <input type="hidden" id="es_dep_id">
+        <input type="hidden" id="es_rental_id">
+        
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Batteries In *</label>
+            <input type="number" id="es_batt_in" class="form-control" required placeholder="e.g. 25">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">E-Key Returned</label>
+            <select id="es_ekey" class="form-control">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="N/A" selected>N/A</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Check-In Notes</label>
+          <textarea id="es_notes" class="form-control" rows="2" placeholder="e.g. Returned with flat tire..."></textarea>
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-dark" type="submit">Complete Shift</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+
   <script>
     let globalState = null;
     let modalStack = []; 
@@ -1183,9 +1221,9 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
-        footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
-      } else {
+        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit</button>`;
+        footerHtml += `<button class="btn btn-dark" type="button" onclick="openEndShiftModal('${dep ? dep.id : ''}', '${rentalId}')">🛑 End Shift</button>`;
+        } else {
         dHtml = `<div style="padding:20px; background:rgba(255, 59, 48, 0.1); color:var(--danger); border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
         footerHtml += `<button class="btn btn-success" type="button" onclick="submitCheckIn()">✅ Check In to Warehouse</button>`;
       }
@@ -2123,11 +2161,42 @@
         .processDispatchCheckout(payload);
     }
 
-    function submitEndShift(depId) {
+function openEndShiftModal(depId, rentalId) {
       if(!depId) return;
-      const rentalId = document.getElementById('vm-rental-id').value;
-      const payload = { deploymentId: depId, rentalId: rentalId };
+      document.getElementById('es_dep_id').value = depId;
+      document.getElementById('es_rental_id').value = rentalId;
       
+      // Clear previous inputs
+      document.getElementById('es_batt_in').value = '';
+      document.getElementById('es_ekey').value = 'N/A';
+      document.getElementById('es_notes').value = '';
+      
+      const esm = document.getElementById('end-shift-modal');
+      esm.dataset.dirty = 'false';
+      openStackModal('end-shift-modal');
+    }
+
+    function submitEndShift(e) {
+      if (e) e.preventDefault();
+      
+      const depId = document.getElementById('es_dep_id').value;
+      const rentalId = document.getElementById('es_rental_id').value;
+      
+      if(!depId) return;
+      
+      // Build payload matching backend requirements
+      const payload = { 
+        deploymentId: depId, 
+        rentalId: rentalId,
+        batteriesIn: document.getElementById('es_batt_in').value,
+        eKeyReturned: document.getElementById('es_ekey').value,
+        checkInNotes: document.getElementById('es_notes').value
+      };
+      
+      // Close the End Shift modal
+      closeCurrentModal(); 
+      
+      // Close the underlying Van modal
       const vm = document.getElementById('van-modal');
       if(vm) {
           vm.dataset.dirty = 'false';
@@ -2135,6 +2204,7 @@
           vm.close();
       }
       
+      // Update local state to feel snappy
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { 
           v.status = 'Warehouse (Ready)'; 
@@ -2147,11 +2217,12 @@
       
       renderGrid();
       
+      // Send to server
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { 
             document.getElementById('global-loader').style.display = 'none'; 
-            alert("Error: " + err.message); 
+            alert("Error ending shift: " + err.message); 
             loadData(); 
         })
         .endShift(payload);
