@@ -1,7 +1,3 @@
-/**
- * @fileoverview Fleet Maintenance and Check-In Engine
- */
-
 function processCheckInVehicle(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -27,8 +23,8 @@ function processCheckInVehicle(data) {
         vSheet.getRange(i + 1, 13).clearContent(); 
         vSheet.getRange(i + 1, 14).clearContent(); 
         vSheet.getRange(i + 1, 16).clearContent(); 
-        vSheet.getRange(i + 1, 17).setValue(user); // Last Updated By
-        vSheet.getRange(i + 1, 18).setValue(now);  // Last Updated At
+        vSheet.getRange(i + 1, 17).setValue(user); 
+        vSheet.getRange(i + 1, 18).setValue(now);  
         found = true;
         break;
       }
@@ -62,7 +58,7 @@ function processCheckInVehicle(data) {
       }
     }
     
-    logAudit('CHECK_IN', 'Vehicle', data.rentalId, 'Checked in to warehouse');
+    logAudit('CHECK_IN', 'Vehicle', data.rentalId, `Vehicle checked into warehouse manually`);
     return { success: true, message: 'Van is back in the Warehouse.' };
   } catch (err) {
     throw new Error('Check-in failed: ' + err.message);
@@ -92,18 +88,18 @@ function logNewServiceNeed(data) {
       for (let i = 1; i < vData.length; i++) {
         if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
           const row = i + 1;
-          vSheet.getRange(row, 10).setValue('Out of Service'); // Status
-          vSheet.getRange(row, 13).clearContent(); // Clear Zone
-          vSheet.getRange(row, 14).clearContent(); // Clear Tech
-          vSheet.getRange(row, 16).setValue(data.description); // Set Notes
-          vSheet.getRange(row, 17).setValue(user); // Updated By
-          vSheet.getRange(row, 18).setValue(now);  // Updated At
+          vSheet.getRange(row, 10).setValue('Out of Service'); 
+          vSheet.getRange(row, 13).clearContent(); 
+          vSheet.getRange(row, 14).clearContent(); 
+          vSheet.getRange(row, 16).setValue(data.description); 
+          vSheet.getRange(row, 17).setValue(user); 
+          vSheet.getRange(row, 18).setValue(now);  
           break;
         }
       }
     }
     
-    logAudit('SERVICE_LOGGED', 'Incident', incidentId, `Van: ${data.rentalId} | OOS: ${data.isOos}`);
+    logAudit('SERVICE_LOGGED', 'Incident', incidentId, `Category: ${data.category} | OOS Triggered: ${data.isOos} | Desc: ${data.description}`);
     return { success: true };
   } catch (err) {
     throw new Error('Log service failed: ' + err.message);
@@ -158,16 +154,16 @@ function closeServiceIssue(data) {
           if (currentStatus === 'out of service') {
             vSheet.getRange(row, 10).setValue('Warehouse (Ready)');
           }
-          vSheet.getRange(row, 16).clearContent(); // Clear the red OOS notes
+          vSheet.getRange(row, 16).clearContent(); 
         }
         
-        vSheet.getRange(row, 17).setValue(user); // Updated By
-        vSheet.getRange(row, 18).setValue(now);  // Updated At
+        vSheet.getRange(row, 17).setValue(user); 
+        vSheet.getRange(row, 18).setValue(now);  
         break;
       }
     }
 
-    logAudit('SERVICE_CLOSED', 'Incident', data.incidentId, `Resolved for: ${data.rentalId}`);
+    logAudit('SERVICE_CLOSED', 'Incident', data.incidentId, `Resolved for: ${data.rentalId} | Notes: ${data.resolutionNotes}`);
     return { success: true };
   } catch (err) {
     throw new Error('Close ticket failed: ' + err.message);
@@ -192,7 +188,7 @@ function processAddVehicle(data) {
     while (rowData.length < 24) rowData.push('');
     vSheet.appendRow(rowData);
     
-    logAudit('ADD_VEHICLE', 'Vehicle', data.rentalId, `Name: ${data.vanName}`);
+    logAudit('ADD_VEHICLE', 'Vehicle', data.rentalId, `Name: ${data.vanName} | Model: ${data.makeModel} | Type: ${data.type}`);
     return { success: true };
   } catch (err) { throw new Error('Add vehicle failed: ' + err.message); }
 }
@@ -221,10 +217,10 @@ function logRoutineMaintenance(data) {
       sheet.getRange(rowIndex, 24).setValue(data.date);
     }
 
-    sheet.getRange(rowIndex, 17).setValue(user); // Updated By
-    sheet.getRange(rowIndex, 18).setValue(now);  // Updated At
+    sheet.getRange(rowIndex, 17).setValue(user); 
+    sheet.getRange(rowIndex, 18).setValue(now);  
 
-    logAudit('MAINTENANCE', 'Vehicle', data.rentalId, `Type: ${data.type} | Date: ${data.date}`);
+    logAudit('MAINTENANCE', 'Vehicle', data.rentalId, `Logged [${data.type.toUpperCase()}] Maintenance | Date: ${data.date}`);
     return { success: true };
   } catch (err) {
     throw new Error('Failed to log maintenance: ' + err.message);
@@ -259,7 +255,7 @@ function decommissionVehicle(data) {
       }
     }
     
-    logAudit('RETIRE_VEHICLE', 'Vehicle', data.rentalId, `Reason: ${data.reason}`);
+    logAudit('RETIRE_VEHICLE', 'Vehicle', data.rentalId, `Retired from Fleet. Reason: ${data.reason}`);
     return { success: true };
   } catch (err) {
     throw new Error('Decommission failed: ' + err.message);
@@ -272,10 +268,12 @@ function updateVehicleDetails(formData) {
     const sheet = ss.getSheetByName('Vehicles');
     const data = sheet.getDataRange().getValues();
     let rowIndex = -1;
+    let oldData = null;
 
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][1]).trim().toLowerCase() === String(formData.rentalId).trim().toLowerCase()) {
         rowIndex = i + 1; 
+        oldData = data[i];
         break;
       }
     }
@@ -287,6 +285,32 @@ function updateVehicleDetails(formData) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
+    // CALCULATE DELTA
+    let changes = [];
+    const checkChange = (newVal, oldVal, label) => {
+      let cleanNew = newVal !== undefined && newVal !== null ? String(newVal).trim() : '';
+      let cleanOld = oldVal !== undefined && oldVal !== null ? String(oldVal).trim() : '';
+      if (cleanNew !== cleanOld) {
+        changes.push(`${label}: '${cleanOld || 'empty'}' -> '${cleanNew || 'empty'}'`);
+      }
+    };
+    
+    checkChange(formData.vanName, oldData[0], 'Name');
+    checkChange(formData.owner, oldData[2], 'Owner');
+    checkChange(formData.makeModel, oldData[3], 'Model');
+    checkChange(formData.vin, oldData[4], 'VIN');
+    checkChange(formData.licensePlate, oldData[5], 'Plate');
+    
+    let oldExp = oldData[6] instanceof Date ? Utilities.formatDate(oldData[6], Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(oldData[6] || '').trim();
+    checkChange(formData.plateExpDate, oldExp, 'Plate Exp');
+    
+    checkChange(formData.samsaraSerial, oldData[7], 'Samsara');
+    checkChange(formData.samsaraLink, oldData[8], 'Sam Link');
+    checkChange(formData.addons, oldData[15], 'Notes');
+    checkChange(formData.coast, oldData[19], 'Coast');
+    checkChange(formData.type, oldData[20], 'Type');
+
+    // APPLY CHANGES
     if (formData.vanName !== undefined) sheet.getRange(rowIndex, 1).setValue(formData.vanName);
     if (formData.owner !== undefined) sheet.getRange(rowIndex, 3).setValue(formData.owner);
     if (formData.makeModel !== undefined) sheet.getRange(rowIndex, 4).setValue(formData.makeModel);
@@ -295,7 +319,6 @@ function updateVehicleDetails(formData) {
     if (formData.plateExpDate !== undefined) sheet.getRange(rowIndex, 7).setValue(formData.plateExpDate);
     if (formData.samsaraSerial !== undefined) sheet.getRange(rowIndex, 8).setValue(formData.samsaraSerial);
     if (formData.samsaraLink !== undefined) sheet.getRange(rowIndex, 9).setValue(formData.samsaraLink);
-    
     if (formData.addons !== undefined) sheet.getRange(rowIndex, 16).setValue(formData.addons);
     
     sheet.getRange(rowIndex, 17).setValue(user); 
@@ -304,7 +327,9 @@ function updateVehicleDetails(formData) {
     if (formData.coast !== undefined) sheet.getRange(rowIndex, 20).setValue(formData.coast);
     if (formData.type !== undefined) sheet.getRange(rowIndex, 21).setValue(formData.type);
 
-    logAudit('EDIT_VEHICLE', 'Vehicle', formData.rentalId, 'Updated vehicle specs');
+    const detailString = changes.length > 0 ? changes.join(' | ') : 'No fields changed';
+    logAudit('EDIT_VEHICLE', 'Vehicle', formData.rentalId, detailString);
+    
     return { success: true, message: `Vehicle ${formData.rentalId} updated successfully.` };
   } catch (err) {
     throw new Error('Failed to update vehicle details: ' + err.message);
@@ -350,7 +375,7 @@ function unretireVehicle(data) {
       }
     }
     
-    logAudit('UNRETIRE_VEHICLE', 'Vehicle', data.rentalId, `Reason: ${data.reason}`);
+    logAudit('UNRETIRE_VEHICLE', 'Vehicle', data.rentalId, `Re-activated. Reason: ${data.reason}`);
     return { success: true };
   } catch (err) {
     throw new Error('Un-retire failed: ' + err.message);
@@ -363,25 +388,59 @@ function processEditTech(data) {
     const sheet = ss.getSheetByName('Tech_Profiles');
     const tData = sheet.getDataRange().getValues();
     let row = -1;
+    let oldData = null;
 
     for (let i = 1; i < tData.length; i++) {
       if (String(tData[i][0]).trim().toLowerCase() === String(data.origName).trim().toLowerCase()) {
-        row = i + 1; break;
+        row = i + 1; 
+        oldData = tData[i];
+        break;
       }
     }
 
+    let changes = [];
     if (row === -1) {
-      row = sheet.getLastRow() + 1; // Add new tech if not found
+      row = sheet.getLastRow() + 1; 
+      changes.push("Created New Tech Profile");
+    } else {
+      const checkChange = (newVal, oldVal, label) => {
+        let cleanNew = newVal !== undefined && newVal !== null ? String(newVal).trim() : '';
+        let cleanOld = oldVal !== undefined && oldVal !== null ? String(oldVal).trim() : '';
+        if (cleanNew !== cleanOld) {
+          changes.push(`${label}: '${cleanOld || 'empty'}' -> '${cleanNew || 'empty'}'`);
+        }
+      };
+      
+      checkChange(data.name, oldData[0], 'Name');
+      checkChange(data.phone, oldData[1], 'Phone');
+      checkChange(data.shift, oldData[2], 'Shift');
+      
+      let oldStart = oldData[3] instanceof Date ? Utilities.formatDate(oldData[3], Session.getScriptTimeZone(), 'HH:mm') : String(oldData[3] || '').replace(/'/g, '').trim();
+      checkChange(data.start, oldStart, 'Start Time');
+      
+      let oldEnd = oldData[4] instanceof Date ? Utilities.formatDate(oldData[4], Session.getScriptTimeZone(), 'HH:mm') : String(oldData[4] || '').replace(/'/g, '').trim();
+      checkChange(data.end, oldEnd, 'End Time');
+      
+      checkChange(data.workDays, oldData[5], 'Days');
+      checkChange(data.passedTest ? 'Yes' : 'No', oldData[6], 'Drive Test');
+      checkChange(data.goFast ? 'Yes' : 'No', oldData[7], 'Go-Fast');
+      checkChange(data.restricted ? 'Yes' : 'No', oldData[8], 'Restricted');
+      checkChange(data.status, oldData[9], 'Status');
+      checkChange(data.notes, oldData[10], 'Notes');
+      checkChange(data.hrStatus, oldData[11], 'HR');
+      checkChange(data.coast ? 'Yes' : 'No', oldData[12], 'Coast');
+      checkChange(data.evgo ? 'Yes' : 'No', oldData[13], 'EVGo');
+      checkChange(data.trainer ? 'Yes' : 'No', oldData[14], 'Trainer');
+      checkChange(data.samsaraViolation ? 'Yes' : 'No', oldData[15], 'Samsara Vio');
+      checkChange(data.flagged, oldData[16], 'Flagged');
     }
 
     sheet.getRange(row, 1).setValue(data.name);
     sheet.getRange(row, 2).setValue(data.phone);
-
     sheet.getRange(row, 3).setValue(data.shift);
     sheet.getRange(row, 4).setValue(data.start ? "'" + data.start : ""); 
     sheet.getRange(row, 5).setValue(data.end ? "'" + data.end : "");     
     sheet.getRange(row, 6).setValue(data.workDays);
-    
     sheet.getRange(row, 7).setValue(data.passedTest ? 'Yes' : 'No');
     sheet.getRange(row, 8).setValue(data.goFast ? 'Yes' : 'No');
     sheet.getRange(row, 9).setValue(data.restricted ? 'Yes' : 'No');
@@ -394,7 +453,9 @@ function processEditTech(data) {
     sheet.getRange(row, 16).setValue(data.samsaraViolation ? 'Yes' : 'No');
     sheet.getRange(row, 17).setValue(data.flagged);
 
-    logAudit('EDIT_TECH', 'Tech Profile', data.name, `Status: ${data.status} | Restricted: ${data.restricted}`);
+    const detailString = changes.length > 0 ? changes.join(' | ') : 'No fields changed';
+    logAudit('EDIT_TECH', 'Tech Profile', data.name, detailString);
+    
     return { success: true };
   } catch (err) { throw new Error('Tech update failed: ' + err.message); }
 }
