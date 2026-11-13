@@ -488,7 +488,7 @@
   <dialog id="manage-fleet-modal" style="max-width: 400px; z-index: 1001;">
     <div class="modal-head">⚙️ Manage Fleet</div>
     <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
-      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="closeCurrentModal(); openStackModal('add-van-modal');">➕ Add New Van</button>
+      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="closeCurrentModal(); openAddVanModal();">➕ Add New Van</button>
       <button class="btn btn-outline" style="padding: 16px; font-size: 16px; color: var(--danger); border-color: var(--danger);" onclick="closeCurrentModal(); openDecomModal();">🛑 Retire Existing Van</button>
     </div>
   </dialog>
@@ -1179,7 +1179,7 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-outline" type="button" onclick="openStackModal('edit-dispatch-modal'); openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
+        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
         footerHtml += `<button class="btn btn-dark" type="button" onclick="submitEndShift('${dep ? dep.id : ''}')">🛑 End Shift</button>`;
       } else {
         dHtml = `<div style="padding:20px; background:rgba(255, 59, 48, 0.1); color:var(--danger); border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
@@ -1237,7 +1237,7 @@
       document.getElementById('specs-view').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h4 style="margin:0; font-size:16px;">Vehicle Specifications</h4>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openStackModal('edit-vehicle-modal'); openEditVehicleModal('${v.rentalId}')">✏️ Edit Specs</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openEditVehicleModal('${v.rentalId}')">✏️ Edit Specs</button>
         </div>
         
         <div class="spec-grid">
@@ -1279,9 +1279,9 @@
 
       let lifecycleBtn = '';
       if (v.status === 'Decommissioned') {
-          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openStackModal('unretire-van-modal'); openUnretireModal('${rentalId}')">🔄 Bring Back to Service</button>`;
+          lifecycleBtn = \`<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openUnretireModal('\${rentalId}')">🔄 Bring Back to Service</button>\`;
       } else {
-          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openStackModal('decom-van-modal'); openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>`;
+          lifecycleBtn = \`<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('\${rentalId}')">🛑 Retire Vehicle</button>\`;
       }
 
       document.getElementById('service-view').innerHTML = `
@@ -1304,7 +1304,7 @@
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
           <strong style="font-size:14px;">Open Tickets</strong>
-          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openStackModal('log-service-modal'); openLogService('${rentalId}', '${v.cleanName}')">➕ Report New Issue</button>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">➕ Report New Issue</button>
         </div>
         <div style="margin-bottom:16px;">
           ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
@@ -1525,7 +1525,7 @@
 
       const avm = document.getElementById('add-van-modal');
       avm.dataset.dirty = 'false';
-      avm.showModal();
+      openStackModal('add-van-modal');
     }
 
     function submitAddVan(e) {
@@ -1615,7 +1615,7 @@
       
       const evm = document.getElementById('edit-vehicle-modal');
       evm.dataset.dirty = 'false';
-      evm.showModal();
+      openStackModal('edit-vehicle-modal');
     }
 
     function submitEditVehicle(e) {
@@ -1683,7 +1683,7 @@
       
       const dvm = document.getElementById('decom-van-modal');
       dvm.dataset.dirty = 'false';
-      dvm.showModal();
+      openStackModal('decom-van-modal');
     }
 
     function submitDecomVan() {
@@ -1757,7 +1757,7 @@
       
       const uvm = document.getElementById('unretire-van-modal');
       uvm.dataset.dirty = 'false';
-      uvm.showModal();
+      openStackModal('unretire-van-modal');
     }
 
     function submitUnretireVan(e) {
@@ -1998,7 +1998,7 @@
       
       const edm = document.getElementById('edit-dispatch-modal');
       edm.dataset.dirty = 'false'; 
-      edm.showModal();
+      openStackModal('edit-dispatch-modal');
     }
 
     function submitEditDispatch() {
