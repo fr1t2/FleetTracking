@@ -1073,7 +1073,7 @@
       
       document.getElementById('vm-rental-id').value = rentalId;
       document.getElementById('vm-title').innerText = v.cleanName;
-      // Removed premature vm-selected-tech reset
+      document.getElementById('vm-selected-tech').value = '';
       
       const dep = (globalState.deployments || []).find(d => d.rentalId === rentalId && d.status === 'Dispatched');
       const tech = (globalState.techs || []).find(t => t.name === (dep ? dep.tech : v.driver));
@@ -1279,9 +1279,9 @@
 
       let lifecycleBtn = '';
       if (v.status === 'Decommissioned') {
-          lifecycleBtn = \`<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openUnretireModal('\${rentalId}')">🔄 Bring Back to Service</button>\`;
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openUnretireModal('${rentalId}')">🔄 Bring Back to Service</button>`;
       } else {
-          lifecycleBtn = \`<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('\${rentalId}')">🛑 Retire Vehicle</button>\`;
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>`;
       }
 
       document.getElementById('service-view').innerHTML = `
