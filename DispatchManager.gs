@@ -37,7 +37,7 @@ function processDispatchCheckout(data) {
     }
 
     // 2. BUILD THE PAYLOAD ARRAY (29 Columns wide to reach AC)
-    let fullGoals = data.focusCategory ? `[${data.focusCategory}] ${data.goals || ''}` : (data.goals || '');
+    let fullGoals = data.goals || '';
 
     const rowData = [];
     rowData[0] = deployId;                      // Col A (0): ID
@@ -47,7 +47,7 @@ function processDispatchCheckout(data) {
     rowData[4] = data.rentalId;                 // Col E (4): Rental ID
     rowData[5] = data.assignedTech;             // Col F (5): Primary Tech
     rowData[6] = data.workZone;                 // Col G (6): Zone
-    rowData[7] = fullGoals;                     // Col H (7): Goals (Legacy/Combo)
+    rowData[7] = fullGoals;                     // Col H (7): Goals 
     rowData[8] = data.batteryTarget || '';      // Col I (8): Battery Target
     rowData[9] = 'Dispatched';                  // Col J (9): Status
     rowData[10] = now;                          // Col K (10): Time Out
@@ -153,6 +153,7 @@ function updateDeploymentRecord(data) {
         if (data.assignedTech !== undefined) deploySheet.getRange(dRow, 6).setValue(data.assignedTech);
         if (data.workZone !== undefined) deploySheet.getRange(dRow, 7).setValue(data.workZone);
         if (data.goals !== undefined) deploySheet.getRange(dRow, 8).setValue(data.goals);
+        if (data.batteryTarget !== undefined) deploySheet.getRange(dRow, 9).setValue(data.batteryTarget);
         
         deploySheet.getRange(dRow, 13).setValue(user); // Logged By
         deploySheet.getRange(dRow, 14).setValue(now);  // Timestamp

@@ -1073,7 +1073,7 @@
       
       document.getElementById('vm-rental-id').value = rentalId;
       document.getElementById('vm-title').innerText = v.cleanName;
-      // Removed premature vm-selected-tech reset
+      document.getElementById('vm-selected-tech').value = '';
       
       const dep = (globalState.deployments || []).find(d => d.rentalId === rentalId && d.status === 'Dispatched');
       const tech = (globalState.techs || []).find(t => t.name === (dep ? dep.tech : v.driver));
@@ -1136,7 +1136,7 @@
                 </div>
               </div>
             </div>
-            <div class="col form-group">
+                        <div class="col form-group">
               <label style="font-size:12px; font-weight:700;">Primary Shift Focus</label>
               <select id="sel-focus" class="form-control">
                 <option value="">-- Select --</option>
@@ -1145,6 +1145,10 @@
                 <option value="Retrieval">Retrieval</option>
                 <option value="Standard Route">Standard Route</option>
               </select>
+            </div>
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Battery Target</label>
+              <input type="number" id="sel-battery" class="form-control" placeholder="e.g. 30">
             </div>
           </div>
 
@@ -2009,8 +2013,9 @@
         id: document.getElementById('ed-dep-id').value, 
         rentalId: document.getElementById('ed-rental-id').value,
         assignedTech: tech, 
-        workZone: Array.from(document.getElementById('ed-zone').selectedOptions).map(o => o.value).join(', '),
-        goals: document.getElementById('ed-focus').value
+                workZone: Array.from(document.getElementById('ed-zone').selectedOptions).map(o => o.value).join(', '),
+        goals: document.getElementById('ed-focus').value,
+        batteryTarget: document.getElementById('ed_target').value
       };
       
       closeCurrentModal();
@@ -2050,14 +2055,16 @@
       const workZone = Array.from(zoneCheckboxes).map(cb => cb.value).join(', ');
       
       const payload = {
-        rentalId: rentalId, 
+                rentalId: rentalId, 
+        cleanName: document.getElementById('vm-title').innerText,
         assignedTech: tech, 
         coDriver: document.getElementById('vm-selected-codriver').value,
         shift: document.getElementById('sel-shift').value,
         isTraining: document.getElementById('sel-training').checked,
         eKey: document.getElementById('sel-ekey').value,
         workZone: workZone,
-        goals: document.getElementById('sel-focus') ? document.getElementById('sel-focus').value : '',
+                goals: document.getElementById('sel-focus') ? document.getElementById('sel-focus').value : '',
+        batteryTarget: document.getElementById('sel-battery') ? document.getElementById('sel-battery').value : '',
         dispatchNotes: document.getElementById('sel-notes').value,
         
         tgtDM: document.getElementById('tgt-dm').value,
