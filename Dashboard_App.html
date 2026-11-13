@@ -910,7 +910,6 @@
     </div>
   </dialog>
 
-
   <!-- END SHIFT MODAL -->
   <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
     <div class="modal-head">🛑 End Shift Details</div>
@@ -2189,7 +2188,7 @@
         .processDispatchCheckout(payload);
     }
 
-        function openEndShiftModal(depId, rentalId) {
+    function openEndShiftModal(depId, rentalId) {
       if(!depId) return;
       document.getElementById('es_dep_id').value = depId;
       document.getElementById('es_rental_id').value = rentalId;
@@ -2433,6 +2432,14 @@
         dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
         dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       }
+
+      // ** ESC KEY & NATIVE CLOSE SYNC **
+      dlg.addEventListener('close', () => {
+         const idx = modalStack.indexOf(dlg);
+         if (idx > -1) {
+             modalStack.splice(idx, 1);
+         }
+      });
       
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
