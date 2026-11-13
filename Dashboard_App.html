@@ -911,7 +911,7 @@
   </dialog>
 
 
-<!-- END SHIFT MODAL -->
+  <!-- END SHIFT MODAL -->
   <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
     <div class="modal-head">🛑 End Shift Details</div>
     <div style="padding: 24px;">
@@ -946,7 +946,6 @@
       </form>
     </div>
   </dialog>
-
 
   <script>
     let globalState = null;
@@ -1221,9 +1220,9 @@
             </div>
           </div>
         `;
-        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit</button>`;
+        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
         footerHtml += `<button class="btn btn-dark" type="button" onclick="openEndShiftModal('${dep ? dep.id : ''}', '${rentalId}')">🛑 End Shift</button>`;
-        } else {
+      } else {
         dHtml = `<div style="padding:20px; background:rgba(255, 59, 48, 0.1); color:var(--danger); border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
         footerHtml += `<button class="btn btn-success" type="button" onclick="submitCheckIn()">✅ Check In to Warehouse</button>`;
       }
@@ -1860,6 +1859,7 @@
       const resultId = type === 'primary' ? 'driver-result-card' : 'codriver-result-card';
       
       const q = document.getElementById(inputId).value.toLowerCase();
+      const rawValue = document.getElementById(inputId).value;
       const container = document.getElementById(resultId);
       container.style.display = 'block';
 
@@ -1869,8 +1869,9 @@
 
       const matches = (globalState.techs || []).filter(t => t.status === 'Available' && t.name.toLowerCase().includes(q));
       
+      let html = '';
       if(matches.length > 0) {
-        container.innerHTML = matches.map(match => {
+        html += matches.map(match => {
           let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
           let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
           return `
@@ -1886,14 +1887,29 @@
             </div>
           `;
         }).join('');
-        
-        if (type === 'codriver') {
-             container.innerHTML = `<div class="driver-card" onmousedown="selectDriver('', 'codriver')" style="margin:0 0 6px 0; text-align:center; font-style:italic;">-- Clear Co-Driver --</div>` + container.innerHTML;
-        }
-
-      } else {
-        container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center;">No matching drivers found.</div>`;
+      } else if (q.length > 0) {
+        html += `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center;">No matching drivers found.</div>`;
       }
+
+      // Add Walk-In Option if typing
+      if (q.length > 0) {
+        const walkInName = rawValue + ' (Walk-In)';
+        html += `
+            <div class="driver-card" onmousedown="selectDriver('${walkInName}', '${type}')" style="margin:6px 0 6px 0; border:1px dashed var(--warning); background:rgba(255, 204, 0, 0.1); box-shadow:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>➕ Dispatch "${rawValue}"</strong>
+                <span class="d-badge" style="background:var(--warning); color:#000; font-weight:900;">WALK-IN</span>
+              </div>
+            </div>
+        `;
+      }
+
+      if (type === 'codriver') {
+           html = `<div class="driver-card" onmousedown="selectDriver('', 'codriver')" style="margin:0 0 6px 0; text-align:center; font-style:italic;">-- Clear Co-Driver --</div>` + html;
+      }
+
+      container.innerHTML = html;
+    }
     }
 
     function selectDriver(name, type) {
@@ -1983,6 +1999,7 @@
 
     function searchDriverEdit() {
       const q = document.getElementById('ed-driver-search').value.toLowerCase();
+      const rawValue = document.getElementById('ed-driver-search').value;
       const container = document.getElementById('ed-driver-result-card');
       
       if(q.length < 1) { 
@@ -1993,11 +2010,24 @@
       
       const matches = (globalState.techs || []).filter(t => t.name.toLowerCase().includes(q));
       
+      let html = '';
       if(matches.length > 0) {
-        container.innerHTML = matches.map(match => `<div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')"><strong>${match.name}</strong></div>`).join('');
+        html += matches.map(match => `<div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')"><strong>${match.name}</strong></div>`).join('');
       } else {
-        container.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px;">No matching drivers found.</div>`;
+        html += `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px; margin-bottom: 8px;">No matching drivers found.</div>`;
       }
+
+      const walkInName = rawValue + ' (Walk-In)';
+      html += `
+        <div class="driver-card" id="edcard-${walkInName.replace(/\s+/g, '')}" onclick="selectDriverEdit('${walkInName}')" style="border:1px dashed var(--warning); background:rgba(255, 204, 0, 0.1);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>➕ Assign "${rawValue}"</strong>
+            <span class="d-badge" style="background:var(--warning); color:#000; font-weight:900;">WALK-IN</span>
+          </div>
+        </div>
+      `;
+      container.innerHTML = html;
+    }
     }
 
     function selectDriverEdit(name) {
@@ -2161,12 +2191,10 @@
         .processDispatchCheckout(payload);
     }
 
-function openEndShiftModal(depId, rentalId) {
+        function openEndShiftModal(depId, rentalId) {
       if(!depId) return;
       document.getElementById('es_dep_id').value = depId;
       document.getElementById('es_rental_id').value = rentalId;
-      
-      // Clear previous inputs
       document.getElementById('es_batt_in').value = '';
       document.getElementById('es_ekey').value = 'N/A';
       document.getElementById('es_notes').value = '';
@@ -2184,7 +2212,6 @@ function openEndShiftModal(depId, rentalId) {
       
       if(!depId) return;
       
-      // Build payload matching backend requirements
       const payload = { 
         deploymentId: depId, 
         rentalId: rentalId,
@@ -2193,10 +2220,8 @@ function openEndShiftModal(depId, rentalId) {
         checkInNotes: document.getElementById('es_notes').value
       };
       
-      // Close the End Shift modal
       closeCurrentModal(); 
       
-      // Close the underlying Van modal
       const vm = document.getElementById('van-modal');
       if(vm) {
           vm.dataset.dirty = 'false';
@@ -2204,7 +2229,6 @@ function openEndShiftModal(depId, rentalId) {
           vm.close();
       }
       
-      // Update local state to feel snappy
       const v = globalState.vehicles.find(x => x.rentalId === rentalId);
       if (v) { 
           v.status = 'Warehouse (Ready)'; 
@@ -2217,12 +2241,11 @@ function openEndShiftModal(depId, rentalId) {
       
       renderGrid();
       
-      // Send to server
       document.getElementById('global-loader').style.display = 'block';
       google.script.run.withSuccessHandler(loadData)
         .withFailureHandler(err => { 
             document.getElementById('global-loader').style.display = 'none'; 
-            alert("Error ending shift: " + err.message); 
+            alert("Error: " + err.message); 
             loadData(); 
         })
         .endShift(payload);
