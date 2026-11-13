@@ -16,7 +16,6 @@ function processCheckInVehicle(data) {
     const vData = vSheet.getDataRange().getValues();
     let found = false;
     
-    // Vehicles: Status (J/10), Zone (M/13), Driver (N/14), Notes (P/16), SafeToDrive (false)
     for (let i = 1; i < vData.length; i++) {
       const rowRentalId = String(vData[i][1]).trim().toLowerCase();
       const rowCleanName = String(vData[i][0]).trim().toLowerCase();
@@ -37,7 +36,6 @@ function processCheckInVehicle(data) {
 
     if (!found) throw new Error(`Vehicle ${data.cleanName || data.rentalId} not found.`);
 
-    // Auto-Resolve open incidents
     let targetIncId = data.incidentId;
     const iSheet = ss.getSheetByName('Incidents_Service');
     
@@ -64,6 +62,7 @@ function processCheckInVehicle(data) {
       }
     }
     
+    logAudit('CHECK_IN', 'Vehicle', data.rentalId, 'Checked in to warehouse');
     return { success: true, message: 'Van is back in the Warehouse.' };
   } catch (err) {
     throw new Error('Check-in failed: ' + err.message);
@@ -79,12 +78,9 @@ function logNewServiceNeed(data) {
     const user = Session.getActiveUser().getEmail() || 'local-user';
     const incidentId = 'INC-' + Utilities.getUuid().substring(0, 6).toUpperCase();
 
-    // Ensure we handle missing optional fields gracefully
     const statusImpact = data.statusImpact || '';
     const severity = data.severity || (data.isOos ? 'OOS' : 'Minor');
 
-    // Incidents Row: 14 Columns
-    // [ID, Date, Name, Rental ID, Category, Description, OOS Triggered, Status Impact, Resolution, Date Resolved, Resolved By, Logged By, Timestamp, Severity]
     iSheet.appendRow([
       incidentId, now, data.cleanName, data.rentalId,
       data.category, data.description, data.isOos ? 'YES' : 'NO',
@@ -106,6 +102,8 @@ function logNewServiceNeed(data) {
         }
       }
     }
+    
+    logAudit('SERVICE_LOGGED', 'Incident', incidentId, `Van: ${data.rentalId} | OOS: ${data.isOos}`);
     return { success: true };
   } catch (err) {
     throw new Error('Log service failed: ' + err.message);
@@ -122,7 +120,6 @@ function closeServiceIssue(data) {
 
     const iData = iSheet.getDataRange().getValues();
     
-    // 1. Mark the specific ticket as resolved
     for (let i = 1; i < iData.length; i++) {
       if (String(iData[i][0]).trim() === data.incidentId) {
         iSheet.getRange(i + 1, 9).setValue(data.resolutionNotes);
@@ -132,7 +129,6 @@ function closeServiceIssue(data) {
       }
     }
 
-    // 2. Check for any OTHER open tickets, specifically looking for critical OOS ones
     let hasOtherOos = false;
     for (let i = 1; i < iData.length; i++) {
       const rowRentalId = String(iData[i][3]).trim().toLowerCase();
@@ -145,7 +141,6 @@ function closeServiceIssue(data) {
           dateResolved === "" && 
           incId !== String(data.incidentId).trim()) {
         
-        // If we find even one other ticket that triggers OOS, flag it
         if (isOosTriggered || severity === 'OOS') {
           hasOtherOos = true;
           break; 
@@ -153,7 +148,6 @@ function closeServiceIssue(data) {
       }
     }
 
-    // 3. Update the Vehicle status if there are no more OOS tickets holding it back
     const vData = vSheet.getDataRange().getValues();
     for (let i = 1; i < vData.length; i++) {
       if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
@@ -173,6 +167,7 @@ function closeServiceIssue(data) {
       }
     }
 
+    logAudit('SERVICE_CLOSED', 'Incident', data.incidentId, `Resolved for: ${data.rentalId}`);
     return { success: true };
   } catch (err) {
     throw new Error('Close ticket failed: ' + err.message);
@@ -191,11 +186,13 @@ function processAddVehicle(data) {
       data.vin || '', data.plate || '', data.plateExp || '', data.samsaraSerial || '',
       data.samsaraLink || '', 'Warehouse (Ready)', now, '', '', '', now,
       data.notes || '', user, now, '', data.coast || 'No', data.type || '',
-      data.lastOil || '', data.lastOilMiles || '', data.lastTires || '' // Cols V, W, X
+      data.lastOil || '', data.lastOilMiles || '', data.lastTires || ''
     ];
     
     while (rowData.length < 24) rowData.push('');
     vSheet.appendRow(rowData);
+    
+    logAudit('ADD_VEHICLE', 'Vehicle', data.rentalId, `Name: ${data.vanName}`);
     return { success: true };
   } catch (err) { throw new Error('Add vehicle failed: ' + err.message); }
 }
@@ -218,15 +215,16 @@ function logRoutineMaintenance(data) {
     if (rowIndex === -1) throw new Error(`Vehicle ${data.rentalId} not found.`);
 
     if (data.type === 'oil') {
-      sheet.getRange(rowIndex, 22).setValue(data.date); // Col V
-      sheet.getRange(rowIndex, 23).setValue(data.miles); // Col W
+      sheet.getRange(rowIndex, 22).setValue(data.date); 
+      sheet.getRange(rowIndex, 23).setValue(data.miles); 
     } else if (data.type === 'tires') {
-      sheet.getRange(rowIndex, 24).setValue(data.date); // Col X
+      sheet.getRange(rowIndex, 24).setValue(data.date);
     }
 
     sheet.getRange(rowIndex, 17).setValue(user); // Updated By
     sheet.getRange(rowIndex, 18).setValue(now);  // Updated At
 
+    logAudit('MAINTENANCE', 'Vehicle', data.rentalId, `Type: ${data.type} | Date: ${data.date}`);
     return { success: true };
   } catch (err) {
     throw new Error('Failed to log maintenance: ' + err.message);
@@ -248,7 +246,6 @@ function decommissionVehicle(data) {
         vSheet.getRange(row, 13).clearContent(); 
         vSheet.getRange(row, 14).clearContent(); 
         
-        // Write the retirement checklist to Column Y (Index 25)
         const tz = Session.getScriptTimeZone();
         const dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
         const decomNotes = `RETIRED (${dateStr}) - Reason: ${data.reason} | Samsara Removed: ${data.samRemoved ? 'Yes' : 'No'} | Assets Removed: ${data.assetsRemoved ? 'Yes' : 'No'} | Ops Notified: ${data.opsNotified ? 'Yes' : 'No'} | Cleaned: ${data.clean ? 'Yes' : 'No'}`;
@@ -261,6 +258,8 @@ function decommissionVehicle(data) {
         break;
       }
     }
+    
+    logAudit('RETIRE_VEHICLE', 'Vehicle', data.rentalId, `Reason: ${data.reason}`);
     return { success: true };
   } catch (err) {
     throw new Error('Decommission failed: ' + err.message);
@@ -288,8 +287,6 @@ function updateVehicleDetails(formData) {
     const now = new Date();
     const user = Session.getActiveUser().getEmail() || 'local-user';
 
-    // Map strictly to the 24-column layout 
-    // (Note: getRange uses 1-based indexing, so Column P is 16)
     if (formData.vanName !== undefined) sheet.getRange(rowIndex, 1).setValue(formData.vanName);
     if (formData.owner !== undefined) sheet.getRange(rowIndex, 3).setValue(formData.owner);
     if (formData.makeModel !== undefined) sheet.getRange(rowIndex, 4).setValue(formData.makeModel);
@@ -299,7 +296,6 @@ function updateVehicleDetails(formData) {
     if (formData.samsaraSerial !== undefined) sheet.getRange(rowIndex, 8).setValue(formData.samsaraSerial);
     if (formData.samsaraLink !== undefined) sheet.getRange(rowIndex, 9).setValue(formData.samsaraLink);
     
-    // Notes/Addons moved to Col P (16)
     if (formData.addons !== undefined) sheet.getRange(rowIndex, 16).setValue(formData.addons);
     
     sheet.getRange(rowIndex, 17).setValue(user); 
@@ -308,6 +304,7 @@ function updateVehicleDetails(formData) {
     if (formData.coast !== undefined) sheet.getRange(rowIndex, 20).setValue(formData.coast);
     if (formData.type !== undefined) sheet.getRange(rowIndex, 21).setValue(formData.type);
 
+    logAudit('EDIT_VEHICLE', 'Vehicle', formData.rentalId, 'Updated vehicle specs');
     return { success: true, message: `Vehicle ${formData.rentalId} updated successfully.` };
   } catch (err) {
     throw new Error('Failed to update vehicle details: ' + err.message);
@@ -326,10 +323,8 @@ function unretireVehicle(data) {
       if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
         const row = i + 1;
         
-        // 1. Reactivate Status
         vSheet.getRange(row, 10).setValue('Warehouse (Ready)');
         
-        // 2. Apply Updated Specs
         if (data.vanName) vSheet.getRange(row, 1).setValue(data.vanName);
         if (data.owner) vSheet.getRange(row, 3).setValue(data.owner);
         if (data.makeModel) vSheet.getRange(row, 4).setValue(data.makeModel);
@@ -342,7 +337,6 @@ function unretireVehicle(data) {
         if (data.coast) vSheet.getRange(row, 20).setValue(data.coast);
         if (data.addons) vSheet.getRange(row, 16).setValue(data.addons);
         
-        // 3. Append to Lifecycle History (Column Y / Index 25)
         const tz = Session.getScriptTimeZone();
         const dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
         const unretireLog = `UN-RETIRED (${dateStr}) - Reason: ${data.reason}`;
@@ -350,12 +344,13 @@ function unretireVehicle(data) {
         const existingNotes = vSheet.getRange(row, 25).getValue();
         vSheet.getRange(row, 25).setValue((existingNotes ? existingNotes + '\n' : '') + unretireLog);
         
-        // 4. Stamp Audit 
         vSheet.getRange(row, 17).setValue(user);
         vSheet.getRange(row, 18).setValue(now);
         break;
       }
     }
+    
+    logAudit('UNRETIRE_VEHICLE', 'Vehicle', data.rentalId, `Reason: ${data.reason}`);
     return { success: true };
   } catch (err) {
     throw new Error('Un-retire failed: ' + err.message);
@@ -383,8 +378,8 @@ function processEditTech(data) {
     sheet.getRange(row, 2).setValue(data.phone);
 
     sheet.getRange(row, 3).setValue(data.shift);
-    sheet.getRange(row, 4).setValue(data.start ? "'" + data.start : ""); // Forces plain text
-    sheet.getRange(row, 5).setValue(data.end ? "'" + data.end : "");     // Forces plain text
+    sheet.getRange(row, 4).setValue(data.start ? "'" + data.start : ""); 
+    sheet.getRange(row, 5).setValue(data.end ? "'" + data.end : "");     
     sheet.getRange(row, 6).setValue(data.workDays);
     
     sheet.getRange(row, 7).setValue(data.passedTest ? 'Yes' : 'No');
@@ -399,6 +394,7 @@ function processEditTech(data) {
     sheet.getRange(row, 16).setValue(data.samsaraViolation ? 'Yes' : 'No');
     sheet.getRange(row, 17).setValue(data.flagged);
 
+    logAudit('EDIT_TECH', 'Tech Profile', data.name, `Status: ${data.status} | Restricted: ${data.restricted}`);
     return { success: true };
   } catch (err) { throw new Error('Tech update failed: ' + err.message); }
 }

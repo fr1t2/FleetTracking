@@ -94,6 +94,7 @@ function processDispatchCheckout(data) {
       return { success: false, message: `Could not find Vehicle ${data.cleanName} in the sheet to update its status.` };
     }
 
+    logAudit('DISPATCH', 'Deployment', deployId, `Tech: ${data.assignedTech} | Van: ${data.rentalId}`);
     return { success: true, message: 'Van Dispatched successfully.' };
     
   } catch (err) {
@@ -115,7 +116,6 @@ function endShift(payload) {
         dSheet.getRange(i + 1, 10).setValue('Completed'); // Col J: Status
         dSheet.getRange(i + 1, 12).setValue(now); // Col L: Return Time
         
-        // Write the new Check-In Data
         if (payload.batteriesIn !== undefined) dSheet.getRange(i + 1, 18).setValue(payload.batteriesIn); // Col R
         if (payload.eKeyReturned !== undefined) dSheet.getRange(i + 1, 19).setValue(payload.eKeyReturned); // Col S
         if (payload.checkInNotes !== undefined) dSheet.getRange(i + 1, 21).setValue(payload.checkInNotes); // Col U
@@ -129,13 +129,15 @@ function endShift(payload) {
       if (String(vRows[j][1]).trim().toLowerCase() === String(payload.rentalId).trim().toLowerCase()) {
         const row = j + 1;
         vSheet.getRange(row, 10).setValue('Warehouse (Ready)'); // Col J
-        vSheet.getRange(row, 13).clearContent(); // Clear Zone
-        vSheet.getRange(row, 14).clearContent(); // Clear Tech
-        vSheet.getRange(row, 17).setValue(user); // Last Updated By
-        vSheet.getRange(row, 18).setValue(now); // Last Updated At
+        vSheet.getRange(row, 13).clearContent(); // Clear Zone (Col M)
+        vSheet.getRange(row, 14).clearContent(); // Clear Tech (Col N)
+        vSheet.getRange(row, 17).setValue(user); // Col Q
+        vSheet.getRange(row, 18).setValue(now); // Col R
         break;
       }
     }
+    
+    logAudit('END_SHIFT', 'Deployment', payload.deploymentId, `Returned: ${payload.rentalId} | BattIn: ${payload.batteriesIn || 'N/A'}`);
     return { success: true };
   } catch (err) {
     throw new Error('End shift failed: ' + err.message);
@@ -180,6 +182,8 @@ function updateDeploymentRecord(data) {
         break;
       }
     }
+    
+    logAudit('EDIT_SHIFT', 'Deployment', data.id, `Tech: ${data.assignedTech || 'Unchanged'}`);
     return { success: true };
   } catch (err) {
     throw new Error('Update failed: ' + err.toString());
