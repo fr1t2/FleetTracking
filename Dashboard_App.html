@@ -450,30 +450,30 @@
         
         <div style="background:var(--bg-modal-head); padding:16px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:16px;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Passed Drive Test</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast Tech</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast Fuel Card</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EVGo Enabled</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Drive test</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EvGo</label>
             <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_trainer"> 🎓 Trainer</label>
+            <label style="font-size:13px; font-weight:600; color:var(--warning);"><input type="checkbox" id="et_needs_training"> ⚠️ Need Training</label>
           </div>
           <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; flex-direction:column; gap:8px;">
-             <label style="font-size:13px; font-weight:700; color:var(--oos);">
-                <input type="checkbox" id="et_restricted"> 🛑 RESTRICTED (Co-Driver Only)
-             </label>
-             <label style="font-size:13px; font-weight:700; color:var(--oos);">
-                <input type="checkbox" id="et_samsara"> 🚨 Samsara Violation on Record
-             </label>
+             <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openRestrictionManager()">
+                <span id="et_restricted_display" style="font-size:13px; font-weight:700; color:var(--oos);">🛑 Manage Driving Restriction</span>
+                <span>⚙️</span>
+             </button>
+             <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openSamsaraManager()">
+                <span id="et_samsara_display" style="font-size:13px; font-weight:700; color:var(--warning);">🚨 Manage Samsara Violations</span>
+                <span>⚙️</span>
+             </button>
           </div>
         </div>
         
-        <div class="form-group">
-            <label style="font-size:12px; font-weight:700;">Admin Notes / Flag Status</label>
-            <input type="text" id="et_notes" class="form-control" placeholder="e.g. Needs retraining, reliable...">
-        </div>
-        <div class="form-group">
-            <label style="font-size:12px; font-weight:700;">Flagged Issue (Optional)</label>
-            <input type="text" id="et_flag" class="form-control" placeholder="e.g. Speeding 10/12">
-        </div>
+        <!-- Hidden fields to hold state -->
+        <input type="hidden" id="et_restricted">
+        <input type="hidden" id="et_samsara">
+        <input type="hidden" id="et_notes">
+        <input type="hidden" id="et_flag">
         
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
           <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
@@ -910,6 +910,51 @@
     </div>
   </dialog>
 
+  <!-- RESTRICTION MANAGER MODAL -->
+  <dialog id="restriction-manager-modal" style="max-width: 450px; z-index: 1020;">
+    <div class="modal-head" style="color:var(--oos);">🛑 Manage Restriction</div>
+    <div style="padding: 24px;">
+      <p style="font-size:14px; margin-top:0;">Is this tech restricted to Co-Driver duties only?</p>
+      
+      <div style="display:flex; gap:16px; margin-bottom:16px;">
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_yes" value="yes"> Yes, Restricted</label>
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_no" value="no"> No, Unrestricted</label>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Admin Notes / Restriction Reason *</label>
+        <textarea id="rm_notes" class="form-control" rows="3" placeholder="Reason for placing or lifting restriction..."></textarea>
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveRestrictionManager()">Save Restriction State</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- SAMSARA MANAGER MODAL -->
+  <dialog id="samsara-manager-modal" style="max-width: 450px; z-index: 1020;">
+    <div class="modal-head" style="color:var(--warning);">🚨 Manage Samsara Violations</div>
+    <div style="padding: 24px;">
+      <p style="font-size:14px; margin-top:0;">Does this tech have an active Samsara violation on record?</p>
+      
+      <div style="display:flex; gap:16px; margin-bottom:16px;">
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_yes" value="yes"> Yes, Active Violation</label>
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_no" value="no"> No Violations</label>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Flagged Issue (Shows on Profile)</label>
+        <input type="text" id="sm_flag" class="form-control" placeholder="e.g. Speeding 10/12">
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveSamsaraManager()">Save Samsara Record</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- END SHIFT MODAL -->
   <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
@@ -950,6 +995,83 @@
   <script>
     let globalState = null;
     let modalStack = []; 
+
+    function updateManagerDisplays() {
+      const isRestr = document.getElementById('et_restricted').value === 'true';
+      const isSam = document.getElementById('et_samsara').value === 'true';
+      const notes = document.getElementById('et_notes').value;
+      const flag = document.getElementById('et_flag').value;
+      
+      const rDisp = document.getElementById('et_restricted_display');
+      if (isRestr) {
+         rDisp.innerText = `🛑 RESTRICTED (Notes: ${notes ? 'Yes' : 'No'})`;
+      } else {
+         rDisp.innerText = `🟢 Unrestricted`;
+         rDisp.style.color = `var(--ready)`;
+      }
+      
+      const sDisp = document.getElementById('et_samsara_display');
+      if (isSam) {
+         sDisp.innerText = `🚨 SAMSARA VIOLATION (${flag || 'No Details'})`;
+      } else {
+         sDisp.innerText = `🟢 No Samsara Violations`;
+         sDisp.style.color = `var(--ready)`;
+      }
+    }
+
+    function openRestrictionManager() {
+      const isRestr = document.getElementById('et_restricted').value === 'true';
+      document.getElementById('rm_status_yes').checked = isRestr;
+      document.getElementById('rm_status_no').checked = !isRestr;
+      document.getElementById('rm_notes').value = document.getElementById('et_notes').value;
+      
+      const rm = document.getElementById('restriction-manager-modal');
+      rm.dataset.dirty = 'false';
+      openStackModal('restriction-manager-modal');
+    }
+
+    function saveRestrictionManager() {
+      const isRestr = document.getElementById('rm_status_yes').checked;
+      const notes = document.getElementById('rm_notes').value;
+      
+      if (isRestr && !notes) {
+          alert('You must provide Admin Notes when restricting a driver.');
+          return;
+      }
+      
+      document.getElementById('et_restricted').value = isRestr ? 'true' : 'false';
+      document.getElementById('et_notes').value = notes;
+      
+      updateManagerDisplays();
+      closeCurrentModal();
+    }
+
+    function openSamsaraManager() {
+      const isSam = document.getElementById('et_samsara').value === 'true';
+      document.getElementById('sm_status_yes').checked = isSam;
+      document.getElementById('sm_status_no').checked = !isSam;
+      document.getElementById('sm_flag').value = document.getElementById('et_flag').value;
+      
+      const sm = document.getElementById('samsara-manager-modal');
+      sm.dataset.dirty = 'false';
+      openStackModal('samsara-manager-modal');
+    }
+
+    function saveSamsaraManager() {
+      const isSam = document.getElementById('sm_status_yes').checked;
+      const flag = document.getElementById('sm_flag').value;
+      
+      if (isSam && !flag) {
+          alert('Please provide a Flagged Issue summary for the violation.');
+          return;
+      }
+      
+      document.getElementById('et_samsara').value = isSam ? 'true' : 'false';
+      document.getElementById('et_flag').value = flag;
+      
+      updateManagerDisplays();
+      closeCurrentModal();
+    }
 
     function toggleTheme() {
       const isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -1396,7 +1518,1868 @@
       return timeStr;
     }
 
+    
+    function getTechBadgesHTML(t) {
+        let html = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:11px; margin-top:8px; color:var(--text-muted);">';
+        
+        // Always Show (Blue Circle)
+        html += `<div>${t.passedTest ? '✅' : '❌'} Drive test</div>`;
+        html += `<div>${t.coastEnrolled ? '💳' : '❌'} Coast</div>`;
+        html += `<div>${t.evgo ? '🔋' : '❌'} EvGo</div>`;
+        
+        // Show Only if True (Red Circle)
+        if (t.goFast) html += `<div>⚡ Go-Fast</div>`;
+        if (t.trainer) html += `<div>🎓 Trainer</div>`;
+        if (t.needsTraining) html += `<div style="color:var(--warning); font-weight:700;">⚠️ Need Training</div>`;
+        html += '</div>';
 
+        // Alerts & Restrictions
+        if (t.restricted || t.samsaraViolation || t.flagged) {
+            html += `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px; font-size:11px;">`;
+            if (t.restricted) html += `<div style="color:var(--oos); font-weight:700;">🛑 RESTRICTED (Co-Driver Only)</div>`;
+            if (t.samsaraViolation) html += `<div style="color:var(--oos); font-weight:700;">🚨 Samsara Violation on Record</div>`;
+            if (t.flagged) html += `<div style="color:var(--warning); font-weight:700;">⚠️ ${t.flagged}</div>`;
+            html += `</div>`;
+        }
+        return html;
+    }
+    function formatTimeForInput(timeStr) {
+      if (!timeStr || timeStr === '?' || timeStr === '—') return '';
+      const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
+      if (match) {
+          return `${match[1]}:${match[2]}`;
+      }
+      return '';
+    }
+
+    function renderTechRoster() {
+      const q = document.getElementById('tr-search').value.toLowerCase();
+      let ts = [...(globalState.techs || [])];
+      
+      ts.sort((a,b) => {
+         const wA = (a.status === 'Available') ? 1 : 2;
+         const wB = (b.status === 'Available') ? 1 : 2;
+         if (wA !== wB) return wA - wB;
+         if (a.shift !== b.shift) return (a.shift || '').localeCompare(b.shift || '');
+         return (a.start || '').localeCompare(b.start || '');
+      });
+
+      let html = '';
+      ts.forEach(t => {
+         if (q && !t.name.toLowerCase().includes(q)) return;
+         
+         const isMuted = (t.status !== 'Available') ? 'b-mute' : '';
+         const passFlag = t.passedTest ? `<span class="d-badge b-pass">PASS</span>` : `<span class="d-badge b-fail">FAIL</span>`;
+         const restrFlag = t.restricted ? `<span class="d-badge b-fail">RESTRICTED</span>` : '';
+         const samFlag = t.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
+         
+         const cleanStart = formatTechTime(t.start);
+         const cleanEnd = formatTechTime(t.end);
+
+         const badgeHTML = getTechBadgesHTML(t);
+         html += `
+            <div class="driver-card ${isMuted}" onclick="openEditTechModal('${t.name}')">
+               <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                 <strong style="font-size:16px; color:var(--text-main);">${t.name}</strong>
+                 <span style="font-size:12px; font-weight:bold; color:var(--text-muted);">${t.status}</span>
+               </div>
+               <div style="font-size:12px; color:var(--text-muted);">
+                 Shift ${t.shift || '-'} | ${cleanStart} to ${cleanEnd}
+               </div>
+               ${badgeHTML}
+            </div>
+         `;
+      });
+      
+      const grid = document.getElementById('tr-grid');
+      if (grid) grid.innerHTML = html || `<p>No techs found.</p>`;
+    }
+
+    function openEditTechModal(techName) {
+      const t = (globalState.techs || []).find(x => x.name === techName);
+      
+      document.getElementById('et_orig_name').value = techName || '';
+      document.getElementById('et_name').value = t ? t.name : '';
+      document.getElementById('et_phone').value = t ? t.phone : '';
+      document.getElementById('et_hr').value = t ? t.hrStatus : '';
+      document.getElementById('et_shift').value = t ? t.shift : '';
+      
+      document.getElementById('et_start').value = t ? formatTimeForInput(t.start) : '';
+      document.getElementById('et_end').value = t ? formatTimeForInput(t.end) : '';
+
+      document.getElementById('et_days').value = t ? t.workDays : '';
+      document.getElementById('et_status').value = t ? t.status : 'Available';
+      
+      document.getElementById('et_test').checked = t ? t.passedTest : false;
+      document.getElementById('et_gofast').checked = t ? t.goFast : false;
+      document.getElementById('et_coast').checked = t ? t.coastEnrolled : false;
+      document.getElementById('et_evgo').checked = t ? t.evgo : false;
+      document.getElementById('et_trainer').checked = t ? t.trainer : false;
+      document.getElementById('et_needs_training').checked = t ? t.needsTraining : false;
+      
+      document.getElementById('et_restricted').value = (t && t.restricted) ? 'true' : 'false';
+      document.getElementById('et_samsara').value = (t && t.samsaraViolation) ? 'true' : 'false';
+      document.getElementById('et_notes').value = t ? t.notes : '';
+      document.getElementById('et_flag').value = t ? t.flagged : '';
+      
+      updateManagerDisplays();
+
+      const etm = document.getElementById('edit-tech-modal');
+      etm.dataset.dirty = 'false';
+      openStackModal('edit-tech-modal'); 
+    }
+
+    function submitEditTech(e) {
+      e.preventDefault();
+      
+      const payload = {
+        origName: document.getElementById('et_orig_name').value,
+        name: document.getElementById('et_name').value,
+        phone: document.getElementById('et_phone').value,
+        shift: document.getElementById('et_shift').value,
+        start: document.getElementById('et_start').value,
+        end: document.getElementById('et_end').value,
+        workDays: document.getElementById('et_days').value,
+        status: document.getElementById('et_status').value,
+        hrStatus: document.getElementById('et_hr').value,
+        passedTest: document.getElementById('et_test').checked,
+        goFast: document.getElementById('et_gofast').checked,
+        coast: document.getElementById('et_coast').checked,
+        evgo: document.getElementById('et_evgo').checked,
+        trainer: document.getElementById('et_trainer').checked,
+        needsTraining: document.getElementById('et_needs_training').checked,
+        restricted: document.getElementById('et_restricted').value === 'true',
+        samsaraViolation: document.getElementById('et_samsara').value === 'true',
+        notes: document.getElementById('et_notes').value,
+        flagged: document.getElementById('et_flag').value
+      };
+
+      closeCurrentModal(); 
+      
+      let tIdx = globalState.techs.findIndex(t => t.name === payload.origName);
+      if(tIdx > -1) {
+         globalState.techs[tIdx] = {...globalState.techs[tIdx], ...payload};
+      } else {
+         globalState.techs.push(payload);
+      }
+      
+      const techRoster = document.getElementById('tech-roster-modal');
+      if (techRoster && techRoster.open) {
+          renderTechRoster();
+      }
+      
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display='none'; 
+            alert("Error: "+err.message); 
+            loadData();
+        })
+        .processEditTech(payload);
+    }
+
+    /* --- FLEET MANAGEMENT --- */
+    function openAddVanModal() {
+      document.getElementById('av_name').value = ''; 
+      document.getElementById('av_rental').value = '';
+      document.getElementById('av_model').value = ''; 
+      document.getElementById('av_vin').value = '';
+      document.getElementById('av_plate').value = ''; 
+      document.getElementById('av_plate_exp').value = '';
+      document.getElementById('av_samsara').value = ''; 
+      document.getElementById('av_sam_link').value = '';
+      document.getElementById('av_coast').value = 'No'; 
+      document.getElementById('av_notes').value = '';
+      document.getElementById('av_oil_date').value = '';
+      document.getElementById('av_oil_miles').value = '';
+      document.getElementById('av_tires_date').value = '';
+
+      const typeSelect = document.getElementById('av_type');
+      if (globalState.vehicleTypes) {
+          typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+      } else {
+          typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
+      }
+
+      const ownerSelect = document.getElementById('av_owner');
+      if (globalState.rentalAgencies) {
+          ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      } else {
+          ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
+      }
+
+      const avm = document.getElementById('add-van-modal');
+      avm.dataset.dirty = 'false';
+      openStackModal('add-van-modal');
+    }
+
+    function submitAddVan(e) {
+      e.preventDefault(); 
+      const p = {
+        vanName: document.getElementById('av_name').value, 
+        rentalId: document.getElementById('av_rental').value,
+        owner: document.getElementById('av_owner').value, 
+        makeModel: document.getElementById('av_model').value,
+        type: document.getElementById('av_type').value, 
+        vin: document.getElementById('av_vin').value,
+        plate: document.getElementById('av_plate').value, 
+        plateExp: document.getElementById('av_plate_exp').value,
+        samsaraSerial: document.getElementById('av_samsara').value, 
+        samsaraLink: document.getElementById('av_sam_link').value,
+        coast: document.getElementById('av_coast').value, 
+        notes: document.getElementById('av_notes').value,
+        lastOil: document.getElementById('av_oil_date').value,      
+        lastOilMiles: document.getElementById('av_oil_miles').value, 
+        lastTires: document.getElementById('av_tires_date').value    
+      };
+      
+      closeCurrentModal();
+      
+      globalState.vehicles.push({
+        cleanName: p.vanName, 
+        rentalId: p.rentalId, 
+        agency: p.owner,
+        makeModel: p.makeModel, 
+        type: p.type, 
+        vin: p.vin, 
+        plate: p.plate,
+        plateExpDate: p.plateExp, 
+        samsaraSerial: p.samsaraSerial, 
+        samsaraLink: p.samsaraLink,
+        status: 'Warehouse (Ready)', 
+        pickupDate: new Date().toISOString().split('T')[0],
+        coast: p.coast, 
+        notes: p.notes, 
+        safeToDrive: 'false'
+      });
+      
+      renderGrid();
+      
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display = 'none'; 
+            alert("Error: " + err.message); 
+            loadData(); 
+        })
+        .processAddVehicle(p);
+    }
+
+    function openEditVehicleModal(rentalId) {
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if(!v) return;
+
+      const typeSelect = document.getElementById('ev_type');
+      if (globalState.vehicleTypes) {
+          typeSelect.innerHTML = globalState.vehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+      } else {
+          typeSelect.innerHTML = `<option value="Cargo Van">Cargo Van</option>`;
+      }
+      
+      const ownerSelect = document.getElementById('ev_owner');
+      if (globalState.rentalAgencies) {
+          ownerSelect.innerHTML = globalState.rentalAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      } else {
+          ownerSelect.innerHTML = `<option value="Enterprise">Enterprise</option>`;
+      }
+
+      document.getElementById('ev_rental_id').value = v.rentalId;
+      document.getElementById('ev_rental_display').value = v.rentalId;
+      document.getElementById('ev_name').value = v.cleanName || '';
+      if (v.agency) document.getElementById('ev_owner').value = v.agency;
+      if (v.type) document.getElementById('ev_type').value = v.type;
+      
+      document.getElementById('ev_model').value = v.makeModel || '';
+      document.getElementById('ev_vin').value = v.vin || '';
+      document.getElementById('ev_plate').value = v.plate || '';
+      document.getElementById('ev_plate_exp').value = (v.plateExpDate && v.plateExpDate !== '—') ? v.plateExpDate : '';
+      document.getElementById('ev_samsara').value = v.samsaraSerial || '';
+      document.getElementById('ev_sam_link').value = v.samsaraLink || '';
+      document.getElementById('ev_coast').value = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes') ? 'Yes' : 'No';
+      document.getElementById('ev_notes').value = v.notes || v.addons || '';
+      
+      const evm = document.getElementById('edit-vehicle-modal');
+      evm.dataset.dirty = 'false';
+      openStackModal('edit-vehicle-modal');
+    }
+
+    function submitEditVehicle(e) {
+      e.preventDefault();
+      const payload = {
+        rentalId: document.getElementById('ev_rental_id').value, 
+        vanName: document.getElementById('ev_name').value,
+        owner: document.getElementById('ev_owner').value, 
+        makeModel: document.getElementById('ev_model').value,
+        type: document.getElementById('ev_type').value, 
+        vin: document.getElementById('ev_vin').value,
+        licensePlate: document.getElementById('ev_plate').value, 
+        plateExpDate: document.getElementById('ev_plate_exp').value,
+        samsaraSerial: document.getElementById('ev_samsara').value, 
+        samsaraLink: document.getElementById('ev_sam_link').value,
+        coast: document.getElementById('ev_coast').value, 
+        addons: document.getElementById('ev_notes').value
+      };
+      
+      closeCurrentModal();
+      
+      const vIdx = globalState.vehicles.findIndex(v => v.rentalId === payload.rentalId);
+      if(vIdx > -1) {
+        globalState.vehicles[vIdx].cleanName = payload.vanName; 
+        globalState.vehicles[vIdx].agency = payload.owner;
+        globalState.vehicles[vIdx].makeModel = payload.makeModel; 
+        globalState.vehicles[vIdx].type = payload.type;
+        globalState.vehicles[vIdx].vin = payload.vin; 
+        globalState.vehicles[vIdx].plate = payload.licensePlate; 
+        globalState.vehicles[vIdx].plateExpDate = payload.plateExpDate || '—'; 
+        globalState.vehicles[vIdx].samsaraSerial = payload.samsaraSerial || ''; 
+        globalState.vehicles[vIdx].samsaraLink = payload.samsaraLink || ''; 
+        globalState.vehicles[vIdx].coast = payload.coast; 
+        globalState.vehicles[vIdx].notes = payload.addons;
+      }
+      
+      renderGrid();
+      const vm = document.getElementById('van-modal');
+      if (vm && vm.open) {
+          openVanModal(payload.rentalId); 
+      }
+
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(loadData)
+        .withFailureHandler(err => { 
+            document.getElementById('global-loader').style.display = 'none'; 
+            alert("Error updating specs: " + err.message); 
+            loadData(); 
+        })
+        .updateVehicleDetails(payload);
+    }
+
+    function openDecomModal(rentalId) {
+      const select = document.getElementById('dec_van');
+      select.innerHTML = '<option value="">-- Select Active Vehicle --</option>' + 
+        globalState.vehicles.filter(v => v.status !== 'Decommissioned').map(v => `<option value="${v.```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VEO Fleet Snapshot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
+  <style>
+    :root {
+      --veo-cyan: #00E5FF; 
+      --veo-cyan-dark: #00B8CC;
+      --bg-main: #f4f7f6; 
+      --bg-panel: #ffffff; 
+      --bg-modal-head: #f8f9fa;
+      --text-main: #202124; 
+      --text-muted: #5f6368;
+      --border-color: #e0e0e0; 
+      --shadow: 0 4px 12px rgba(0,0,0,0.05);
+      --ready: #34C759; 
+      --dispatched: #00B8CC; 
+      --oos: #FF3B30; 
+      --warning: #FFCC00;
+      --danger: #FF3B30;
+    }
+
+    [data-theme="dark"] {
+      --bg-main: #0f1115; 
+      --bg-panel: #1a1d24; 
+      --bg-modal-head: #252932;
+      --text-main: #ffffff; 
+      --text-muted: #9ba1a6;
+      --border-color: #333842; 
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    body { 
+        margin: 0; 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg-main); 
+        color: var(--text-main); 
+        transition: background 0.3s, color 0.3s; 
+    }
+    
+    * { 
+        box-sizing: border-box; 
+    }
+
+    .topbar { 
+        background: var(--bg-panel); 
+        padding: 16px 24px; 
+        border-bottom: 1px solid var(--border-color); 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        position: sticky; 
+        top: 0; 
+        z-index: 100; 
+        box-shadow: var(--shadow); 
+        transition: 0.3s; 
+    }
+
+    .search-box { 
+        padding: 10px 16px; 
+        width: 300px; 
+        border-radius: 8px; 
+        border: 1px solid var(--border-color); 
+        font-family: 'Inter'; 
+        background: var(--bg-main); 
+        color: var(--text-main); 
+    }
+
+    .multi-select-option { display:block; padding:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-main); }
+    .multi-select-option:hover { background:var(--bg-main); border-radius:4px; }
+
+    .theme-btn { 
+        background: var(--bg-main); 
+        border: 1px solid var(--border-color); 
+        color: var(--text-main); 
+        padding: 8px 12px; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        font-size: 16px; 
+        transition: 0.2s; 
+    }
+
+    .theme-btn:hover { 
+        border-color: var(--veo-cyan-dark); 
+    }
+
+    .grid-container { 
+        padding: 24px; 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+        gap: 20px; 
+        max-width: 1800px; 
+        margin: 0 auto; 
+    }
+    
+    .van-card { 
+        background: var(--bg-panel); 
+        border-radius: 12px; 
+        padding: 20px; 
+        cursor: pointer; 
+        position: relative; 
+        overflow: hidden; 
+        border: 1px solid var(--border-color); 
+        box-shadow: var(--shadow); 
+        transition: 0.2s; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between; 
+    }
+
+    .van-card:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1); 
+        border-color: var(--veo-cyan-dark); 
+    }
+    
+    .st-ready { border-top: 5px solid var(--ready); }
+    .st-dispatched { border-top: 5px solid var(--dispatched); }
+    .st-oos { border-top: 5px solid var(--oos); }
+    .st-decom { 
+        border-top: 5px solid #9aa0a6; 
+        opacity: 0.6; 
+        filter: grayscale(100%); 
+    }
+    
+    .ribbon-warning { 
+        position: absolute; 
+        top: 0; 
+        right: 0; 
+        background: var(--warning); 
+        color: #000; 
+        font-size: 10px; 
+        font-weight: 800; 
+        padding: 4px 12px; 
+        border-bottom-left-radius: 8px; 
+    }
+
+    /* Native Modal Stacking */
+    dialog { 
+        border: none; 
+        border-radius: 16px; 
+        padding: 0; 
+        width: 95%; 
+        max-width: 600px; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+        margin: auto; 
+        background: var(--bg-panel); 
+        color: var(--text-main); 
+        transition: 0.3s; 
+    }
+
+    dialog::backdrop { 
+        background: rgba(0,0,0,0.5); 
+        backdrop-filter: blur(4px); 
+    }
+    
+    .modal-head { 
+        padding: 20px 24px; 
+        border-bottom: 1px solid var(--border-color); 
+        font-size: 20px; 
+        font-weight: 800; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    }
+
+    .modal-tabs { 
+        display: flex; 
+        background: var(--bg-modal-head); 
+        border-bottom: 1px solid var(--border-color); 
+    }
+
+    .tab-btn { 
+        flex: 1; 
+        padding: 12px; 
+        border: none; 
+        background: transparent; 
+        font-weight: 600; 
+        cursor: pointer; 
+        color: var(--text-muted); 
+        border-bottom: 3px solid transparent; 
+        transition: 0.2s; 
+    }
+
+    .tab-btn.active { 
+        color: var(--veo-cyan-dark); 
+        border-bottom-color: var(--veo-cyan-dark); 
+        background: var(--bg-panel); 
+    }
+
+    .tab-content { 
+        display: none; 
+        padding: 24px; 
+        min-height: 250px; 
+        max-height: 60vh; 
+        overflow-y: auto; 
+    }
+
+    .tab-content.active { 
+        display: block; 
+    }
+    
+    .btn { 
+        padding: 10px 16px; 
+        border-radius: 6px; 
+        font-weight: 700; 
+        border: none; 
+        cursor: pointer; 
+        font-family: 'Inter'; 
+        transition: 0.2s; 
+    }
+
+    .btn-primary { background: var(--veo-cyan-dark); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger { background: var(--oos); color: #fff; }
+    .btn-success { background: var(--ready); color: #fff; }
+    .btn-dark { background: #202124; color: #fff; }
+    
+    .btn-outline { 
+        background: transparent; 
+        border: 1px solid var(--border-color); 
+        color: var(--text-main); 
+    }
+    
+    .btn-outline:hover { 
+        background: var(--bg-main); 
+    }
+    
+    .form-control { 
+        width: 100%; 
+        padding: 10px; 
+        border: 1px solid var(--border-color); 
+        border-radius: 6px; 
+        margin-bottom: 12px; 
+        font-family: 'Inter'; 
+        box-sizing: border-box; 
+        background: var(--bg-main); 
+        color: var(--text-main); 
+    }
+
+    .row { 
+        display: flex; 
+        gap: 16px; 
+    }
+
+    .col { 
+        flex: 1; 
+    }
+
+    .dlg-footer { 
+        padding: 16px 24px; 
+        border-top: 1px solid var(--border-color); 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 12px; 
+        background: var(--bg-modal-head); 
+    }
+
+    .driver-card { 
+        background: var(--bg-modal-head); 
+        border: 1px solid var(--border-color); 
+        padding: 12px; 
+        border-radius: 8px; 
+        margin-bottom: 12px; 
+        cursor: pointer; 
+        transition: 0.2s; 
+    }
+
+    .driver-card:hover { 
+        border-color: var(--veo-cyan-dark); 
+    }
+
+    .d-badge { 
+        font-size: 10px; 
+        padding: 3px 6px; 
+        border-radius: 4px; 
+        font-weight: 800; 
+        display: inline-block; 
+        margin-right: 4px; 
+    }
+
+    .b-pass { background: #d1fae5; color: #065f46; }
+    .b-fail { background: #fee2e2; color: #991b1b; }
+    .b-mute { filter: grayscale(100%); opacity: 0.5; }
+
+    /* The Universal Spec Grid (For Vans & Techs) */
+    .spec-grid { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 16px; 
+        font-size: 13px; 
+        margin-bottom: 20px; 
+    }
+
+    .spec-item { 
+        background: var(--bg-modal-head); 
+        padding: 12px; 
+        border-radius: 8px; 
+        border: 1px solid var(--border-color); 
+    }
+
+    .spec-label { 
+        color: var(--text-muted); 
+        font-size: 11px; 
+        text-transform: uppercase; 
+        font-weight: 700; 
+        margin-bottom: 4px; 
+    }
+
+    .spec-val { 
+        color: var(--text-main); 
+        font-weight: 600; 
+        font-size: 14px; 
+        word-break: break-word; 
+    }
+
+    #global-loader { 
+        display: none; 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        right: 0; 
+        height: 3px; 
+        background: var(--veo-cyan); 
+        z-index: 9999; 
+    }
+  </style>
+</head>
+<body>
+  <div id="global-loader"></div>
+
+  <div class="topbar">
+    <div style="font-size:20px; font-weight:900; letter-spacing:-0.5px;">VEO Snapshot</div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <input type="text" id="global-search" class="search-box" placeholder="Search Vans or Drivers..." onkeyup="renderGrid()">
+      
+      <label style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; cursor:pointer;">
+        <input type="checkbox" id="show-retired-toggle" onchange="renderGrid()"> Show Retired
+      </label>
+
+      <button class="btn btn-outline" onclick="openTechRoster()">👥 Tech Roster</button>
+      <button class="btn btn-outline" onclick="openStackModal('manage-fleet-modal')">⚙️ Manage Fleet</button>
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle">🌙</button>
+    </div>
+  </div>
+
+  <div class="grid-container" id="fleet-grid"></div>
+
+  <!-- 360 VEHICLE MODAL -->
+  <dialog id="van-modal">
+    <div class="modal-head">
+      <span id="vm-title">Van Name</span>
+      <button onclick="closeCurrentModal()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
+    </div>
+    
+    <div class="modal-tabs">
+      <button class="tab-btn active" onclick="switchTab('dispatch')">Dispatch</button>
+      <button class="tab-btn" onclick="switchTab('driver')">Driver</button>
+      <button class="tab-btn" onclick="switchTab('specs')">Specs</button>
+      <button class="tab-btn" onclick="switchTab('service')">Service</button>
+    </div>
+
+    <div id="tab-dispatch" class="tab-content active">
+      <input type="hidden" id="vm-rental-id">
+      <div id="dispatch-view"></div>
+    </div>
+    <div id="tab-driver" class="tab-content">
+      <div id="driver-view"></div>
+    </div>
+    <div id="tab-specs" class="tab-content">
+      <div id="specs-view"></div>
+    </div>
+    <div id="tab-service" class="tab-content">
+      <div id="service-view"></div>
+    </div>
+    
+    <div class="dlg-footer" id="vm-footer"></div>
+  </dialog>
+
+
+  <!-- TECH ROSTER HUB MODAL -->
+  <dialog id="tech-roster-modal" style="max-width: 900px; z-index: 1001;">
+    <div class="modal-head">
+      <span>👥 Tech Roster Hub</span>
+      <button onclick="closeCurrentModal()" style="border:none; background:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
+    </div>
+    <div style="padding: 24px;">
+       <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
+          <input type="text" id="tr-search" placeholder="🔍 Search tech..." class="form-control" style="width:250px; margin:0;" onkeyup="renderTechRoster()" />
+          <button class="btn btn-primary" onclick="openEditTechModal('')">➕ Add New Tech</button>
+       </div>
+       <div id="tr-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:16px; max-height:60vh; overflow-y:auto; padding-right:8px;"></div>
+    </div>
+  </dialog>
+
+  <!-- EDIT TECH PROFILE MODAL -->
+  <dialog id="edit-tech-modal" style="max-width: 600px; z-index: 1002;">
+    <div class="modal-head">⚙️ Edit Tech Profile</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitEditTech(event)">
+        <input type="hidden" id="et_orig_name">
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Name *</label>
+            <input type="text" id="et_name" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Phone</label>
+            <input type="text" id="et_phone" class="form-control">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">HR Status</label>
+            <input type="text" id="et_hr" class="form-control" placeholder="e.g. Active">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Current Status</label>
+            <select id="et_status" class="form-control">
+              <option value="Available">🟢 Available</option>
+              <option value="Off-Duty">⚪ Off-Duty</option>
+              <option value="Sick">🤢 Sick (OOS)</option>
+              <option value="NCNS">🚨 NCNS (OOS)</option>
+              <option value="PTO">🌴 PTO (Scheduled)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Shift</label>
+            <input type="text" id="et_shift" class="form-control" placeholder="e.g. 1st, 2nd, 3rd">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Start Time</label>
+            <input type="time" id="et_start" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">End Time</label>
+            <input type="time" id="et_end" class="form-control">
+          </div>
+        </div>
+        
+        <div class="form-group">
+            <label style="font-size:12px; font-weight:700;">Work Days</label>
+            <input type="text" id="et_days" class="form-control" placeholder="e.g. Mon-Fri">
+        </div>
+        
+        <div style="background:var(--bg-modal-head); padding:16px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:16px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Drive test</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EvGo</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_trainer"> 🎓 Trainer</label>
+            <label style="font-size:13px; font-weight:600; color:var(--warning);"><input type="checkbox" id="et_needs_training"> ⚠️ Need Training</label>
+          </div>
+          <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; flex-direction:column; gap:8px;">
+             <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openRestrictionManager()">
+                <span id="et_restricted_display" style="font-size:13px; font-weight:700; color:var(--oos);">🛑 Manage Driving Restriction</span>
+                <span>⚙️</span>
+             </button>
+             <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openSamsaraManager()">
+                <span id="et_samsara_display" style="font-size:13px; font-weight:700; color:var(--warning);">🚨 Manage Samsara Violations</span>
+                <span>⚙️</span>
+             </button>
+          </div>
+        </div>
+        
+        <!-- Hidden fields to hold state -->
+        <input type="hidden" id="et_restricted">
+        <input type="hidden" id="et_samsara">
+        <input type="hidden" id="et_notes">
+        <input type="hidden" id="et_flag">
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+
+  <!-- FLEET MANAGEMENT HUB MODAL -->
+  <dialog id="manage-fleet-modal" style="max-width: 400px; z-index: 1001;">
+    <div class="modal-head">⚙️ Manage Fleet</div>
+    <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+      <button class="btn btn-primary" style="padding: 16px; font-size: 16px;" onclick="closeCurrentModal(); openAddVanModal();">➕ Add New Van</button>
+      <button class="btn btn-outline" style="padding: 16px; font-size: 16px; color: var(--danger); border-color: var(--danger);" onclick="closeCurrentModal(); openDecomModal();">🛑 Retire Existing Van</button>
+    </div>
+  </dialog>
+
+  <!-- ADD VAN MODAL -->
+  <dialog id="add-van-modal" style="max-width: 600px; z-index: 1002;">
+    <div class="modal-head">➕ Add New Van</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitAddVan(event)">
+        <div class="row">
+            <div class="col form-group">
+                <label style="font-size:12px; font-weight:700;">Van Name *</label>
+                <input type="text" id="av_name" class="form-control" required>
+            </div>
+            <div class="col form-group">
+                <label style="font-size:12px; font-weight:700;">Van ID *</label>
+                <input type="text" id="av_rental" class="form-control" required>
+            </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="av_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Make & Model</label>
+              <input type="text" id="av_model" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="av_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">VIN</label>
+              <input type="text" id="av_vin" class="form-control">
+          </div>
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">License Plate *</label>
+              <input type="text" id="av_plate" class="form-control" required>
+          </div>
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Plate Expiration</label>
+              <input type="date" id="av_plate_exp" class="form-control">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Samsara Serial #</label>
+              <input type="text" id="av_samsara" class="form-control">
+          </div>
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Samsara Link</label>
+              <input type="text" id="av_sam_link" class="form-control">
+          </div>
+          <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="av_coast" class="form-control">
+                 <option value="Yes">Yes</option>
+                 <option value="No" selected>No</option>
+             </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Last Oil Date</label>
+            <input type="date" id="av_oil_date" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Last Oil Miles</label>
+            <input type="number" id="av_oil_miles" class="form-control" placeholder="e.g. 45000">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Last Tires Date</label>
+            <input type="date" id="av_tires_date" class="form-control">
+          </div>
+        </div>
+        <div class="form-group">
+            <label style="font-size:12px; font-weight:700;">Notes</label>
+            <input type="text" id="av_notes" class="form-control" placeholder="e.g. Inverter, Shelving, Dents...">
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Van</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DECOMMISSION MODAL -->
+  <dialog id="decom-van-modal" style="max-width: 450px; z-index: 1002;">
+    <div class="modal-head" style="color:var(--danger)">🛑 Retire Vehicle</div>
+    <div style="padding: 24px;">
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Select Vehicle *</label>
+        <select id="dec_van" class="form-control" required></select>
+      </div>
+      
+      <label style="font-size:12px; font-weight:700; margin-bottom:8px; display:block;">Retirement Checklist</label>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom:16px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_sam"> Samsara Removed</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_assets"> Assets Removed</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_ops"> Fleet Ops Notified</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="dec_chk_clean"> Cleaned</label>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Reason for Retirement *</label>
+        <textarea id="dec_reason" class="form-control" rows="2" placeholder="e.g. Lease expired, totaled..."></textarea>
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-danger" type="button" onclick="submitDecomVan()">Retire Vehicle</button>
+      </div>
+    </div>
+  </dialog>
+  
+  <!-- UN-RETIRE MODAL -->
+  <dialog id="unretire-van-modal" style="max-width: 600px; z-index: 1003;">
+    <div class="modal-head" style="color:var(--ready)">🔄 Bring Back to Service</div>
+    <div style="padding: 24px;">
+      <p style="font-size:13px; color:var(--text-muted); margin-top:0;">Update any missing or changed specs before bringing this van back into the active fleet.</p>
+      <form onsubmit="submitUnretireVan(event)">
+        <input type="hidden" id="ur_rental_id">
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van Name *</label>
+            <input type="text" id="ur_name" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van ID (Read-Only)</label>
+            <input type="text" id="ur_rental_display" class="form-control" disabled style="background:#f1f3f4; color:#5f6368;">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="ur_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Make & Model</label>
+            <input type="text" id="ur_model" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="ur_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">VIN</label>
+            <input type="text" id="ur_vin" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">License Plate *</label>
+            <input type="text" id="ur_plate" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Plate Expiration</label>
+            <input type="date" id="ur_plate_exp" class="form-control">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Serial #</label>
+            <input type="text" id="ur_samsara" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Link</label>
+            <input type="text" id="ur_sam_link" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="ur_coast" class="form-control">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+             </select>
+          </div>
+        </div>
+        
+        <div class="form-group" style="padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px;">
+          <label style="font-size:12px; font-weight:700;">Reason for Reactivation *</label>
+          <input type="text" id="ur_reason" class="form-control" placeholder="e.g. Returned from Penske, repairs completed..." required>
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-success" type="submit">Reactivate Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+
+  <!-- EDIT VEHICLE MODAL -->
+  <dialog id="edit-vehicle-modal" style="max-width: 600px; z-index: 1003;">
+    <div class="modal-head">✏️ Edit Vehicle Specs</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitEditVehicle(event)">
+        <input type="hidden" id="ev_rental_id">
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van Name *</label>
+            <input type="text" id="ev_name" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Van ID (Read-Only)</label>
+            <input type="text" id="ev_rental_display" class="form-control" disabled style="background:#f1f3f4; color:#5f6368;">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Owner (Agency)</label>
+            <select id="ev_owner" class="form-control"></select>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Make & Model</label>
+            <input type="text" id="ev_model" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Vehicle Type</label>
+            <select id="ev_type" class="form-control"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">VIN</label>
+            <input type="text" id="ev_vin" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">License Plate *</label>
+            <input type="text" id="ev_plate" class="form-control" required>
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Plate Expiration</label>
+            <input type="date" id="ev_plate_exp" class="form-control">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Serial #</label>
+            <input type="text" id="ev_samsara" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Samsara Link</label>
+            <input type="text" id="ev_sam_link" class="form-control">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Coast Enrolled</label>
+             <select id="ev_coast" class="form-control">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+             </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Notes & Addons</label>
+          <input type="text" id="ev_notes" class="form-control">
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- EDIT DISPATCH MODAL -->
+  <dialog id="edit-dispatch-modal" style="max-width: 500px; z-index: 1005;">
+    <div class="modal-head">✏️ Edit Active Shift</div>
+    <div style="padding: 24px;">
+      <input type="hidden" id="ed-dep-id">
+      <input type="hidden" id="ed-rental-id">
+      <input type="hidden" id="ed-selected-tech">
+      
+      <label style="font-size:12px; font-weight:700;">Driver (Search to Change)</label>
+      <input type="text" id="ed-driver-search" class="form-control" placeholder="Search tech roster..." onkeyup="searchDriverEdit()">
+      <div id="ed-driver-result-card" style="margin-bottom:12px; max-height:150px; overflow-y:auto;"></div>
+
+      <div class="row">
+        <div class="col form-group">
+          <label style="font-size:12px; font-weight:700;">Zone(s)</label>
+          <select id="ed-zone" class="form-control" multiple style="height:90px;"></select>
+        </div>
+        <div class="col form-group">
+          <label style="font-size:12px; font-weight:700;">Shift Focus</label>
+          <select id="ed-focus" class="form-control">
+            <option value="">-- Select --</option>
+            <option value="Battery Swap">Battery Swap</option>
+            <option value="Rebalance">Rebalance</option>
+            <option value="Retrieval">Retrieval</option>
+            <option value="Standard Route">Standard Route</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Battery Count</label>
+        <input type="number" id="ed_target" class="form-control" placeholder="e.g. 30">
+      </div>
+
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="submitEditDispatch()">Save Changes</button>
+      </div>
+    </div>
+  </dialog>
+
+<!-- RESTRICTED DRIVER WARNING MODAL -->
+  <dialog id="restricted-driver-modal" style="max-width: 450px; z-index: 1010; border-top: 5px solid var(--oos);">
+    <div class="modal-head" style="color:var(--oos);">⚠️ Driver Restricted</div>
+    <div style="padding: 24px;">
+      <p style="font-size:15px; font-weight:600; margin-top:0;" id="rd-msg">Tech is restricted from operating a vehicle.</p>
+      
+      <div style="background: rgba(255, 59, 48, 0.05); padding: 12px; border-radius: 6px; border: 1px dashed var(--oos); margin-bottom: 20px;">
+        <strong style="font-size:12px; color:var(--oos);">Restriction Reason:</strong>
+        <div id="rd-reason" style="font-size:14px; font-weight:600; margin-top:4px;"></div>
+      </div>
+
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom: 16px;">
+        To dispatch this driver, you must lift the restriction below and provide a resolution note.
+      </p>
+
+      <form onsubmit="submitLiftRestriction(event)">
+        <input type="hidden" id="rd-tech-name">
+        <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Resolution Note / Action Taken *</label>
+          <input type="text" id="rd-lift-note" class="form-control" placeholder="e.g. Cleared by HR, Retraining completed..." required>
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel Dispatch</button>
+          <button class="btn btn-danger" type="submit">Lift Restriction & Assign</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- LOG MAINTENANCE MODAL -->
+  <dialog id="log-service-modal" style="max-width: 450px; z-index: 1001;">
+    <div class="modal-head">📝 Log Maintenance</div>
+    <div style="padding: 24px;">
+      <input type="hidden" id="ls-rental-id">
+      <input type="hidden" id="ls-clean-name">
+      
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Issue Category</label>
+        <select id="ls-category" class="form-control"></select>
+      </div>
+      
+      <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Status Impact</label>
+          <input type="text" id="ls-impact" class="form-control" placeholder="e.g. Cannot operate, missing side mirror">
+      </div>
+
+      <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Description / Event Details</label>
+          <textarea id="ls-desc" class="form-control" rows="3" placeholder="Describe the issue..."></textarea>
+      </div>
+      
+      <label style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:16px; cursor: pointer;">
+        <input type="checkbox" id="ls-oos" style="transform:scale(1.2);"> 🚨 Mark Vehicle Out of Service
+      </label>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-danger" type="button" onclick="submitNewService()">Submit Ticket</button>
+      </div>
+    </div>
+  </dialog>
+
+<!-- LOG OIL MODAL -->
+  <dialog id="log-oil-modal" style="max-width: 400px; z-index: 1010;">
+    <div class="modal-head">🛢️ Log Oil Change</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitLogRoutine(event, 'oil')">
+        <input type="hidden" id="lo_rental_id">
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Date of Oil Change *</label><input type="date" id="lo_date" class="form-control" required></div>
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Mileage</label><input type="number" id="lo_miles" class="form-control" placeholder="e.g. 45000"></div>
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- LOG TIRES MODAL -->
+  <dialog id="log-tires-modal" style="max-width: 400px; z-index: 1010;">
+    <div class="modal-head">🛞 Log Tire Replacement</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitLogRoutine(event, 'tires')">
+        <input type="hidden" id="lt_rental_id">
+        <div class="form-group"><label style="font-size:12px; font-weight:700;">Date of Tire Replacement *</label><input type="date" id="lt_date" class="form-control" required></div>
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+
+  <!-- UNSAVED CHANGES WARNING MODAL -->
+  <dialog id="unsaved-modal" style="max-width: 350px; z-index: 1002;">
+    <div class="modal-head" style="color:var(--danger)">⚠️ Unsaved Changes</div>
+    <div style="padding: 24px;">
+      <p style="margin-top:0; font-size:14px; font-weight:500;">You have entered information in this form. Are you sure you want to close it and discard your changes?</p>
+      <div class="dlg-footer" style="padding: 24px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="document.getElementById('unsaved-modal').close()">Keep Editing</button>
+        <button class="btn btn-danger" type="button" onclick="forceCloseModal()">Discard Changes</button>
+      </div>
+    </div>
+  </dialog>
+
+
+
+  <!-- RESTRICTION MANAGER MODAL -->
+  <dialog id="restriction-manager-modal" style="max-width: 450px; z-index: 1020;">
+    <div class="modal-head" style="color:var(--oos);">🛑 Manage Restriction</div>
+    <div style="padding: 24px;">
+      <p style="font-size:14px; margin-top:0;">Is this tech restricted to Co-Driver duties only?</p>
+      
+      <div style="display:flex; gap:16px; margin-bottom:16px;">
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_yes" value="yes"> Yes, Restricted</label>
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_no" value="no"> No, Unrestricted</label>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Admin Notes / Restriction Reason *</label>
+        <textarea id="rm_notes" class="form-control" rows="3" placeholder="Reason for placing or lifting restriction..."></textarea>
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveRestrictionManager()">Save Restriction State</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- SAMSARA MANAGER MODAL -->
+  <dialog id="samsara-manager-modal" style="max-width: 450px; z-index: 1020;">
+    <div class="modal-head" style="color:var(--warning);">🚨 Manage Samsara Violations</div>
+    <div style="padding: 24px;">
+      <p style="font-size:14px; margin-top:0;">Does this tech have an active Samsara violation on record?</p>
+      
+      <div style="display:flex; gap:16px; margin-bottom:16px;">
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_yes" value="yes"> Yes, Active Violation</label>
+         <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_no" value="no"> No Violations</label>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px; font-weight:700;">Flagged Issue (Shows on Profile)</label>
+        <input type="text" id="sm_flag" class="form-control" placeholder="e.g. Speeding 10/12">
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveSamsaraManager()">Save Samsara Record</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- END SHIFT MODAL -->
+  <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
+    <div class="modal-head">🛑 End Shift Details</div>
+    <div style="padding: 24px;">
+      <form onsubmit="submitEndShift(event)">
+        <input type="hidden" id="es_dep_id">
+        <input type="hidden" id="es_rental_id">
+        
+        <div class="row">
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">Batteries In *</label>
+            <input type="number" id="es_batt_in" class="form-control" required placeholder="e.g. 25">
+          </div>
+          <div class="col form-group">
+            <label style="font-size:12px; font-weight:700;">E-Key Returned</label>
+            <select id="es_ekey" class="form-control">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="N/A" selected>N/A</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label style="font-size:12px; font-weight:700;">Check-In Notes</label>
+          <textarea id="es_notes" class="form-control" rows="2" placeholder="e.g. Returned with flat tire..."></textarea>
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+          <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+          <button class="btn btn-dark" type="submit">Complete Shift</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script>
+    let globalState = null;
+    let modalStack = []; 
+
+    function updateManagerDisplays() {
+      const isRestr = document.getElementById('et_restricted').value === 'true';
+      const isSam = document.getElementById('et_samsara').value === 'true';
+      const notes = document.getElementById('et_notes').value;
+      const flag = document.getElementById('et_flag').value;
+      
+      const rDisp = document.getElementById('et_restricted_display');
+      if (isRestr) {
+         rDisp.innerText = `🛑 RESTRICTED (Notes: ${notes ? 'Yes' : 'No'})`;
+      } else {
+         rDisp.innerText = `🟢 Unrestricted`;
+         rDisp.style.color = `var(--ready)`;
+      }
+      
+      const sDisp = document.getElementById('et_samsara_display');
+      if (isSam) {
+         sDisp.innerText = `🚨 SAMSARA VIOLATION (${flag || 'No Details'})`;
+      } else {
+         sDisp.innerText = `🟢 No Samsara Violations`;
+         sDisp.style.color = `var(--ready)`;
+      }
+    }
+
+    function openRestrictionManager() {
+      const isRestr = document.getElementById('et_restricted').value === 'true';
+      document.getElementById('rm_status_yes').checked = isRestr;
+      document.getElementById('rm_status_no').checked = !isRestr;
+      document.getElementById('rm_notes').value = document.getElementById('et_notes').value;
+      
+      const rm = document.getElementById('restriction-manager-modal');
+      rm.dataset.dirty = 'false';
+      openStackModal('restriction-manager-modal');
+    }
+
+    function saveRestrictionManager() {
+      const isRestr = document.getElementById('rm_status_yes').checked;
+      const notes = document.getElementById('rm_notes').value;
+      
+      if (isRestr && !notes) {
+          alert('You must provide Admin Notes when restricting a driver.');
+          return;
+      }
+      
+      document.getElementById('et_restricted').value = isRestr ? 'true' : 'false';
+      document.getElementById('et_notes').value = notes;
+      
+      updateManagerDisplays();
+      closeCurrentModal();
+    }
+
+    function openSamsaraManager() {
+      const isSam = document.getElementById('et_samsara').value === 'true';
+      document.getElementById('sm_status_yes').checked = isSam;
+      document.getElementById('sm_status_no').checked = !isSam;
+      document.getElementById('sm_flag').value = document.getElementById('et_flag').value;
+      
+      const sm = document.getElementById('samsara-manager-modal');
+      sm.dataset.dirty = 'false';
+      openStackModal('samsara-manager-modal');
+    }
+
+    function saveSamsaraManager() {
+      const isSam = document.getElementById('sm_status_yes').checked;
+      const flag = document.getElementById('sm_flag').value;
+      
+      if (isSam && !flag) {
+          alert('Please provide a Flagged Issue summary for the violation.');
+          return;
+      }
+      
+      document.getElementById('et_samsara').value = isSam ? 'true' : 'false';
+      document.getElementById('et_flag').value = flag;
+      
+      updateManagerDisplays();
+      closeCurrentModal();
+    }
+
+    function toggleTheme() {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('theme-toggle').innerText = isDark ? '🌙' : '☀️';
+      localStorage.setItem('veo_theme', isDark ? 'light' : 'dark');
+    }
+
+    window.onload = function() { 
+      if (localStorage.getItem('veo_theme') === 'dark') {
+          document.body.setAttribute('data-theme', 'dark');
+          document.getElementById('theme-toggle').innerText = '☀️';
+      }
+      loadData(); 
+    };
+
+    function loadData() {
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run
+        .withSuccessHandler(state => { 
+            globalState = JSON.parse(state); 
+            renderGrid(); 
+            document.getElementById('global-loader').style.display = 'none'; 
+        })
+        .withFailureHandler(err => {
+            document.getElementById('global-loader').style.display = 'none';
+            alert("Error loading data: " + err.message);
+        })
+        .getDashboardState();
+    }
+
+    /* --- SMART MODAL STACK CONTROLLER --- */
+    function openStackModal(modalId) {
+      const dlg = document.getElementById(modalId);
+      if(!dlg) return;
+      modalStack.push(dlg);
+      dlg.showModal();
+    }
+    
+    function closeCurrentModal() {
+      if(modalStack.length === 0) return;
+      const topDlg = modalStack.pop();
+      topDlg.dataset.dirty = 'false';
+      topDlg.close();
+    }
+
+    function renderGrid() {
+      if(!globalState) return;
+      const q = document.getElementById('global-search').value.toLowerCase();
+      const showRetired = document.getElementById('show-retired-toggle').checked;
+      
+      let vans = [...(globalState.vehicles || [])];
+      
+      const statusWeight = { 
+          'Dispatched': 1, 
+          'Warehouse (Ready)': 2, 
+          'Out of Service': 3,
+          'Decommissioned': 4
+      };
+      
+      vans.sort((a, b) => {
+        const weightA = statusWeight[a.status] || 99;
+        const weightB = statusWeight[b.status] || 99;
+        if (weightA !== weightB) return weightA - weightB;
+        if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
+        return a.cleanName.localeCompare(b.cleanName);
+      });
+
+      let html = '';
+      vans.forEach(v => {
+        if (v.status === 'Decommissioned' && !showRetired) return;
+        if (q && !v.cleanName.toLowerCase().includes(q) && !(v.driver || '').toLowerCase().includes(q)) return;
+
+        let bClass = 'st-ready';
+        if (v.status === 'Dispatched') bClass = 'st-dispatched';
+        if (v.status === 'Out of Service') bClass = 'st-oos';
+        if (v.status === 'Decommissioned') bClass = 'st-decom';
+        
+        let ribbon = (String(v.safeToDrive) === 'true' && v.status !== 'Decommissioned') 
+            ? '<div class="ribbon-warning">MAINT NEEDED (SAFE)</div>' 
+            : '';
+        
+        let subText = '';
+        let zoneRightSide = '';
+
+        if (v.status === 'Dispatched') {
+          const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
+          const focusStr = (dep && dep.goals) ? `<div style="font-size:11px; color:var(--veo-cyan-dark); font-weight:700; margin-top:4px;">🎯 ${dep.goals}</div>` : '';
+          
+          let coDriverHtml = (dep && dep.coDriver) ? ` <span style="font-size:11px; color:var(--text-muted); font-weight:600;">+ ${dep.coDriver}</span>` : '';
+          
+          subText = `<div><div style="font-weight:700; color:var(--dispatched);">👤 ${v.driver}${coDriverHtml}</div>${focusStr}</div>`;
+          
+          let rawZone = v.zone || '';
+          let displayZone = '';
+          if (rawZone && rawZone !== '—') {
+             let zArray = rawZone.split(',').map(z => z.trim()).filter(Boolean);
+             if (zArray.length === 1) {
+                 let zText = zArray[0];
+                 if (!zText.toLowerCase().startsWith('zone')) zText = 'Zone ' + zText;
+                 displayZone = zText;
+             } else if (zArray.length > 1) {
+                 displayZone = zArray.join(', ');
+             }
+          }
+          let zSize = displayZone.length > 12 ? '13px' : '15px';
+          zoneRightSide = `<div style="font-size:${zSize}; font-weight:800; color:var(--veo-cyan-dark); margin-top:4px; text-align:right; max-width:140px; line-height:1.2;">${displayZone}</div>`;
+        
+        } else if (v.status === 'Decommissioned') {
+          subText = `<div><div style="font-size:12px; color:var(--text-muted); font-weight:700;">🛑 RETIRED</div></div>`;
+        } else {
+          subText = `<div><div style="font-size:12px; color:var(--text-muted);">Type: ${v.type || 'Cargo Van'}</div></div>`;
+        }
+
+        const isCoast = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
+        const coastBadge = isCoast 
+            ? `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Coast Active">💳 ✅</span>` 
+            : `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Not Enrolled in Coast">💳 ❌</span>`;
+
+        const hasSamsaraSerial = v.samsaraSerial && v.samsaraSerial.trim() !== '';
+        const openSamsaraTicket = (globalState.incidents || []).some(i => 
+            i.rentalId === v.rentalId && !i.dateResolved && (i.category || '').toLowerCase().includes('samsara')
+        );
+        const samsaraBadge = (!hasSamsaraSerial || openSamsaraTicket) 
+            ? `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger); font-weight:800;" title="Samsara Issue or Missing">📡 ❌</span>` 
+            : `<span style="font-size:10px; padding:3px 6px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready); font-weight:800;" title="Samsara Active">📡 ✅</span>`;
+
+        html += `
+          <div class="van-card ${bClass}" onclick="openVanModal('${v.rentalId}')">
+            ${ribbon}
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                <span style="font-size:18px; font-weight:800; line-height:1.2;">${v.cleanName}</span>
+                <div style="text-align:right; flex-shrink:0;">
+                    <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">${v.rentalId}</span>
+                    ${zoneRightSide}
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:12px; flex: 1;">
+                ${subText}
+                <div style="display:flex; gap:6px; flex-shrink:0;">${samsaraBadge} ${coastBadge}</div>
+            </div>
+          </div>
+        `;
+      });
+      document.getElementById('fleet-grid').innerHTML = html;
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function openVanModal(rentalId) {
+      const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+      if (!v) return;
+      
+      document.getElementById('vm-rental-id').value = rentalId;
+      document.getElementById('vm-title').innerText = v.cleanName;
+      // Removed premature vm-selected-tech reset
+      
+      const dep = (globalState.deployments || []).find(d => d.rentalId === rentalId && d.status === 'Dispatched');
+      const tech = (globalState.techs || []).find(t => t.name === (dep ? dep.tech : v.driver));
+
+      let dHtml = '';
+      let footerHtml = `<button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Close</button>`;
+
+      if (v.status === 'Warehouse (Ready)') {
+        let shiftOpts = ['First Shift', 'Second Shift', 'Third Shift'].map(s => `<option value="${s}">${s}</option>`).join('');
+        
+        let zoneCheckboxes = (globalState.zones || []).map(z => 
+            `<label class="multi-select-option"><input type="checkbox" value="${z}" onchange="updateZoneDisplay()" style="margin-right:8px; transform:scale(1.2);"> ${z}</label>`
+        ).join('');
+
+        dHtml = `
+          <div class="row" style="margin-bottom:12px;">
+            <div class="col form-group" style="position:relative;">
+              <label style="font-size:12px; font-weight:700;">Primary Driver *</label>
+              <input type="hidden" id="vm-selected-tech">
+              <input type="text" id="live-driver-search" class="form-control" placeholder="Search primary..." autocomplete="off" 
+                     onkeyup="searchDriver('primary')" onfocus="searchDriver('primary')" onblur="handleDriverBlur('primary')">
+              <div id="driver-result-card" style="position:absolute; top:65px; left:0; right:0; z-index:1000; max-height:200px; overflow-y:auto; background:var(--bg-panel); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.15); display:none; border:1px solid var(--border-color); padding:4px;"></div>
+            </div>
+            
+            <div class="col form-group" style="position:relative;">
+              <label style="font-size:12px; font-weight:700;">Co-Driver / Trainee</label>
+              <input type="hidden" id="vm-selected-codriver">
+              <input type="text" id="live-codriver-search" class="form-control" placeholder="Search co-driver..." autocomplete="off"
+                     onkeyup="searchDriver('codriver')" onfocus="searchDriver('codriver')" onblur="handleDriverBlur('codriver')">
+              <div id="codriver-result-card" style="position:absolute; top:65px; left:0; right:0; z-index:1000; max-height:200px; overflow-y:auto; background:var(--bg-panel); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.15); display:none; border:1px solid var(--border-color); padding:4px;"></div>
+            </div>
+          </div>
+
+          <div class="row" style="align-items:flex-end;">
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Shift</label>
+              <select id="sel-shift" class="form-control" style="margin-bottom:0;">${shiftOpts}</select>
+            </div>
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">E-Key Number</label>
+              <input type="text" id="sel-ekey" class="form-control" placeholder="e.g. 1234" style="margin-bottom:0;">
+            </div>
+            <div class="col form-group" style="padding-bottom:12px;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="sel-training" style="transform:scale(1.2);"> Training Shift
+              </label>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Zone(s)</label>
+              <div class="multi-select-container" style="position:relative;">
+                <div class="form-control" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;" onclick="toggleZoneDropdown()">
+                  <span id="zone-display-text" style="color:var(--text-muted);">-- Select Zones --</span>
+                  <span style="font-size:10px;">▼</span>
+                </div>
+                <div id="zone-dropdown" style="position:absolute; top:100%; left:0; right:0; background:var(--bg-panel); border:1px solid var(--border-color); border-radius:6px; max-height:150px; overflow-y:auto; z-index:1000; display:none; padding:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15);">
+                  ${zoneCheckboxes}
+                </div>
+              </div>
+            </div>
+                        <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Primary Shift Focus</label>
+              <select id="sel-focus" class="form-control">
+                <option value="">-- Select --</option>
+                <option value="Battery Swap">Battery Swap</option>
+                <option value="Rebalance">Rebalance</option>
+                <option value="Retrieval">Retrieval</option>
+                <option value="Standard Route">Standard Route</option>
+              </select>
+            </div>
+            <div class="col form-group">
+              <label style="font-size:12px; font-weight:700;">Battery Target</label>
+              <input type="number" id="sel-battery" class="form-control" placeholder="e.g. 30">
+            </div>
+          </div>
+
+          <label style="font-size:12px; font-weight:700; margin-top:4px; display:block;">Action Targets (Hover for details)</label>
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:12px;">
+             <div title="Damaged"><label style="font-size:10px; font-weight:700;">DM</label><input type="number" id="tgt-dm" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Error"><label style="font-size:10px; font-weight:700;">ER</label><input type="number" id="tgt-er" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="IOT Battery"><label style="font-size:10px; font-weight:700;">IB</label><input type="number" id="tgt-ib" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Idle"><label style="font-size:10px; font-weight:700;">ID</label><input type="number" id="tgt-id" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Low Battery"><label style="font-size:10px; font-weight:700;">LB</label><input type="number" id="tgt-lb" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Offline"><label style="font-size:10px; font-weight:700;">OF</label><input type="number" id="tgt-of" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Retrieval"><label style="font-size:10px; font-weight:700;">RT</label><input type="number" id="tgt-rt" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+             <div title="Ticket"><label style="font-size:10px; font-weight:700;">TK</label><input type="number" id="tgt-tk" class="form-control" style="padding:6px; font-size:12px; margin-bottom:0;" min="0" max="999"></div>
+          </div>
+          
+          <div class="form-group">
+            <label style="font-size:12px; font-weight:700;">Dispatch Notes</label>
+            <textarea id="sel-notes" class="form-control" rows="2" placeholder="e.g. Special instructions, access codes..."></textarea>
+          </div>
+        `;
+        footerHtml += `<button class="btn btn-primary" type="button" onclick="submitDispatch()">🚀 Dispatch Now</button>`;
+      } else if (v.status === 'Dispatched') {
+        dHtml = `
+          <div style="background:rgba(0, 229, 255, 0.05); border:1px solid var(--veo-cyan); padding:16px; border-radius:8px;">
+            <h4 style="margin-top:0; color:var(--veo-cyan-dark);">Active Route Details</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size:14px;">
+              <div><strong>Tech:</strong> ${dep ? dep.tech : v.driver}</div>
+              <div><strong>Out Since:</strong> ${dep ? dep.departureTime : 'Unknown'}</div>
+              <div><strong>Zone(s):</strong> ${dep ? dep.zone : v.zone}</div>
+              <div><strong>Focus:</strong> ${dep ? dep.goals : '—'}</div>
+              <div><strong>Batteries Out:</strong> ${dep ? dep.battery : '0'}</div>
+            </div>
+          </div>
+        `;
+        footerHtml += `<button class="btn btn-outline" type="button" onclick="openEditDispatchModal('${dep ? dep.id : ''}')">✏️ Edit Shift</button>`;
+        footerHtml += `<button class="btn btn-dark" type="button" onclick="openEndShiftModal('${dep ? dep.id : ''}', '${rentalId}')">🛑 End Shift</button>`;
+      } else {
+        dHtml = `<div style="padding:20px; background:rgba(255, 59, 48, 0.1); color:var(--danger); border-radius:8px; font-weight:bold;">⚠️ Vehicle is currently Out of Service.</div>`;
+        footerHtml += `<button class="btn btn-success" type="button" onclick="submitCheckIn()">✅ Check In to Warehouse</button>`;
+      }
+      document.getElementById('dispatch-view').innerHTML = dHtml;
+      document.getElementById('vm-footer').innerHTML = footerHtml;
+
+      if (tech) {
+        const cleanStart = formatTechTime(tech.start);
+        const cleanEnd = formatTechTime(tech.end);
+
+        document.getElementById('driver-view').innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+             <h4 style="margin:0; font-size:18px;">${tech.name}</h4>
+             <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openEditTechModal('${tech.name}')">✏️ Edit Tech</button>
+          </div>
+          <div class="spec-grid">
+            <div class="spec-item"><div class="spec-label">Phone</div><div class="spec-val">${tech.phone || '—'}</div></div>
+            <div class="spec-item"><div class="spec-label">Shift</div><div class="spec-val">${tech.shift || '—'}</div></div>
+            <div class="spec-item"><div class="spec-label">Schedule</div><div class="spec-val">${cleanStart} - ${cleanEnd}</div></div>
+            <div class="spec-item"><div class="spec-label">Work Days</div><div class="spec-val">${tech.workDays || '—'}</div></div>
+            <div class="spec-item"><div class="spec-label">HR Status</div><div class="spec-val">${tech.hrStatus || '—'}</div></div>
+            <div class="spec-item"><div class="spec-label">Current Status</div><div class="spec-val">${tech.status || 'Available'}</div></div>
+            
+            <div class="spec-item"><div class="spec-label">Drive Test</div><div class="spec-val">${tech.passedTest ? '✅ Pass' : '❌ Fail'}</div></div>
+            <div class="spec-item"><div class="spec-label">Go-Fast Tech</div><div class="spec-val">${tech.goFast ? '⚡ Yes' : 'No'}</div></div>
+            <div class="spec-item"><div class="spec-label">Coast Card</div><div class="spec-val">${tech.coastEnrolled ? '💳 Yes' : 'No'}</div></div>
+            <div class="spec-item"><div class="spec-label">EVGo Enabled</div><div class="spec-val">${tech.evgo ? '🔋 Yes' : 'No'}</div></div>
+            <div class="spec-item"><div class="spec-label">Trainer</div><div class="spec-val">${tech.trainer ? '🎓 Yes' : 'No'}</div></div>
+            <div class="spec-item"><div class="spec-label">Flagged Issues</div><div class="spec-val" style="color:var(--danger);">${tech.flagged || 'None'}</div></div>
+          </div>
+          
+          <div class="spec-item" style="margin-top:16px;">
+            <div class="spec-label">Admin Notes</div>
+            <div class="spec-val" style="font-weight:normal; font-size:13px; line-height:1.4;">${tech.notes || 'No admin notes recorded.'}</div>
+          </div>
+          
+          ${tech.restricted ? `<div style="background:var(--oos); color:#fff; padding:8px; border-radius:6px; font-weight:bold; font-size:12px; margin-top:16px; text-align:center;">🛑 DRIVING RESTRICTED (CO-DRIVER ONLY)</div>` : ''}
+          ${tech.samsaraViolation ? `<div style="background:var(--warning); color:#000; padding:8px; border-radius:6px; font-weight:bold; font-size:12px; margin-top:8px; text-align:center;">🚨 SAMSARA VIOLATION ON RECORD</div>` : ''}
+        `;
+      } else {
+        document.getElementById('driver-view').innerHTML = `<p style="color:var(--text-muted);">No active driver assigned to this vehicle.</p>`;
+      }
+
+      const isCoastEnrolled = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
+      const coastStr = isCoastEnrolled 
+          ? `<span style="color:var(--ready);">✅ Enrolled</span>` 
+          : `<span style="color:var(--danger);">❌ Not Enrolled</span>`;
+          
+      const samsaraStr = v.samsaraSerial 
+          ? `${v.samsaraSerial} <br><a href="${v.samsaraLink || '#'}" target="_blank" style="color:var(--veo-cyan-dark); font-size:11px; text-decoration:none;">🔗 View GPS</a>` 
+          : `<span style="color:var(--danger);">Unassigned</span>`;
+
+      document.getElementById('specs-view').innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h4 style="margin:0; font-size:16px;">Vehicle Specifications</h4>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="openEditVehicleModal('${v.rentalId}')">✏️ Edit Specs</button>
+        </div>
+        
+        <div class="spec-grid">
+          <div class="spec-item"><div class="spec-label">Owner / Agency</div><div class="spec-val">${v.agency || '—'}</div></div>
+          <div class="spec-item"><div class="spec-label">Make & Model</div><div class="spec-val">${v.makeModel || '—'}</div></div>
+          <div class="spec-item"><div class="spec-label">Vehicle Type</div><div class="spec-val">${v.type || '—'}</div></div>
+          <div class="spec-item"><div class="spec-label">VIN</div><div class="spec-val" style="font-family:monospace;">${v.vin || '—'}</div></div>
+          <div class="spec-item"><div class="spec-label">License Plate</div><div class="spec-val">${v.plate || '—'} <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(Exp: ${v.plateExpDate || 'N/A'})</span></div></div>
+          <div class="spec-item"><div class="spec-label">Samsara Gateway</div><div class="spec-val">${samsaraStr}</div></div>
+          <div class="spec-item"><div class="spec-label">Coast Card</div><div class="spec-val">${coastStr}</div></div>
+          <div class="spec-item"><div class="spec-label">Service / Contract #</div><div class="spec-val">${v.serviceNumber || '—'}</div></div>
+        </div>
+        
+        <div class="spec-item" style="grid-column: 1 / -1;">
+          <div class="spec-label">Notes & Addons</div>
+          <div class="spec-val" style="font-weight:normal; font-size:13px; line-height:1.4;">${v.notes || 'No interior builds or notes recorded.'}</div>
+        </div>
+      `;
+
+      let allIncidents = (globalState.incidents || []).filter(i => i.rentalId === rentalId);
+      let openIncidents = allIncidents.filter(i => !i.dateResolved);
+      let closedIncidents = allIncidents.filter(i => i.dateResolved);
+
+      let incHtml = openIncidents.map(i => `
+        <div style="border:1px solid var(--border-color); padding:12px; border-radius:6px; margin-bottom:8px;">
+          <div style="font-weight:700; color:${i.severity === 'OOS' ? 'var(--oos)' : 'var(--warning)'};">${i.severity} Issue</div>
+          <div style="font-size:13px; margin:4px 0 8px 0;">${i.desc || i.issue}</div>
+          <input type="text" id="res-${i.id}" class="form-control" placeholder="Resolution notes..." style="padding:6px; font-size:12px; margin-bottom:8px;">
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="closeService('${i.id}', '${rentalId}')">Close Ticket</button>
+        </div>
+      `).join('');
+
+      let histHtml = closedIncidents.map(i => `
+        <div style="font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding:6px 0;">
+          <strong>${i.dateReported}</strong>: ${i.desc || i.issue} <br>
+          <em style="color:var(--ready);">Resolved: ${i.resolution}</em>
+        </div>
+      `).join('');
+
+      let lifecycleBtn = '';
+      if (v.status === 'Decommissioned') {
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--ready); border-color:var(--ready); padding:6px 12px; font-size:11px;" onclick="openUnretireModal('${rentalId}')">🔄 Bring Back to Service</button>`;
+      } else {
+          lifecycleBtn = `<button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); padding:6px 12px; font-size:11px;" onclick="openDecomModal('${rentalId}')">🛑 Retire Vehicle</button>`;
+      }
+
+      document.getElementById('service-view').innerHTML = `
+        <div style="background:var(--bg-modal-head); padding:16px; border-radius:8px; margin-bottom:16px; border:1px solid var(--border-color);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Last Oil Change</div>
+                <div style="font-size:14px; margin-top:2px;"><strong>${v.lastOil || 'N/A'}</strong> <span style="font-size:12px; color:var(--text-muted);">(${v.lastOilMiles ? v.lastOilMiles + ' mi' : 'No mileage logged'})</span></div>
+            </div>
+            <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogOilModal('${rentalId}')">🛢️ Log Oil Change</button>
+          </div>
+          <hr style="border:0; border-top:1px solid var(--border-color); margin:12px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Last Tires Replaced</div>
+                <div style="font-size:14px; margin-top:2px;"><strong>${v.lastTires || 'N/A'}</strong></div>
+            </div>
+            <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogTiresModal('${rentalId}')">🛞 Log Tires</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
+          <strong style="font-size:14px;">Open Tickets</strong>
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:11px;" onclick="openLogService('${rentalId}', '${v.cleanName}')">➕ Report New Issue</button>
+        </div>
+        <div style="margin-bottom:16px;">
+          ${incHtml || '<p style="font-size:13px; color:var(--text-muted);">No open service tickets.</p>'}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">
+          <strong style="font-size:14px;">Service History</strong>
+        </div>
+        <div style="max-height:150px; overflow-y:auto; margin-bottom: 24px;">
+          ${histHtml || '<p style="font-size:13px; color:var(--text-muted);">No past service records.</p>'}
+        </div>
+        
+        <!-- LIFECYCLE CONTROLS -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px;">
+          <strong style="font-size:14px;">Vehicle Lifecycle</strong>
+          ${lifecycleBtn}
+        </div>
+      `;
+
+      document.querySelectorAll('.tab-btn')[0].click();
+      
+      const vm = document.getElementById('van-modal');
+      vm.dataset.dirty = 'false';
+      
+      // Smart Stack Engine check
+      if (modalStack.indexOf(vm) === -1) {
+          openStackModal('van-modal');
+      }
+    }
+  
+    /* --- NEW TECH ROSTER HUB --- */
+    function openTechRoster() {
+      document.getElementById('tr-search').value = '';
+      renderTechRoster();
+      openStackModal('tech-roster-modal');
+    }
+
+    function formatTechTime(timeStr) {
+      if (!timeStr || timeStr === '?' || timeStr === '—') return '?';
+      const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
+      if (match) {
+          let hours = parseInt(match[1], 10);
+          const minutes = match[2];
+          const ampm = hours >= 12 ? 'pm' : 'am';
+          hours = hours % 12;
+          hours = hours ? hours : 12; 
+          return `${hours}:${minutes}${ampm}`;
+      }
+      return timeStr;
+    }
+
+    
     function getTechBadgesHTML(t) {
         let html = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:11px; margin-top:8px; color:var(--text-muted);">';
         
@@ -1492,11 +3475,14 @@
       document.getElementById('et_coast').checked = t ? t.coastEnrolled : false;
       document.getElementById('et_evgo').checked = t ? t.evgo : false;
       document.getElementById('et_trainer').checked = t ? t.trainer : false;
-      document.getElementById('et_restricted').checked = t ? t.restricted : false;
-      document.getElementById('et_samsara').checked = t ? t.samsaraViolation : false;
+      document.getElementById('et_needs_training').checked = t ? t.needsTraining : false;
       
+      document.getElementById('et_restricted').value = (t && t.restricted) ? 'true' : 'false';
+      document.getElementById('et_samsara').value = (t && t.samsaraViolation) ? 'true' : 'false';
       document.getElementById('et_notes').value = t ? t.notes : '';
       document.getElementById('et_flag').value = t ? t.flagged : '';
+      
+      updateManagerDisplays();
 
       const etm = document.getElementById('edit-tech-modal');
       etm.dataset.dirty = 'false';
@@ -1506,14 +3492,6 @@
     function submitEditTech(e) {
       e.preventDefault();
       
-      const isRestricted = document.getElementById('et_restricted').checked;
-      const notes = document.getElementById('et_notes').value;
-      
-      if (isRestricted && notes.trim() === '') {
-          alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
-          return;
-      }
-
       const payload = {
         origName: document.getElementById('et_orig_name').value,
         name: document.getElementById('et_name').value,
@@ -1529,9 +3507,10 @@
         coast: document.getElementById('et_coast').checked,
         evgo: document.getElementById('et_evgo').checked,
         trainer: document.getElementById('et_trainer').checked,
-        restricted: isRestricted,
-        samsaraViolation: document.getElementById('et_samsara').checked,
-        notes: notes,
+        needsTraining: document.getElementById('et_needs_training').checked,
+        restricted: document.getElementById('et_restricted').value === 'true',
+        samsaraViolation: document.getElementById('et_samsara').value === 'true',
+        notes: document.getElementById('et_notes').value,
         flagged: document.getElementById('et_flag').value
       };
 
@@ -2461,6 +4440,14 @@
         dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
         dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       }
+
+      // ** ESC KEY & NATIVE CLOSE SYNC **
+      dlg.addEventListener('close', () => {
+         const idx = modalStack.indexOf(dlg);
+         if (idx > -1) {
+             modalStack.splice(idx, 1);
+         }
+      });
       
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
@@ -2474,8 +4461,11 @@
           } else { 
               if (isHubModal && dlg.id !== 'unsaved-modal') {
                   modalStack = []; // Reset stack if user explicitly clicks off a base hub
+                  dlg.dataset.dirty = 'false';
+                  dlg.close(); // Force close the hub modal
+              } else {
+                  closeCurrentModal(); 
               }
-              closeCurrentModal(); 
           }
         }
       });

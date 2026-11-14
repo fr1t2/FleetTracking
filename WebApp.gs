@@ -28,14 +28,14 @@ function getDashboardState() {
     if (cSheet && cSheet.getLastRow() > 1) {
       const cData = cSheet.getDataRange().getValues();
       for (let i = 1; i < cData.length; i++) {
-        if (cData[i][4]) zones.push(String(cData[i][4]).trim()); // Col E: Zones
-        if (cData[i][5]) issueCategories.push(String(cData[i][5]).trim()); // Col F: Issues
-        if (cData[i][8]) rentalAgencies.push(String(cData[i][8]).trim()); // Col I: Agencies (Owner)
-        if (cData[i][10]) vehicleTypes.push(String(cData[i][10]).trim()); // Col K: Vehicle Types
+        if (cData[i][4]) zones.push(String(cData[i][4]).trim()); 
+        if (cData[i][5]) issueCategories.push(String(cData[i][5]).trim()); 
+        if (cData[i][8]) rentalAgencies.push(String(cData[i][8]).trim()); 
+        if (cData[i][10]) vehicleTypes.push(String(cData[i][10]).trim()); 
       }
     }
 
-    // 1. Fetch Config Zones (Col E / Index 4)
+    // 1. Fetch Config Zones
     const cfg = { zones: [] };
     if (cSheet && cSheet.getLastRow() > 1) {
       const cData = cSheet.getDataRange().getValues();
@@ -62,7 +62,7 @@ function getDashboardState() {
       const vData = vSheet.getDataRange().getValues();
       for (let i = 1; i < vData.length; i++) {
         const r = vData[i];
-        while (r.length < 24) r.push(''); // Pad array to prevent out-of-bounds crash
+        while (r.length < 24) r.push(''); 
         if (!r[0] && !r[1]) continue;
         
         vehicles.push({
@@ -93,14 +93,13 @@ function getDashboardState() {
       }
     }
 
-    // 3. Fetch Tech Profiles (17 Columns)
+    // 3. Fetch Tech Profiles (18 Columns for Training Flag)
     const techs = [];
     if (tSheet && tSheet.getLastRow() > 1) {
-      const tRows = tSheet.getRange(2, 1, tSheet.getLastRow() - 1, 17).getValues();
+      const tRows = tSheet.getRange(2, 1, tSheet.getLastRow() - 1, 18).getValues();
       tRows.forEach(r => {
         if (!r[0]) return;
         
-        // Strip Google's ugly Epoch date formatting natively before the frontend sees it
         let rawStart = r[3];
         let rawEnd = r[4];
         if (rawStart instanceof Date) rawStart = Utilities.formatDate(rawStart, tz, 'HH:mm');
@@ -123,19 +122,20 @@ function getDashboardState() {
           evgo: (String(r[13] || '').trim().toLowerCase() === 'yes'),
           trainer: (String(r[14] || '').trim().toLowerCase() === 'yes'),
           samsaraViolation: (String(r[15] || '').trim().toLowerCase() === 'yes'),
-          flagged: String(r[16] || '').trim()
+          flagged: String(r[16] || '').trim(),
+          needsTraining: (String(r[17] || '').trim().toLowerCase() === 'yes')
         });
       });
     }
 
-    // 4. Fetch Deployments (29 Columns to AC)
+    // 4. Fetch Deployments
     const deployments = [];
     if (dSheet && dSheet.getLastRow() > 1) {
       const dData = dSheet.getDataRange().getValues();
-      const startRow = Math.max(1, dData.length - 200); // Only pull latest 200 for speed
+      const startRow = Math.max(1, dData.length - 200); 
       for (let i = startRow; i < dData.length; i++) {
         const r = dData[i];
-        while (r.length < 29) r.push(''); // Pad array to reach AC
+        while (r.length < 29) r.push(''); 
         if (!r[0]) continue;
         
         let depDate = (r[1] instanceof Date) ? Utilities.formatDate(r[1], tz, 'yyyy-MM-dd') : String(r[1] || '').split(' ')[0];
@@ -155,25 +155,15 @@ function getDashboardState() {
           status: String(r[9] || 'Dispatched'), 
           departureTime: timeOut, 
           returnTime: timeIn,
-          
           coDriver: String(r[14] || ''), 
           isTraining: String(r[15] || '') === 'Yes',
           eKey: String(r[16] || ''),
           dispatchNotes: String(r[19] || ''),
-          
-          tgtDM: String(r[21] || ''),
-          tgtER: String(r[22] || ''),
-          tgtIB: String(r[23] || ''),
-          tgtID: String(r[24] || ''),
-          tgtLB: String(r[25] || ''),
-          tgtOF: String(r[26] || ''),
-          tgtRT: String(r[27] || ''),
-          tgtTK: String(r[28] || '')
         });
       }
     }
 
-    // 5. Fetch Incidents (14 Columns)
+    // 5. Fetch Incidents
     const incidents = [];
     if (iSheet && iSheet.getLastRow() > 1) {
       const iData = iSheet.getDataRange().getValues();

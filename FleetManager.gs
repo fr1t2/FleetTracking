@@ -450,6 +450,7 @@ function processEditTech(data) {
       checkChange(data.trainer ? 'Yes' : 'No', oldData[14], 'Trainer');
       checkChange(data.samsaraViolation ? 'Yes' : 'No', oldData[15], 'Samsara Vio');
       checkChange(data.flagged, oldData[16], 'Flagged');
+      checkChange(data.needsTraining ? 'Yes' : 'No', oldData[17], 'Needs Training');
     }
 
     sheet.getRange(row, 1).setValue(data.name);
@@ -469,6 +470,7 @@ function processEditTech(data) {
     sheet.getRange(row, 15).setValue(data.trainer ? 'Yes' : 'No');
     sheet.getRange(row, 16).setValue(data.samsaraViolation ? 'Yes' : 'No');
     sheet.getRange(row, 17).setValue(data.flagged);
+    sheet.getRange(row, 18).setValue(data.needsTraining ? 'Yes' : 'No');
 
     const detailString = changes.length > 0 ? changes.join(' | ') : 'No fields changed';
     logAudit('EDIT_TECH', 'Tech Profile', data.name, detailString);
