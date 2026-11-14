@@ -327,6 +327,79 @@
         background: var(--veo-cyan); 
         z-index: 9999; 
     }
+
+    /* Command Center Layout */
+    .command-center-active #main-view { display: none; }
+    .command-center-active #command-center { display: flex !important; }
+    
+    #command-center {
+        display: none;
+        flex-direction: column;
+        height: calc(100vh - 65px);
+        background: var(--bg-main);
+    }
+    
+    .cc-top-pane {
+        flex: 2;
+        overflow-y: auto;
+        padding: 24px;
+        border-bottom: 2px solid var(--border-color);
+    }
+    
+    .cc-bottom-pane {
+        flex: 1;
+        background: var(--bg-panel);
+        padding: 16px 24px;
+        overflow-x: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .bullpen-track {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding: 8px 0;
+        flex: 1;
+    }
+    
+    .bullpen-card {
+        min-width: 250px;
+        max-width: 250px;
+        background: var(--bg-modal-head);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        cursor: grab;
+        box-shadow: var(--shadow);
+        transition: 0.2s;
+    }
+    
+    .bullpen-card:active {
+        cursor: grabbing;
+    }
+    
+    .bullpen-card:hover {
+        border-color: var(--veo-cyan-dark);
+        transform: translateY(-2px);
+    }
+    
+    .droppable-van {
+        transition: all 0.2s ease;
+    }
+    
+    .droppable-van.drag-over {
+        border: 2px dashed var(--veo-cyan-dark);
+        background: rgba(0, 229, 255, 0.05);
+        transform: scale(1.02);
+    }
+    
+    .compact-van-card {
+        padding: 12px;
+        font-size: 13px;
+    }
+    .compact-van-card .van-title { font-size: 15px; }
+
   </style>
 </head>
 <body>
@@ -343,11 +416,35 @@
 
       <button class="btn btn-outline" onclick="openTechRoster()">👥 Tech Roster</button>
       <button class="btn btn-outline" onclick="openStackModal('manage-fleet-modal')">⚙️ Manage Fleet</button>
+
+      <button class="btn btn-primary" onclick="toggleCommandCenter()" id="cc-toggle-btn">🚀 Command Center</button>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle">🌙</button>
     </div>
   </div>
 
-  <div class="grid-container" id="fleet-grid"></div>
+  <div id="main-view">
+    <div class="grid-container" id="fleet-grid"></div>
+  </div>
+
+  <div id="command-center">
+    <div class="cc-top-pane">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2 style="margin:0;">Active Fleet</h2>
+            <button class="btn btn-outline" onclick="openShiftReportModal()">📄 Shift Reports</button>
+        </div>
+        <div class="grid-container" id="cc-fleet-grid" style="padding:0;"></div>
+    </div>
+    <div class="cc-bottom-pane">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">The Bullpen (Staged Techs)</h3>
+            <button class="btn btn-primary" onclick="openStageShiftModal()">➕ Stage Upcoming Shift</button>
+        </div>
+        <div class="bullpen-track" id="bullpen-track">
+            <!-- Tech cards go here -->
+            <div style="color:var(--text-muted); font-size:14px; align-self:center; font-style:italic;">No techs staged. Click 'Stage Upcoming Shift' to build your roster.</div>
+        </div>
+    </div>
+  </div>
 
   <!-- 360 VEHICLE MODAL -->
   <dialog id="van-modal">
@@ -380,6 +477,58 @@
     <div class="dlg-footer" id="vm-footer"></div>
   </dialog>
 
+
+
+  <!-- STAGE SHIFT MODAL -->
+  <dialog id="stage-shift-modal" style="max-width: 600px; z-index: 1001;">
+    <div class="modal-head">➕ Stage Upcoming Shift</div>
+    <div style="padding: 24px;">
+      <p style="margin-top:0; font-size:14px; color:var(--text-muted);">Select all available technicians to add them to the Bullpen for dispatch.</p>
+      <input type="text" id="stage-search" class="form-control" placeholder="Search available techs..." onkeyup="renderStageRoster()">
+      
+      <div id="stage-roster-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+         <!-- Populated via JS -->
+      </div>
+      
+      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveStagedShift()">Stage Selected Techs</button>
+      </div>
+    </div>
+  </dialog>
+  
+  <!-- SHIFT REPORT MODAL -->
+  <dialog id="shift-report-modal" style="max-width: 800px; z-index: 1001;">
+    <div class="modal-head">
+        📄 Shift Report
+        <button class="btn btn-primary" onclick="window.print()" style="padding: 6px 12px; font-size: 13px;">🖨️ Print</button>
+    </div>
+    <div style="padding: 24px;">
+        <div style="display:flex; gap:16px; margin-bottom:20px;">
+            <div class="form-group" style="flex:1;">
+                <label style="font-size:12px; font-weight:700;">Date</label>
+                <input type="date" id="sr-date" class="form-control" onchange="generateShiftReport()">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label style="font-size:12px; font-weight:700;">Shift</label>
+                <select id="sr-shift" class="form-control" onchange="generateShiftReport()">
+                    <option value="All">All Shifts</option>
+                    <option value="First Shift">First Shift</option>
+                    <option value="Second Shift">Second Shift</option>
+                    <option value="Third Shift">Third Shift</option>
+                </select>
+            </div>
+        </div>
+        
+        <div id="sr-results" style="max-height: 400px; overflow-y: auto; font-size: 13px;">
+            <!-- Report table populated here -->
+        </div>
+        
+        <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
+            <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Close</button>
+        </div>
+    </div>
+  </dialog>
 
   <!-- TECH ROSTER HUB MODAL -->
   <dialog id="tech-roster-modal" style="max-width: 900px; z-index: 1001;">
@@ -450,12 +599,11 @@
         
         <div style="background:var(--bg-modal-head); padding:16px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:16px;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Drive test</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EvGo</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Passed Drive Test</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast Tech</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast Fuel Card</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EVGo Enabled</label>
             <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_trainer"> 🎓 Trainer</label>
-            <label style="font-size:13px; font-weight:600; color:var(--warning);"><input type="checkbox" id="et_needs_training"> ⚠️ Need Training</label>
           </div>
           <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; flex-direction:column; gap:8px;">
              <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openRestrictionManager()">
@@ -917,58 +1065,6 @@
     </div>
   </dialog>
 
-  <!-- RESTRICTION MANAGER MODAL -->
-  <dialog id="restriction-manager-modal" style="max-width: 450px; z-index: 1020;">
-    <div class="modal-head" style="color:var(--oos);">🛑 Manage Restriction</div>
-    <div style="padding: 24px;">
-      <p style="font-size:14px; margin-top:0;" id="rm_prompt_text">Is this tech restricted to Co-Driver duties only?</p>
-      
-      <div style="display:flex; gap:16px; margin-bottom:16px;">
-         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_yes" value="yes"> Yes, Restricted</label>
-         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_no" value="no"> No, Unrestricted</label>
-      </div>
-
-      <div class="form-group">
-        <label style="font-size:12px; font-weight:700;">Admin Notes / Restriction Reason *</label>
-        <textarea id="rm_notes" class="form-control" rows="3" placeholder="Reason for placing or lifting restriction..."></textarea>
-      </div>
-      
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none; justify-content:space-between;">
-        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
-        <div style="display:flex; gap:12px;">
-            <button id="rm_lift_btn" class="btn btn-success" type="button" style="display:none;" onclick="liftRestrictionManager()">✅ Lift Restriction</button>
-            <button class="btn btn-primary" type="button" onclick="saveRestrictionManager()">Save State</button>
-        </div>
-      </div>
-    </div>
-  </dialog>
-
-  <!-- SAMSARA MANAGER MODAL -->
-  <dialog id="samsara-manager-modal" style="max-width: 450px; z-index: 1020;">
-    <div class="modal-head" style="color:var(--warning);">🚨 Manage Samsara Violations</div>
-    <div style="padding: 24px;">
-      <p style="font-size:14px; margin-top:0;" id="sm_prompt_text">Does this tech have an active Samsara violation on record?</p>
-      
-      <div id="sm_input_area">
-          <div style="display:flex; gap:16px; margin-bottom:16px;">
-             <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_yes" value="yes" onchange="toggleSmFlag()"> Yes, Active Violation</label>
-             <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_no" value="no" onchange="toggleSmFlag()"> No Violations</label>
-          </div>
-          <div class="form-group">
-            <label style="font-size:12px; font-weight:700;">Flagged Issue Summary *</label>
-            <input type="text" id="sm_flag" class="form-control" placeholder="e.g. Speeding 10/12">
-          </div>
-      </div>
-      
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none; justify-content:space-between;">
-        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
-        <div style="display:flex; gap:12px;">
-            <button id="sm_coached_btn" class="btn btn-success" type="button" style="display:none;" onclick="coachSamsaraViolation()">✅ Coached (Clear)</button>
-            <button class="btn btn-primary" type="button" onclick="saveSamsaraManager()">Save Samsara Record</button>
-        </div>
-      </div>
-    </div>
-  </dialog>
 
   <!-- END SHIFT MODAL -->
   <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
@@ -977,6 +1073,7 @@
       <form onsubmit="submitEndShift(event)">
         <input type="hidden" id="es_dep_id">
         <input type="hidden" id="es_rental_id">
+        
         
         <div style="background:rgba(0, 229, 255, 0.05); padding:12px; border-radius:6px; border:1px solid var(--veo-cyan); margin-bottom:16px;">
            <span style="font-size:12px; font-weight:700; color:var(--text-muted);">Batteries Sent Out: </span>
@@ -1013,136 +1110,6 @@
   <script>
     let globalState = null;
     let modalStack = []; 
-
-    function updateManagerDisplays() {
-      const isRestr = document.getElementById('et_restricted').value === 'true';
-      const isSam = document.getElementById('et_samsara').value === 'true';
-      const notes = document.getElementById('et_notes').value;
-      const flag = document.getElementById('et_flag').value;
-      
-      const rDisp = document.getElementById('et_restricted_display');
-      if (isRestr) {
-         rDisp.innerText = `🛑 RESTRICTED (Notes: ${notes ? 'Yes' : 'No'})`;
-      } else {
-         rDisp.innerText = `🟢 Unrestricted`;
-         rDisp.style.color = `var(--ready)`;
-      }
-      
-      const sDisp = document.getElementById('et_samsara_display');
-      if (isSam) {
-         sDisp.innerText = `🚨 SAMSARA VIOLATION (${flag || 'No Details'})`;
-      } else {
-         sDisp.innerText = `🟢 No Samsara Violations`;
-         sDisp.style.color = `var(--ready)`;
-      }
-    }
-
-    function openRestrictionManager() {
-      const isRestr = document.getElementById('et_restricted').value === 'true';
-      document.getElementById('rm_status_yes').checked = isRestr;
-      document.getElementById('rm_status_no').checked = !isRestr;
-      document.getElementById('rm_notes').value = document.getElementById('et_notes').value;
-      
-      if (isRestr) {
-          document.getElementById('rm_lift_btn').style.display = 'block';
-          document.getElementById('rm_prompt_text').innerHTML = '⚠️ <strong>Tech is currently restricted from driving.</strong>';
-      } else {
-          document.getElementById('rm_lift_btn').style.display = 'none';
-          document.getElementById('rm_prompt_text').innerHTML = 'Is this tech restricted to Co-Driver duties only?';
-      }
-      
-      const rm = document.getElementById('restriction-manager-modal');
-      rm.dataset.dirty = 'false';
-      openStackModal('restriction-manager-modal');
-    }
-    
-    function liftRestrictionManager() {
-      const liftNote = prompt("Enter a resolution note for lifting this restriction (e.g. 'Cleared by HR', 'Retraining completed'):");
-      if (liftNote === null) return;
-      if (liftNote.trim() === '') {
-          alert("A note is required to lift a restriction.");
-          return;
-      }
-      
-      const oldNotes = document.getElementById('et_notes').value;
-      const d = new Date().toLocaleDateString();
-      document.getElementById('et_notes').value = oldNotes ? oldNotes + ` | Lifted ${d}: ${liftNote}` : `Lifted ${d}: ${liftNote}`;
-      
-      document.getElementById('et_restricted').value = 'false';
-      updateManagerDisplays();
-      closeCurrentModal();
-    }
-
-    function saveRestrictionManager() {
-      const isRestr = document.getElementById('rm_status_yes').checked;
-      const notes = document.getElementById('rm_notes').value;
-      
-      if (isRestr && !notes) {
-          alert('You must provide Admin Notes when restricting a driver.');
-          return;
-      }
-      
-      document.getElementById('et_restricted').value = isRestr ? 'true' : 'false';
-      document.getElementById('et_notes').value = notes;
-      
-      updateManagerDisplays();
-      closeCurrentModal();
-    }
-
-    function openSamsaraManager() {
-      const isSam = document.getElementById('et_samsara').value === 'true';
-      document.getElementById('sm_status_yes').checked = isSam;
-      document.getElementById('sm_status_no').checked = !isSam;
-      document.getElementById('sm_flag').value = document.getElementById('et_flag').value;
-      
-      if (isSam) {
-          document.getElementById('sm_coached_btn').style.display = 'block';
-          document.getElementById('sm_prompt_text').innerHTML = '⚠️ <strong>Tech currently has an active Samsara Violation.</strong>';
-      } else {
-          document.getElementById('sm_coached_btn').style.display = 'none';
-          document.getElementById('sm_prompt_text').innerHTML = 'Does this tech have a new Samsara violation?';
-      }
-      
-      const sm = document.getElementById('samsara-manager-modal');
-      sm.dataset.dirty = 'false';
-      openStackModal('samsara-manager-modal');
-    }
-
-    function toggleSmFlag() {
-      const isSam = document.getElementById('sm_status_yes').checked;
-      document.getElementById('sm_flag').disabled = !isSam;
-      if (!isSam) document.getElementById('sm_flag').value = '';
-    }
-
-    function coachSamsaraViolation() {
-      const confirmCoach = confirm("Are you sure you want to clear this violation? This indicates the driver has been coached.");
-      if (!confirmCoach) return;
-      
-      const oldNotes = document.getElementById('et_notes').value;
-      const d = new Date().toLocaleDateString();
-      document.getElementById('et_notes').value = oldNotes ? oldNotes + ` | Samsara Coached on ${d}` : `Samsara Coached on ${d}`;
-      
-      document.getElementById('et_samsara').value = 'false';
-      document.getElementById('et_flag').value = '';
-      updateManagerDisplays();
-      closeCurrentModal();
-    }
-
-    function saveSamsaraManager() {
-      const isSam = document.getElementById('sm_status_yes').checked;
-      const flag = document.getElementById('sm_flag').value;
-      
-      if (isSam && !flag) {
-          alert('Please provide a Flagged Issue summary for the violation.');
-          return;
-      }
-      
-      document.getElementById('et_samsara').value = isSam ? 'true' : 'false';
-      document.getElementById('et_flag').value = isSam ? flag : '';
-      
-      updateManagerDisplays();
-      closeCurrentModal();
-    }
 
     function toggleTheme() {
       const isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -1589,31 +1556,369 @@
       return timeStr;
     }
 
-    
-    function getTechBadgesHTML(t) {
-        let html = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:11px; margin-top:8px; color:var(--text-muted);">';
-        
-        // Always Show (Blue Circle)
-        html += `<div>${t.passedTest ? '✅' : '❌'} Drive test</div>`;
-        html += `<div>${t.coastEnrolled ? '💳' : '❌'} Coast</div>`;
-        html += `<div>${t.evgo ? '🔋' : '❌'} EvGo</div>`;
-        
-        // Show Only if True (Red Circle)
-        if (t.goFast) html += `<div>⚡ Go-Fast</div>`;
-        if (t.trainer) html += `<div>🎓 Trainer</div>`;
-        if (t.needsTraining) html += `<div style="color:var(--warning); font-weight:700;">⚠️ Need Training</div>`;
-        html += '</div>';
 
-        // Alerts & Restrictions
-        if (t.restricted || t.samsaraViolation || t.flagged) {
-            html += `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px; font-size:11px;">`;
-            if (t.restricted) html += `<div style="color:var(--oos); font-weight:700;">🛑 RESTRICTED (Co-Driver Only)</div>`;
-            if (t.samsaraViolation) html += `<div style="color:var(--oos); font-weight:700;">🚨 Samsara Violation on Record</div>`;
-            if (t.flagged) html += `<div style="color:var(--warning); font-weight:700;">⚠️ ${t.flagged}</div>`;
-            html += `</div>`;
+    let stagedTechs = []; // Array of tech names currently in the bullpen
+    let isCommandCenter = false;
+
+    function toggleCommandCenter() {
+        isCommandCenter = !isCommandCenter;
+        const btn = document.getElementById('cc-toggle-btn');
+        if (isCommandCenter) {
+            document.body.classList.add('command-center-active');
+            btn.innerText = '🔙 Exit Command Center';
+            btn.classList.replace('btn-primary', 'btn-outline');
+            renderCommandCenter();
+        } else {
+            document.body.classList.remove('command-center-active');
+            btn.innerText = '🚀 Command Center';
+            btn.classList.replace('btn-outline', 'btn-primary');
         }
-        return html;
     }
+
+    // --- DRAG AND DROP LOGIC ---
+    function drag(ev, techName) {
+        ev.dataTransfer.setData("text/plain", techName);
+        ev.target.style.opacity = "0.4";
+    }
+    
+    function dragEnd(ev) {
+        ev.target.style.opacity = "1";
+        document.querySelectorAll('.droppable-van').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    function allowDrop(ev) {
+        ev.preventDefault();
+    }
+    
+    function dragEnter(ev) {
+        ev.preventDefault();
+        const vanCard = ev.target.closest('.droppable-van');
+        if (vanCard) vanCard.classList.add('drag-over');
+    }
+    
+    function dragLeave(ev) {
+        const vanCard = ev.target.closest('.droppable-van');
+        if (vanCard) vanCard.classList.remove('drag-over');
+    }
+
+    function drop(ev, rentalId) {
+        ev.preventDefault();
+        const techName = ev.dataTransfer.getData("text/plain");
+        const vanCard = ev.target.closest('.droppable-van');
+        if (vanCard) vanCard.classList.remove('drag-over');
+        
+        if (techName && rentalId) {
+            initiateDispatchFromBullpen(techName, rentalId);
+        }
+    }
+    
+    function clickTechInBullpen(techName) {
+        alert(`You selected ${techName}. Now click on a 'Ready' Van in the Active Fleet to assign them.`);
+        // Note: A more elegant UI would highlight the tech and highlight available vans, but alert works for initial routing
+        // Let's implement a 'pending dispatch state'
+        window.pendingBullpenTech = techName;
+        document.querySelectorAll('.bullpen-card').forEach(c => c.style.borderColor = 'var(--border-color)');
+        event.currentTarget.style.borderColor = 'var(--veo-cyan-dark)';
+    }
+
+    function clickVanInCommandCenter(rentalId) {
+        if (window.pendingBullpenTech) {
+            const v = globalState.vehicles.find(x => x.rentalId === rentalId);
+            if (v && v.status === 'Warehouse (Ready)') {
+                initiateDispatchFromBullpen(window.pendingBullpenTech, rentalId);
+                window.pendingBullpenTech = null;
+                return;
+            }
+        }
+        openVanModal(rentalId);
+    }
+
+    function initiateDispatchFromBullpen(techName, rentalId) {
+        // Open the van modal
+        openVanModal(rentalId);
+        
+        // Auto-select the tech in the primary driver slot
+        setTimeout(() => {
+            const t = (globalState.techs || []).find(x => x.name === techName);
+            if (t && t.restricted) {
+                document.getElementById('rd-tech-name').value = techName;
+                document.getElementById('rd-msg').innerText = `${techName} is restricted from operating a vehicle.`;
+                document.getElementById('rd-reason').innerText = t.notes || "Administrative hold or Co-Driver only.";
+                document.getElementById('rd-lift-note').value = '';
+                openStackModal('restricted-driver-modal');
+                return;
+            }
+            
+            document.getElementById('vm-selected-tech').value = techName;
+            document.getElementById('live-driver-search').value = techName;
+            
+            if (t && t.shift) {
+                const shiftEl = document.getElementById('sel-shift');
+                if (shiftEl && Array.from(shiftEl.options).some(opt => opt.value === t.shift)) {
+                    shiftEl.value = t.shift;
+                }
+            }
+        }, 100);
+    }
+
+    // Override original submitDispatch to remove tech from bullpen
+    const originalSubmitDispatch = submitDispatch;
+    submitDispatch = function() {
+        const techName = document.getElementById('vm-selected-tech').value;
+        originalSubmitDispatch();
+        
+        // Remove from bullpen if successful
+        if (techName) {
+            const idx = stagedTechs.indexOf(techName);
+            if (idx > -1) {
+                stagedTechs.splice(idx, 1);
+                renderBullpen();
+            }
+        }
+    };
+
+    // --- STAGE SHIFT LOGIC ---
+    function openStageShiftModal() {
+        document.getElementById('stage-search').value = '';
+        renderStageRoster();
+        openStackModal('stage-shift-modal');
+    }
+
+    function renderStageRoster() {
+        const q = document.getElementById('stage-search').value.toLowerCase();
+        const container = document.getElementById('stage-roster-list');
+        
+        // Filter out techs already in bullpen or dispatched
+        const currentlyDispatched = (globalState.vehicles || []).filter(v => v.status === 'Dispatched').map(v => v.driver);
+        
+        let available = (globalState.techs || []).filter(t => t.status === 'Available');
+        
+        let html = '';
+        available.forEach(t => {
+            if (q && !t.name.toLowerCase().includes(q)) return;
+            // if (stagedTechs.includes(t.name)) return; // Allow seeing them to uncheck
+            
+            const isDispatched = currentlyDispatched.some(d => d.includes(t.name));
+            if (isDispatched) return;
+            
+            const isChecked = stagedTechs.includes(t.name) ? 'checked' : '';
+            
+            const badgeHTML = getTechBadgesHTML(t);
+            
+            html += `
+                <label style="border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; cursor: pointer; display: flex; gap: 12px; align-items: flex-start;">
+                    <input type="checkbox" class="stage-cb" value="${t.name}" ${isChecked} style="margin-top: 4px;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px;">${t.name} <span style="font-weight:normal; color:var(--text-muted); font-size:11px;">(${t.shift || '-'})</span></div>
+                        ${badgeHTML}
+                    </div>
+                </label>
+            `;
+        });
+        
+        container.innerHTML = html || '<div style="grid-column: 1/-1; text-align:center; color:var(--text-muted);">No available techs found.</div>';
+    }
+    
+    function saveStagedShift() {
+        const checkboxes = document.querySelectorAll('.stage-cb');
+        stagedTechs = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) stagedTechs.push(cb.value);
+        });
+        
+        renderBullpen();
+        closeCurrentModal();
+    }
+    
+    function renderBullpen() {
+        const container = document.getElementById('bullpen-track');
+        if (stagedTechs.length === 0) {
+            container.innerHTML = `<div style="color:var(--text-muted); font-size:14px; align-self:center; font-style:italic; padding-left:24px;">No techs staged. Click 'Stage Upcoming Shift' to build your roster.</div>`;
+            return;
+        }
+        
+        let html = '';
+        stagedTechs.forEach(name => {
+            const t = (globalState.techs || []).find(x => x.name === name);
+            if (!t) return;
+            
+            const badgeHTML = getTechBadgesHTML(t);
+            html += `
+                <div class="bullpen-card" draggable="true" ondragstart="drag(event, '${t.name}')" ondragend="dragEnd(event)" onclick="clickTechInBullpen('${t.name}')">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <strong style="font-size:14px;">${t.name}</strong>
+                        <span style="font-size:10px; background:var(--bg-main); padding:2px 6px; border-radius:4px; color:var(--text-muted);">☰ Drag</span>
+                    </div>
+                    ${badgeHTML}
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    // --- COMMAND CENTER RENDERING ---
+    function renderCommandCenter() {
+        if (!globalState) return;
+        const q = document.getElementById('global-search').value.toLowerCase();
+        const showRetired = document.getElementById('show-retired-toggle').checked;
+        
+        let vans = [...(globalState.vehicles || [])];
+        
+        const statusWeight = { 
+            'Dispatched': 1, 
+            'Warehouse (Ready)': 2, 
+            'Out of Service': 3,
+            'Decommissioned': 4
+        };
+        
+        vans.sort((a, b) => {
+            const weightA = statusWeight[a.status] || 99;
+            const weightB = statusWeight[b.status] || 99;
+            if (weightA !== weightB) return weightA - weightB;
+            if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
+            return a.cleanName.localeCompare(b.cleanName);
+        });
+
+        let html = '';
+        vans.forEach(v => {
+            if (v.status === 'Decommissioned' && !showRetired) return;
+            if (q && !v.cleanName.toLowerCase().includes(q) && !(v.driver || '').toLowerCase().includes(q)) return;
+
+            let bClass = 'st-ready';
+            if (v.status === 'Dispatched') bClass = 'st-dispatched';
+            if (v.status === 'Out of Service') bClass = 'st-oos';
+            if (v.status === 'Decommissioned') bClass = 'st-decom';
+            
+            let ribbon = (String(v.safeToDrive) === 'true' && v.status !== 'Decommissioned') 
+                ? '<div class="ribbon-warning">MAINT</div>' 
+                : '';
+            
+            let subText = '';
+            
+            if (v.status === 'Dispatched') {
+                const dep = (globalState.deployments || []).find(d => d.rentalId === v.rentalId && d.status === 'Dispatched');
+                let coDriverHtml = (dep && dep.coDriver) ? ` & ${dep.coDriver}` : '';
+                subText = `<div style="font-weight:700; color:var(--dispatched); font-size:12px; margin-top:8px;">👤 ${v.driver}${coDriverHtml}</div>`;
+            } else if (v.status === 'Decommissioned') {
+                subText = `<div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-top:8px;">🛑 RETIRED</div>`;
+            } else {
+                subText = `<div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Drop Tech Here</div>`;
+            }
+
+            const isCoast = (v.coast && v.coast.toString().trim().toLowerCase() === 'yes');
+            const coastBadge = isCoast 
+                ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready);" title="Coast Active">💳</span>` 
+                : '';
+
+            const hasSamsaraSerial = v.samsaraSerial && v.samsaraSerial.trim() !== '';
+            const openSamsaraTicket = (globalState.incidents || []).some(i => i.rentalId === v.rentalId && !i.dateResolved && (i.category || '').toLowerCase().includes('samsara'));
+            const samsaraBadge = (!hasSamsaraSerial || openSamsaraTicket) 
+                ? `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:rgba(255,59,48,0.15); color:var(--danger);" title="Samsara Issue">📡 ❌</span>` 
+                : `<span style="font-size:10px; padding:2px 4px; border-radius:4px; background:rgba(52,199,89,0.15); color:var(--ready);" title="Samsara Active">📡</span>`;
+
+            let displayZone = v.zone && v.zone !== '—' ? v.zone : '';
+
+            // Note the new drop attributes
+            html += `
+            <div class="van-card compact-van-card ${bClass} droppable-van" 
+                 onclick="clickVanInCommandCenter('${v.rentalId}')"
+                 ondrop="drop(event, '${v.rentalId}')" 
+                 ondragover="allowDrop(event)" 
+                 ondragenter="dragEnter(event)" 
+                 ondragleave="dragLeave(event)">
+                ${ribbon}
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="van-title" style="font-weight:800; line-height:1.2;">${v.cleanName}</span>
+                    <span style="font-size:11px; color:var(--text-muted);">${v.rentalId}</span>
+                </div>
+                <div style="font-size:11px; font-weight:800; color:var(--veo-cyan-dark); margin-top:4px;">${displayZone}</div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                    ${subText}
+                    <div style="display:flex; gap:4px; flex-shrink:0;">${samsaraBadge} ${coastBadge}</div>
+                </div>
+            </div>
+            `;
+        });
+        document.getElementById('cc-fleet-grid').innerHTML = html;
+        renderBullpen();
+    }
+
+    // We must hijack renderGrid to update both grids
+    const originalRenderGrid = renderGrid;
+    renderGrid = function() {
+        originalRenderGrid();
+        if (isCommandCenter) {
+            renderCommandCenter();
+        }
+    };
+    
+    // --- SHIFT REPORT LOGIC ---
+    function openShiftReportModal() {
+        document.getElementById('sr-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('sr-shift').value = 'All';
+        generateShiftReport();
+        openStackModal('shift-report-modal');
+    }
+    
+    function generateShiftReport() {
+        const dateVal = document.getElementById('sr-date').value;
+        const shiftVal = document.getElementById('sr-shift').value;
+        const container = document.getElementById('sr-results');
+        
+        if (!globalState || !globalState.deployments) {
+            container.innerHTML = '<p>No deployment data available.</p>';
+            return;
+        }
+        
+        // In the deployments array, date is stored as "yyyy-MM-dd"
+        const filtered = globalState.deployments.filter(d => {
+            const matchDate = d.date === dateVal;
+            const matchShift = shiftVal === 'All' || d.shift === shiftVal;
+            return matchDate && matchShift;
+        });
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); font-style:italic;">No deployments found for the selected date and shift.</p>';
+            return;
+        }
+        
+        let html = `
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 8px;">Time Out</th>
+                        <th style="padding: 8px;">Time In</th>
+                        <th style="padding: 8px;">Vehicle</th>
+                        <th style="padding: 8px;">Driver(s)</th>
+                        <th style="padding: 8px;">Zone</th>
+                        <th style="padding: 8px;">Focus</th>
+                        <th style="padding: 8px;">Batt</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        filtered.forEach(d => {
+            const inTime = d.returnTime || '<em>Active</em>';
+            const driverStr = d.coDriver ? `${d.tech} / ${d.coDriver}` : d.tech;
+            
+            html += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 8px;">${d.departureTime}</td>
+                    <td style="padding: 8px;">${inTime}</td>
+                    <td style="padding: 8px;"><strong>${d.vehicle}</strong> <span style="font-size:10px; color:var(--text-muted);">(${d.rentalId})</span></td>
+                    <td style="padding: 8px;">${driverStr}</td>
+                    <td style="padding: 8px;">${d.zone}</td>
+                    <td style="padding: 8px;">${d.goals}</td>
+                    <td style="padding: 8px;">${d.battery || '0'}</td>
+                </tr>
+            `;
+        });
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    }
+
     function formatTimeForInput(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '';
       const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
@@ -1647,17 +1952,16 @@
          const cleanStart = formatTechTime(t.start);
          const cleanEnd = formatTechTime(t.end);
 
-         const badgeHTML = getTechBadgesHTML(t);
          html += `
             <div class="driver-card ${isMuted}" onclick="openEditTechModal('${t.name}')">
                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                  <strong style="font-size:16px; color:var(--text-main);">${t.name}</strong>
                  <span style="font-size:12px; font-weight:bold; color:var(--text-muted);">${t.status}</span>
                </div>
-               <div style="font-size:12px; color:var(--text-muted);">
+               <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
                  Shift ${t.shift || '-'} | ${cleanStart} to ${cleanEnd}
                </div>
-               ${badgeHTML}
+               <div>${passFlag} ${restrFlag} ${samFlag}</div>
             </div>
          `;
       });
@@ -1686,14 +1990,11 @@
       document.getElementById('et_coast').checked = t ? t.coastEnrolled : false;
       document.getElementById('et_evgo').checked = t ? t.evgo : false;
       document.getElementById('et_trainer').checked = t ? t.trainer : false;
-      document.getElementById('et_needs_training').checked = t ? t.needsTraining : false;
+      document.getElementById('et_restricted').checked = t ? t.restricted : false;
+      document.getElementById('et_samsara').checked = t ? t.samsaraViolation : false;
       
-      document.getElementById('et_restricted').value = (t && t.restricted) ? 'true' : 'false';
-      document.getElementById('et_samsara').value = (t && t.samsaraViolation) ? 'true' : 'false';
       document.getElementById('et_notes').value = t ? t.notes : '';
       document.getElementById('et_flag').value = t ? t.flagged : '';
-      
-      updateManagerDisplays();
 
       const etm = document.getElementById('edit-tech-modal');
       etm.dataset.dirty = 'false';
@@ -1703,6 +2004,14 @@
     function submitEditTech(e) {
       e.preventDefault();
       
+      const isRestricted = document.getElementById('et_restricted').checked;
+      const notes = document.getElementById('et_notes').value;
+      
+      if (isRestricted && notes.trim() === '') {
+          alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
+          return;
+      }
+
       const payload = {
         origName: document.getElementById('et_orig_name').value,
         name: document.getElementById('et_name').value,
@@ -1718,10 +2027,9 @@
         coast: document.getElementById('et_coast').checked,
         evgo: document.getElementById('et_evgo').checked,
         trainer: document.getElementById('et_trainer').checked,
-        needsTraining: document.getElementById('et_needs_training').checked,
-        restricted: document.getElementById('et_restricted').value === 'true',
-        samsaraViolation: document.getElementById('et_samsara').value === 'true',
-        notes: document.getElementById('et_notes').value,
+        restricted: isRestricted,
+        samsaraViolation: document.getElementById('et_samsara').checked,
+        notes: notes,
         flagged: document.getElementById('et_flag').value
       };
 
@@ -2087,13 +2395,18 @@
       let html = '';
       if(matches.length > 0) {
         html += matches.map(match => {
-          const badgeHTML = getTechBadgesHTML(match);
+          let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
+          let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
           return `
             <div class="driver-card" onmousedown="selectDriver('${match.name}', '${type}')" style="margin:0 0 6px 0; border:1px solid var(--border-color); box-shadow:none;">
               <div style="display:flex; justify-content:space-between;">
-                <strong style="font-size:14px;">${match.name}</strong>
+                <strong>${match.name}</strong>
+                <div>
+                  <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
+                  ${vioAlert}
+                </div>
               </div>
-              ${badgeHTML}
+              ${flagAlert}
             </div>
           `;
         }).join('');
@@ -2221,15 +2534,7 @@
       
       let html = '';
       if(matches.length > 0) {
-        html += matches.map(match => {
-          const badgeHTML = getTechBadgesHTML(match);
-          return `
-            <div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')" style="margin:0 0 6px 0;">
-                <strong style="font-size:14px;">${match.name}</strong>
-                ${badgeHTML}
-            </div>
-          `;
-        }).join('');
+        html += matches.map(match => `<div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')"><strong>${match.name}</strong></div>`).join('');
       } else {
         html += `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px; margin-bottom: 8px;">No matching drivers found.</div>`;
       }
@@ -2407,7 +2712,7 @@
         .processDispatchCheckout(payload);
     }
 
-    function openEndShiftModal(depId, rentalId) {
+        function openEndShiftModal(depId, rentalId) {
       if(!depId) return;
       
       const dep = (globalState.deployments || []).find(d => d.id === depId);
@@ -2670,14 +2975,6 @@
         dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
         dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       }
-
-      // ** ESC KEY & NATIVE CLOSE SYNC **
-      dlg.addEventListener('close', () => {
-         const idx = modalStack.indexOf(dlg);
-         if (idx > -1) {
-             modalStack.splice(idx, 1);
-         }
-      });
       
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
@@ -2691,11 +2988,8 @@
           } else { 
               if (isHubModal && dlg.id !== 'unsaved-modal') {
                   modalStack = []; // Reset stack if user explicitly clicks off a base hub
-                  dlg.dataset.dirty = 'false';
-                  dlg.close(); // Force close the hub modal
-              } else {
-                  closeCurrentModal(); 
               }
+              closeCurrentModal(); 
           }
         }
       });
