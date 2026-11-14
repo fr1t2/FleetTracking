@@ -23,8 +23,8 @@ function processCheckInVehicle(data) {
         vSheet.getRange(i + 1, 13).clearContent(); 
         vSheet.getRange(i + 1, 14).clearContent(); 
         vSheet.getRange(i + 1, 16).clearContent(); 
-        vSheet.getRange(i + 1, 17).setValue(user); 
-        vSheet.getRange(i + 1, 18).setValue(now);  
+        vSheet.getRange(i + 1, 17).setValue(user); // Last Updated By
+        vSheet.getRange(i + 1, 18).setValue(now);  // Last Updated At
         found = true;
         break;
       }
@@ -88,12 +88,12 @@ function logNewServiceNeed(data) {
       for (let i = 1; i < vData.length; i++) {
         if (String(vData[i][1]).trim().toLowerCase() === String(data.rentalId).trim().toLowerCase()) {
           const row = i + 1;
-          vSheet.getRange(row, 10).setValue('Out of Service'); 
-          vSheet.getRange(row, 13).clearContent(); 
-          vSheet.getRange(row, 14).clearContent(); 
-          vSheet.getRange(row, 16).setValue(data.description); 
-          vSheet.getRange(row, 17).setValue(user); 
-          vSheet.getRange(row, 18).setValue(now);  
+          vSheet.getRange(row, 10).setValue('Out of Service'); // Status
+          vSheet.getRange(row, 13).clearContent(); // Clear Zone
+          vSheet.getRange(row, 14).clearContent(); // Clear Tech
+          vSheet.getRange(row, 16).setValue(data.description); // Set Notes
+          vSheet.getRange(row, 17).setValue(user); // Updated By
+          vSheet.getRange(row, 18).setValue(now);  // Updated At
           break;
         }
       }
@@ -234,8 +234,8 @@ function logRoutineMaintenance(data) {
       sheet.getRange(rowIndex, 24).setValue(data.date);
     }
 
-    sheet.getRange(rowIndex, 17).setValue(user); 
-    sheet.getRange(rowIndex, 18).setValue(now);  
+    sheet.getRange(rowIndex, 17).setValue(user); // Updated By
+    sheet.getRange(rowIndex, 18).setValue(now);  // Updated At
 
     logAudit('MAINTENANCE', 'Vehicle', data.rentalId, `Logged [${data.type.toUpperCase()}] Maintenance | Date: ${data.date}`);
     return { success: true };
