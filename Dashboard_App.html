@@ -450,30 +450,30 @@
         
         <div style="background:var(--bg-modal-head); padding:16px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:16px;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Drive test</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast</label>
-            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EvGo</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_test"> ✅ Passed Drive Test</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_gofast"> ⚡ Go-Fast Tech</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_coast"> 💳 Coast Fuel Card</label>
+            <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_evgo"> 🔋 EVGo Enabled</label>
             <label style="font-size:13px; font-weight:600;"><input type="checkbox" id="et_trainer"> 🎓 Trainer</label>
-            <label style="font-size:13px; font-weight:600; color:var(--warning);"><input type="checkbox" id="et_needs_training"> ⚠️ Need Training</label>
           </div>
           <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; flex-direction:column; gap:8px;">
-             <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openRestrictionManager()">
-                <span id="et_restricted_display" style="font-size:13px; font-weight:700; color:var(--oos);">🛑 Manage Driving Restriction</span>
-                <span>⚙️</span>
-             </button>
-             <button type="button" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;" onclick="openSamsaraManager()">
-                <span id="et_samsara_display" style="font-size:13px; font-weight:700; color:var(--warning);">🚨 Manage Samsara Violations</span>
-                <span>⚙️</span>
-             </button>
+             <label style="font-size:13px; font-weight:700; color:var(--oos);">
+                <input type="checkbox" id="et_restricted"> 🛑 RESTRICTED (Co-Driver Only)
+             </label>
+             <label style="font-size:13px; font-weight:700; color:var(--oos);">
+                <input type="checkbox" id="et_samsara"> 🚨 Samsara Violation on Record
+             </label>
           </div>
         </div>
         
-        <!-- Hidden fields to hold state -->
-        <input type="hidden" id="et_restricted">
-        <input type="hidden" id="et_samsara">
-        <input type="hidden" id="et_notes">
-        <input type="hidden" id="et_flag">
+        <div class="form-group">
+            <label style="font-size:12px; font-weight:700;">Admin Notes / Flag Status</label>
+            <input type="text" id="et_notes" class="form-control" placeholder="e.g. Needs retraining, reliable...">
+        </div>
+        <div class="form-group">
+            <label style="font-size:12px; font-weight:700;">Flagged Issue (Optional)</label>
+            <input type="text" id="et_flag" class="form-control" placeholder="e.g. Speeding 10/12">
+        </div>
         
         <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
           <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
@@ -910,51 +910,6 @@
     </div>
   </dialog>
 
-  <!-- RESTRICTION MANAGER MODAL -->
-  <dialog id="restriction-manager-modal" style="max-width: 450px; z-index: 1020;">
-    <div class="modal-head" style="color:var(--oos);">🛑 Manage Restriction</div>
-    <div style="padding: 24px;">
-      <p style="font-size:14px; margin-top:0;">Is this tech restricted to Co-Driver duties only?</p>
-      
-      <div style="display:flex; gap:16px; margin-bottom:16px;">
-         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_yes" value="yes"> Yes, Restricted</label>
-         <label style="font-size:14px; font-weight:700;"><input type="radio" name="rm_status" id="rm_status_no" value="no"> No, Unrestricted</label>
-      </div>
-
-      <div class="form-group">
-        <label style="font-size:12px; font-weight:700;">Admin Notes / Restriction Reason *</label>
-        <textarea id="rm_notes" class="form-control" rows="3" placeholder="Reason for placing or lifting restriction..."></textarea>
-      </div>
-      
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="saveRestrictionManager()">Save Restriction State</button>
-      </div>
-    </div>
-  </dialog>
-
-  <!-- SAMSARA MANAGER MODAL -->
-  <dialog id="samsara-manager-modal" style="max-width: 450px; z-index: 1020;">
-    <div class="modal-head" style="color:var(--warning);">🚨 Manage Samsara Violations</div>
-    <div style="padding: 24px;">
-      <p style="font-size:14px; margin-top:0;">Does this tech have an active Samsara violation on record?</p>
-      
-      <div style="display:flex; gap:16px; margin-bottom:16px;">
-         <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_yes" value="yes"> Yes, Active Violation</label>
-         <label style="font-size:14px; font-weight:700;"><input type="radio" name="sm_status" id="sm_status_no" value="no"> No Violations</label>
-      </div>
-
-      <div class="form-group">
-        <label style="font-size:12px; font-weight:700;">Flagged Issue (Shows on Profile)</label>
-        <input type="text" id="sm_flag" class="form-control" placeholder="e.g. Speeding 10/12">
-      </div>
-      
-      <div class="dlg-footer" style="padding: 16px 0 0 0; background: transparent; border-top: none;">
-        <button class="btn btn-outline" type="button" onclick="closeCurrentModal()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="saveSamsaraManager()">Save Samsara Record</button>
-      </div>
-    </div>
-  </dialog>
 
   <!-- END SHIFT MODAL -->
   <dialog id="end-shift-modal" style="max-width: 400px; z-index: 1015;">
@@ -964,6 +919,11 @@
         <input type="hidden" id="es_dep_id">
         <input type="hidden" id="es_rental_id">
         
+        
+        <div style="background:rgba(0, 229, 255, 0.05); padding:12px; border-radius:6px; border:1px solid var(--veo-cyan); margin-bottom:16px;">
+           <span style="font-size:12px; font-weight:700; color:var(--text-muted);">Batteries Sent Out: </span>
+           <span id="es_batt_out_display" style="font-size:16px; font-weight:800; color:var(--veo-cyan-dark);">0</span>
+        </div>
         <div class="row">
           <div class="col form-group">
             <label style="font-size:12px; font-weight:700;">Batteries In *</label>
@@ -995,83 +955,6 @@
   <script>
     let globalState = null;
     let modalStack = []; 
-
-    function updateManagerDisplays() {
-      const isRestr = document.getElementById('et_restricted').value === 'true';
-      const isSam = document.getElementById('et_samsara').value === 'true';
-      const notes = document.getElementById('et_notes').value;
-      const flag = document.getElementById('et_flag').value;
-      
-      const rDisp = document.getElementById('et_restricted_display');
-      if (isRestr) {
-         rDisp.innerText = `🛑 RESTRICTED (Notes: ${notes ? 'Yes' : 'No'})`;
-      } else {
-         rDisp.innerText = `🟢 Unrestricted`;
-         rDisp.style.color = `var(--ready)`;
-      }
-      
-      const sDisp = document.getElementById('et_samsara_display');
-      if (isSam) {
-         sDisp.innerText = `🚨 SAMSARA VIOLATION (${flag || 'No Details'})`;
-      } else {
-         sDisp.innerText = `🟢 No Samsara Violations`;
-         sDisp.style.color = `var(--ready)`;
-      }
-    }
-
-    function openRestrictionManager() {
-      const isRestr = document.getElementById('et_restricted').value === 'true';
-      document.getElementById('rm_status_yes').checked = isRestr;
-      document.getElementById('rm_status_no').checked = !isRestr;
-      document.getElementById('rm_notes').value = document.getElementById('et_notes').value;
-      
-      const rm = document.getElementById('restriction-manager-modal');
-      rm.dataset.dirty = 'false';
-      openStackModal('restriction-manager-modal');
-    }
-
-    function saveRestrictionManager() {
-      const isRestr = document.getElementById('rm_status_yes').checked;
-      const notes = document.getElementById('rm_notes').value;
-      
-      if (isRestr && !notes) {
-          alert('You must provide Admin Notes when restricting a driver.');
-          return;
-      }
-      
-      document.getElementById('et_restricted').value = isRestr ? 'true' : 'false';
-      document.getElementById('et_notes').value = notes;
-      
-      updateManagerDisplays();
-      closeCurrentModal();
-    }
-
-    function openSamsaraManager() {
-      const isSam = document.getElementById('et_samsara').value === 'true';
-      document.getElementById('sm_status_yes').checked = isSam;
-      document.getElementById('sm_status_no').checked = !isSam;
-      document.getElementById('sm_flag').value = document.getElementById('et_flag').value;
-      
-      const sm = document.getElementById('samsara-manager-modal');
-      sm.dataset.dirty = 'false';
-      openStackModal('samsara-manager-modal');
-    }
-
-    function saveSamsaraManager() {
-      const isSam = document.getElementById('sm_status_yes').checked;
-      const flag = document.getElementById('sm_flag').value;
-      
-      if (isSam && !flag) {
-          alert('Please provide a Flagged Issue summary for the violation.');
-          return;
-      }
-      
-      document.getElementById('et_samsara').value = isSam ? 'true' : 'false';
-      document.getElementById('et_flag').value = flag;
-      
-      updateManagerDisplays();
-      closeCurrentModal();
-    }
 
     function toggleTheme() {
       const isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -1518,31 +1401,6 @@
       return timeStr;
     }
 
-    
-    function getTechBadgesHTML(t) {
-        let html = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:11px; margin-top:8px; color:var(--text-muted);">';
-        
-        // Always Show (Blue Circle)
-        html += `<div>${t.passedTest ? '✅' : '❌'} Drive test</div>`;
-        html += `<div>${t.coastEnrolled ? '💳' : '❌'} Coast</div>`;
-        html += `<div>${t.evgo ? '🔋' : '❌'} EvGo</div>`;
-        
-        // Show Only if True (Red Circle)
-        if (t.goFast) html += `<div>⚡ Go-Fast</div>`;
-        if (t.trainer) html += `<div>🎓 Trainer</div>`;
-        if (t.needsTraining) html += `<div style="color:var(--warning); font-weight:700;">⚠️ Need Training</div>`;
-        html += '</div>';
-
-        // Alerts & Restrictions
-        if (t.restricted || t.samsaraViolation || t.flagged) {
-            html += `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px; font-size:11px;">`;
-            if (t.restricted) html += `<div style="color:var(--oos); font-weight:700;">🛑 RESTRICTED (Co-Driver Only)</div>`;
-            if (t.samsaraViolation) html += `<div style="color:var(--oos); font-weight:700;">🚨 Samsara Violation on Record</div>`;
-            if (t.flagged) html += `<div style="color:var(--warning); font-weight:700;">⚠️ ${t.flagged}</div>`;
-            html += `</div>`;
-        }
-        return html;
-    }
     function formatTimeForInput(timeStr) {
       if (!timeStr || timeStr === '?' || timeStr === '—') return '';
       const match = timeStr.match(/(\d{2}):(\d{2}):\d{2}/);
@@ -1576,17 +1434,16 @@
          const cleanStart = formatTechTime(t.start);
          const cleanEnd = formatTechTime(t.end);
 
-         const badgeHTML = getTechBadgesHTML(t);
          html += `
             <div class="driver-card ${isMuted}" onclick="openEditTechModal('${t.name}')">
                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                  <strong style="font-size:16px; color:var(--text-main);">${t.name}</strong>
                  <span style="font-size:12px; font-weight:bold; color:var(--text-muted);">${t.status}</span>
                </div>
-               <div style="font-size:12px; color:var(--text-muted);">
+               <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
                  Shift ${t.shift || '-'} | ${cleanStart} to ${cleanEnd}
                </div>
-               ${badgeHTML}
+               <div>${passFlag} ${restrFlag} ${samFlag}</div>
             </div>
          `;
       });
@@ -1615,14 +1472,11 @@
       document.getElementById('et_coast').checked = t ? t.coastEnrolled : false;
       document.getElementById('et_evgo').checked = t ? t.evgo : false;
       document.getElementById('et_trainer').checked = t ? t.trainer : false;
-      document.getElementById('et_needs_training').checked = t ? t.needsTraining : false;
+      document.getElementById('et_restricted').checked = t ? t.restricted : false;
+      document.getElementById('et_samsara').checked = t ? t.samsaraViolation : false;
       
-      document.getElementById('et_restricted').value = (t && t.restricted) ? 'true' : 'false';
-      document.getElementById('et_samsara').value = (t && t.samsaraViolation) ? 'true' : 'false';
       document.getElementById('et_notes').value = t ? t.notes : '';
       document.getElementById('et_flag').value = t ? t.flagged : '';
-      
-      updateManagerDisplays();
 
       const etm = document.getElementById('edit-tech-modal');
       etm.dataset.dirty = 'false';
@@ -1632,6 +1486,14 @@
     function submitEditTech(e) {
       e.preventDefault();
       
+      const isRestricted = document.getElementById('et_restricted').checked;
+      const notes = document.getElementById('et_notes').value;
+      
+      if (isRestricted && notes.trim() === '') {
+          alert('You must enter a reason in the Admin Notes field when placing a tech on driving restriction.');
+          return;
+      }
+
       const payload = {
         origName: document.getElementById('et_orig_name').value,
         name: document.getElementById('et_name').value,
@@ -1647,10 +1509,9 @@
         coast: document.getElementById('et_coast').checked,
         evgo: document.getElementById('et_evgo').checked,
         trainer: document.getElementById('et_trainer').checked,
-        needsTraining: document.getElementById('et_needs_training').checked,
-        restricted: document.getElementById('et_restricted').value === 'true',
-        samsaraViolation: document.getElementById('et_samsara').value === 'true',
-        notes: document.getElementById('et_notes').value,
+        restricted: isRestricted,
+        samsaraViolation: document.getElementById('et_samsara').checked,
+        notes: notes,
         flagged: document.getElementById('et_flag').value
       };
 
@@ -2016,13 +1877,18 @@
       let html = '';
       if(matches.length > 0) {
         html += matches.map(match => {
-          const badgeHTML = getTechBadgesHTML(match);
+          let flagAlert = match.flagged ? `<div style="color:var(--oos); font-size:11px; margin-top:4px;">🚨 ${match.flagged}</div>` : '';
+          let vioAlert = match.samsaraViolation ? `<span class="d-badge b-fail">SAMSARA VIO</span>` : '';
           return `
             <div class="driver-card" onmousedown="selectDriver('${match.name}', '${type}')" style="margin:0 0 6px 0; border:1px solid var(--border-color); box-shadow:none;">
               <div style="display:flex; justify-content:space-between;">
-                <strong style="font-size:14px;">${match.name}</strong>
+                <strong>${match.name}</strong>
+                <div>
+                  <span class="d-badge ${match.passedTest ? 'b-pass' : 'b-fail'}">Test: ${match.passedTest ? 'PASS' : 'FAIL'}</span>
+                  ${vioAlert}
+                </div>
               </div>
-              ${badgeHTML}
+              ${flagAlert}
             </div>
           `;
         }).join('');
@@ -2150,15 +2016,7 @@
       
       let html = '';
       if(matches.length > 0) {
-        html += matches.map(match => {
-          const badgeHTML = getTechBadgesHTML(match);
-          return `
-            <div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')" style="margin:0 0 6px 0;">
-                <strong style="font-size:14px;">${match.name}</strong>
-                ${badgeHTML}
-            </div>
-          `;
-        }).join('');
+        html += matches.map(match => `<div class="driver-card" id="edcard-${match.name.replace(/\s+/g, '')}" onclick="selectDriverEdit('${match.name}')"><strong>${match.name}</strong></div>`).join('');
       } else {
         html += `<div style="padding:12px; font-size:13px; color:var(--text-muted); text-align:center; border: 1px dashed var(--border-color); border-radius: 8px; margin-bottom: 8px;">No matching drivers found.</div>`;
       }
@@ -2336,8 +2194,13 @@
         .processDispatchCheckout(payload);
     }
 
-    function openEndShiftModal(depId, rentalId) {
+        function openEndShiftModal(depId, rentalId) {
       if(!depId) return;
+      
+      const dep = (globalState.deployments || []).find(d => d.id === depId);
+      const battOut = dep ? dep.battery : '0';
+      document.getElementById('es_batt_out_display').innerText = battOut || '0';
+      
       document.getElementById('es_dep_id').value = depId;
       document.getElementById('es_rental_id').value = rentalId;
       document.getElementById('es_batt_in').value = '';
@@ -2357,12 +2220,26 @@
       
       if(!depId) return;
       
+      const dep = (globalState.deployments || []).find(d => d.id === depId);
+      const battOut = parseInt(dep ? (dep.battery || 0) : 0, 10);
+      const battIn = parseInt(document.getElementById('es_batt_in').value, 10);
+      let notes = document.getElementById('es_notes').value;
+      
+      if (battOut !== battIn) {
+         if (!notes || notes.trim() === '') {
+             alert(`Battery Discrepancy! Sent out: ${battOut}, Brought in: ${battIn}. You must provide a reason in the Check-In Notes.`);
+             return;
+         }
+         notes = `[BATT DISCREPANCY: Out ${battOut} / In ${battIn}] ` + notes;
+      }
+      
       const payload = { 
         deploymentId: depId, 
         rentalId: rentalId,
-        batteriesIn: document.getElementById('es_batt_in').value,
+        batteriesIn: battIn,
         eKeyReturned: document.getElementById('es_ekey').value,
-        checkInNotes: document.getElementById('es_notes').value
+        checkInNotes: notes,
+        assignedTech: dep ? dep.tech : null // needed to flag driver log if desired
       };
       
       closeCurrentModal(); 
@@ -2580,14 +2457,6 @@
         dlg.addEventListener('input', () => dlg.dataset.dirty = 'true');
         dlg.addEventListener('change', () => dlg.dataset.dirty = 'true');
       }
-
-      // ** ESC KEY & NATIVE CLOSE SYNC **
-      dlg.addEventListener('close', () => {
-         const idx = modalStack.indexOf(dlg);
-         if (idx > -1) {
-             modalStack.splice(idx, 1);
-         }
-      });
       
       dlg.addEventListener('click', (e) => {
         if (e.target === dlg) {
@@ -2601,11 +2470,8 @@
           } else { 
               if (isHubModal && dlg.id !== 'unsaved-modal') {
                   modalStack = []; // Reset stack if user explicitly clicks off a base hub
-                  dlg.dataset.dirty = 'false';
-                  dlg.close(); // Force close the hub modal
-              } else {
-                  closeCurrentModal(); 
               }
+              closeCurrentModal(); 
           }
         }
       });
